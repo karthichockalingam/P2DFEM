@@ -1,0 +1,504 @@
+//                       MFEM Example 16 - Parallel Version
+//
+// Compile with: make ex16p
+//
+// Sample runs:  mpirun -np 4 ex16p
+//               mpirun -np 4 ex16p -m ../data/inline-tri.mesh
+//               mpirun -np 4 ex16p -m ../data/disc-nurbs.mesh -tf 2
+//               mpirun -np 4 ex16p -s 1 -a 0.0 -k 1.0
+//               mpirun -np 4 ex16p -s 2 -a 1.0 -k 0.0
+//               mpirun -np 8 ex16p -s 3 -a 0.5 -k 0.5 -o 4
+//               mpirun -np 4 ex16p -s 14 -dt 1.0e-4 -tf 4.0e-2 -vs 40
+//               mpirun -np 16 ex16p -m ../data/fichera-q2.mesh
+//               mpirun -np 16 ex16p -m ../data/fichera-mixed.mesh
+//               mpirun -np 16 ex16p -m ../data/escher-p2.mesh
+//               mpirun -np 8 ex16p -m ../data/beam-tet.mesh -tf 10 -dt 0.1
+//               mpirun -np 4 ex16p -m ../data/amr-quad.mesh -o 4 -rs 0 -rp 0
+//               mpirun -np 4 ex16p -m ../data/amr-hex.mesh -o 2 -rs 0 -rp 0
+//
+// Description:  This example solves a time dependent nonlinear heat equation
+//               problem of the form du/dt = C(u), with a non-linear diffusion
+//               operator C(u) = \nabla \cdot (\kappa + \alpha u) \nabla u.
+//
+//               The example demonstrates the use of nonlinear operators (the
+//               class ConductionOperator defining C(u)), as well as their
+//               implicit time integration. Note that implementing the method
+//               ConductionOperator::ImplicitSolve is the only requirement for
+//               high-order implicit (SDIRK) time integration. In this example,
+//               the diffusion operator is linearized by evaluating with the
+//               lagged solution from the previous timestep, so there is only
+//               a linear solve.
+
+#include "mfem.hpp"
+#include <fstream>
+#include <iostream>
+
+using namespace std;
+using namespace mfem;
+
+const real_t T0 = 298.15;
+const real_t C = 100000;
+const real_t D = 1.0;
+enum UnitCell {PCC = 1, PE, SEP, NE, NCC};
+
+double  function1(const Vector & x){ D * x(0) * x(0); }
+double  function2(const Vector & x){ x(0) * x(0); }
+
+/** After spatial discretization, the conduction model can be written as:
+ *
+ *     du/dt = M^{-1}(-Ku)
+ *
+ *  where u is the vector representing the temperature, M is the mass matrix,
+ *  and K is the diffusion operator with diffusivity depending on u:
+ *  (\kappa + \alpha u).
+ *
+ *  Class ConductionOperator represents the right-hand side of the above ODE.
+ */
+class ConductionOperator : public TimeDependentOperator
+{
+protected:
+   ParFiniteElementSpace &fespace;
+   Array<int> ess_tdof_list; // this list remains empty for pure Neumann b.c.
+
+   ParBilinearForm *M;
+   ParBilinearForm *K;
+   ParLinearForm *Q;
+
+   HypreParMatrix Mmat;
+   HypreParMatrix Kmat;
+   HypreParVector Qvec;
+
+   HypreParMatrix *T; // T = M + dt K
+   real_t current_dt;
+
+   CGSolver M_solver;    // Krylov solver for inverting the mass matrix M
+   HypreSmoother M_prec; // Preconditioner for the mass matrix M
+
+   CGSolver T_solver;    // Implicit solver for T = M + dt K
+   HypreSmoother T_prec; // Preconditioner for the implicit solver
+
+   mutable Vector z; // auxiliary vector
+
+public:
+   ConductionOperator(ParFiniteElementSpace &f, const Vector &u, const Array<int> &etl);
+
+   virtual void Mult(const Vector &u, Vector &du_dt) const;
+   /** Solve the Backward-Euler equation: k = f(u + dt*k, t), for the unknown k.
+       This is the only requirement for high-order SDIRK implicit integration.*/
+   virtual void ImplicitSolve(const real_t dt, const Vector &u, Vector &k);
+
+   /// Update the diffusion BilinearForm K using the given true-dof vector `u`.
+   void SetParameters(const Vector &u);
+
+   virtual ~ConductionOperator();
+};
+
+int main(int argc, char *argv[])
+{
+   // 1. Initialize MPI and HYPRE.
+   Mpi::Init(argc, argv);
+   int num_procs = Mpi::WorldSize();
+   int myid = Mpi::WorldRank();
+   Hypre::Init();
+
+   // 2. Parse command-line options.
+   const char *mesh_file = "mesh/pouch.e";
+   int ser_ref_levels = 0;
+   int par_ref_levels = 0;
+   int order = 1;
+   int ode_solver_type = 3;
+   real_t t_final = 0.5;
+   real_t dt = 1.0e-2;
+   bool visualization = true;
+   int vis_steps = 5;
+
+   int precision = 8;
+   cout.precision(precision);
+
+   OptionsParser args(argc, argv);
+   args.AddOption(&mesh_file, "-m", "--mesh",
+                  "Mesh file to use.");
+   args.AddOption(&ser_ref_levels, "-rs", "--refine-serial",
+                  "Number of times to refine the mesh uniformly in serial.");
+   args.AddOption(&par_ref_levels, "-rp", "--refine-parallel",
+                  "Number of times to refine the mesh uniformly in parallel.");
+   args.AddOption(&order, "-o", "--order",
+                  "Order (degree) of the finite elements.");
+   args.AddOption(&ode_solver_type, "-s", "--ode-solver",
+                  "ODE solver: 1 - Backward Euler, 2 - SDIRK2, 3 - SDIRK3,\n\t"
+                  "\t   11 - Forward Euler, 12 - RK2, 13 - RK3 SSP, 14 - RK4.");
+   args.AddOption(&t_final, "-tf", "--t-final",
+                  "Final time; start time is 0.");
+   args.AddOption(&dt, "-dt", "--time-step",
+                  "Time step.");
+   args.AddOption(&visualization, "-vis", "--visualization", "-no-vis",
+                  "--no-visualization",
+                  "Enable or disable ParaView visualization.");
+   args.AddOption(&vis_steps, "-vs", "--visualization-steps",
+                  "Visualize every n-th timestep.");
+   args.Parse();
+   if (!args.Good())
+   {
+      args.PrintUsage(cout);
+      return 1;
+   }
+
+   if (myid == 0)
+      args.PrintOptions(cout);
+
+   // 3. Read the serial mesh from the given mesh file on all processors. We can
+   //    handle triangular, quadrilateral, tetrahedral and hexahedral meshes
+   //    with the same code.
+   Mesh *mesh = new Mesh(mesh_file, 1, 1);
+   int dim = mesh->Dimension();
+
+   // 4. Define the ODE solver used for time integration. Several implicit
+   //    singly diagonal implicit Runge-Kutta (SDIRK) methods, as well as
+   //    explicit Runge-Kutta methods are available.
+   ODESolver *ode_solver;
+   switch (ode_solver_type)
+   {
+      // Implicit L-stable methods
+      case 1:  ode_solver = new BackwardEulerSolver; break;
+      case 2:  ode_solver = new SDIRK23Solver(2); break;
+      case 3:  ode_solver = new SDIRK33Solver; break;
+      // Explicit methods
+      case 11: ode_solver = new ForwardEulerSolver; break;
+      case 12: ode_solver = new RK2Solver(0.5); break; // midpoint method
+      case 13: ode_solver = new RK3SSPSolver; break;
+      case 14: ode_solver = new RK4Solver; break;
+      case 15: ode_solver = new GeneralizedAlphaSolver(0.5); break;
+      // Implicit A-stable methods (not L-stable)
+      case 22: ode_solver = new ImplicitMidpointSolver; break;
+      case 23: ode_solver = new SDIRK23Solver; break;
+      case 24: ode_solver = new SDIRK34Solver; break;
+      default:
+         cout << "Unknown ODE solver type: " << ode_solver_type << '\n';
+         delete mesh;
+         return 3;
+   }
+
+   // 5. Refine the mesh in serial to increase the resolution. In this example
+   //    we do 'ser_ref_levels' of uniform refinement, where 'ser_ref_levels' is
+   //    a command-line parameter.
+   for (int lev = 0; lev < ser_ref_levels; lev++)
+      mesh->UniformRefinement();
+
+   // 6. Define a parallel mesh by a partitioning of the serial mesh. Refine
+   //    this mesh further in parallel to increase the resolution. Once the
+   //    parallel mesh is defined, the serial mesh can be deleted.
+   ParMesh *pmesh = new ParMesh(MPI_COMM_WORLD, *mesh);
+   delete mesh;
+   for (int lev = 0; lev < par_ref_levels; lev++)
+      pmesh->UniformRefinement();
+
+   // 7. Define the vector finite element space representing the current and the
+   //    initial temperature, u_ref.
+   H1_FECollection fe_coll(order, dim);
+   ParFiniteElementSpace fespace(pmesh, &fe_coll);
+
+   HYPRE_BigInt fe_size_global = fespace.GlobalTrueVSize();
+   if (myid == 0)
+      cout << "Unknowns (total): " << fe_size_global << endl;
+
+   HYPRE_BigInt fe_size_owned = fespace.TrueVSize();
+   cout << "Unknowns (rank " << myid << "): " << fe_size_owned << endl;
+
+   ParGridFunction u_gf(&fespace);
+
+   // 8. Set the initial/boundary conditions for u.
+   Array<int> ess_tdof_list;
+   Array<int> ess_bdr(pmesh->bdr_attributes.Max());
+   ess_bdr = 1;
+   fespace.GetEssentialTrueDofs(ess_bdr, ess_tdof_list);
+
+   ConstantCoefficient u_0(T0);
+   u_gf.ProjectCoefficient(u_0);
+   ConstantCoefficient u_b(T0);
+   u_gf.ProjectBdrCoefficient(u_b, ess_bdr);
+   Vector u;
+   u_gf.GetTrueDofs(u);
+
+   // 9. Initialize the conduction operator and the VisIt visualization.
+   ConductionOperator oper(fespace, u, ess_tdof_list);
+
+   //u_gf.SetFromTrueDofs(u);
+   ParaViewDataCollection pd("pouch", pmesh);
+   pd.SetPrefixPath("ParaView");
+   pd.SetLevelsOfDetail(order);
+   pd.SetHighOrderOutput(true);
+   pd.SetDataFormat(VTKFormat::BINARY);
+   pd.RegisterField("u", &u_gf);
+   pd.SetCycle(0);
+   pd.SetTime(0.0);
+   pd.Save();
+
+   // 10. Perform time-integration (looping over the time iterations, ti, with a
+   //     time-step dt).
+   ode_solver->Init(oper);
+   real_t t = 0.0;
+
+   bool last_step = false;
+   for (int ti = 1; !last_step; ti++)
+   {
+      last_step = t + dt >= t_final - dt/2;
+
+      ode_solver->Step(u, t, dt);
+
+      if (last_step || (ti % vis_steps) == 0)
+      {
+         if (myid == 0)
+            cout << "step " << ti << ", t = " << t << endl;
+
+         u_gf.SetFromTrueDofs(u);
+         if (last_step || visualization)
+         {
+            pd.SetCycle(ti);
+            pd.SetTime(t);
+            pd.Save();
+         }
+      }
+      oper.SetParameters(u);
+   }
+
+   // 11. Free the used memory.
+   delete ode_solver;
+   delete pmesh;
+
+   return 0;
+}
+
+ConductionOperator::ConductionOperator(ParFiniteElementSpace &f, const Vector &u, const Array<int> &etl)
+   : TimeDependentOperator(f.GetTrueVSize(), (real_t) 0.0), fespace(f),
+     ess_tdof_list(etl), M(NULL), K(NULL), Q(NULL), T(NULL), current_dt(0.0),
+     M_solver(f.GetComm()), T_solver(f.GetComm()), z(height)
+{
+   const real_t rel_tol = 1e-8;
+
+   SetParameters(u);
+
+   M_solver.iterative_mode = false;
+   M_solver.SetRelTol(rel_tol);
+   M_solver.SetAbsTol(0.0);
+   M_solver.SetMaxIter(100);
+   M_solver.SetPrintLevel(0);
+   M_prec.SetType(HypreSmoother::Jacobi);
+   M_solver.SetPreconditioner(M_prec);
+   M_solver.SetOperator(Mmat);
+
+   T_solver.iterative_mode = false;
+   T_solver.SetRelTol(rel_tol);
+   T_solver.SetAbsTol(0.0);
+   T_solver.SetMaxIter(100);
+   T_solver.SetPrintLevel(0);
+   T_solver.SetPreconditioner(T_prec);
+}
+
+void ConductionOperator::Mult(const Vector &u, Vector &du_dt) const
+{
+   // Compute:
+   //    du_dt = M^{-1}*-Ku
+   // for du_dt, where K is linearized by using u from the previous timestep
+   Kmat.Mult(u, z);
+   z.Neg(); // z = -z
+   z += Qvec;
+   HypreParMatrix A; Vector X, Z;
+   ParGridFunction uu(&fespace), zz(&fespace);
+   uu.SetFromTrueDofs(u);
+   const SparseMatrix &R = *(fespace.GetRestrictionMatrix());
+   R.MultTranspose(z, zz);
+   K->FormLinearSystem(ess_tdof_list, uu, zz, A, X, Z);
+   M_solver.Mult(Z, du_dt);
+   du_dt.SetSubVector(ess_tdof_list, 0.0);
+}
+
+void ConductionOperator::ImplicitSolve(const real_t dt,
+                                       const Vector &u, Vector &du_dt)
+{
+   // Solve the equation:
+   //    du_dt = M^{-1}*[-K(u + dt*du_dt)]
+   // for du_dt, where K is linearized by using u from the previous timestep
+   if (!T)
+   {
+      T = Add(1.0, Mmat, dt, Kmat);
+      current_dt = dt;
+      T_solver.SetOperator(*T);
+   }
+   MFEM_VERIFY(dt == current_dt, ""); // SDIRK methods use the same dt
+   Kmat.Mult(u, z);
+   z.Neg();
+   z += Qvec;
+   HypreParMatrix A; Vector X, Z;
+   ParGridFunction uu(&fespace), zz(&fespace);
+   uu.SetFromTrueDofs(u);
+   const SparseMatrix &R = *(fespace.GetRestrictionMatrix());
+   R.MultTranspose(z, zz);
+   K->FormLinearSystem(ess_tdof_list, uu, zz, A, X, Z);
+   T_solver.Mult(Z, du_dt);
+   du_dt.SetSubVector(ess_tdof_list, 0.0);
+}
+
+GridFunctionCoefficient * rhocp(GridFunction & u_gf, const UnitCell & s)
+{
+   GridFunction * rhocp_gf = new GridFunction(u_gf.FESpace());
+
+   switch (s)
+   {
+      case PCC:
+         for (int i = 0; i < u_gf.Size(); i++)
+            (*rhocp_gf)(i) = 2707 * 898;
+         break;
+      case PE:
+         for (int i = 0; i < u_gf.Size(); i++)
+            (*rhocp_gf)(i) = 2780 * 784;
+         break;
+      case SEP:
+         for (int i = 0; i < u_gf.Size(); i++)
+            (*rhocp_gf)(i) = 1139 * 1700;
+         break;
+      case NE:
+         for (int i = 0; i < u_gf.Size(); i++)
+            (*rhocp_gf)(i) = 1851 * 955;
+         break;
+      case NCC:
+         for (int i = 0; i < u_gf.Size(); i++)
+            (*rhocp_gf)(i) = 8710 * 385;
+         break;
+
+      default:
+         break;
+   }
+   *rhocp_gf /= (C * C * C);
+   return new GridFunctionCoefficient(rhocp_gf);
+}
+
+GridFunctionCoefficient * kappa(GridFunction & u_gf, const UnitCell & s)
+{
+   GridFunction * kappa_gf = new GridFunction(u_gf.FESpace());
+
+   switch (s)
+   {
+      case PCC:
+         for (int i = 0; i < u_gf.Size(); i++)
+            (*kappa_gf)(i) = 236;
+         break;
+      case PE:
+         for (int i = 0; i < u_gf.Size(); i++)
+            (*kappa_gf)(i) = 1.101;
+         break;
+      case SEP:
+         for (int i = 0; i < u_gf.Size(); i++)
+            (*kappa_gf)(i) = 0.210;
+         break;
+      case NE:
+         for (int i = 0; i < u_gf.Size(); i++)
+            (*kappa_gf)(i) = 2.820;
+         break;
+      case NCC:
+         for (int i = 0; i < u_gf.Size(); i++)
+            (*kappa_gf)(i) = 399;
+         break;
+
+      default:
+         break;
+   }
+   *kappa_gf /= C;
+   return new GridFunctionCoefficient(kappa_gf);
+}
+
+GridFunctionCoefficient * q(GridFunction & u_gf, const UnitCell & s)
+{
+   GridFunction * q_gf = new GridFunction(u_gf.FESpace());
+
+   switch (s)
+   {
+      case PCC:
+      case NCC:
+      case SEP:
+         for (int i = 0; i < u_gf.Size(); i++)
+            (*q_gf)(i) = 0;
+         break;
+      case PE:
+      case NE:
+         for (int i = 0; i < u_gf.Size(); i++)
+            (*q_gf)(i) = C;
+         break;
+
+      default:
+         break;
+   }
+   *q_gf /= (C * C * C);
+   return new GridFunctionCoefficient(q_gf);
+}
+
+void ConductionOperator::SetParameters(const Vector &u)
+{
+   ParGridFunction u_gf(&fespace);
+   u_gf.SetFromTrueDofs(u);
+
+   const Array<UnitCell> tags({PCC, PE, SEP, NE, NCC});
+
+   const Array<GridFunctionCoefficient*> GFCrhocp({rhocp(u_gf, PCC),
+                                                   rhocp(u_gf, PE),
+                                                   rhocp(u_gf, SEP),
+                                                   rhocp(u_gf, NE),
+                                                   rhocp(u_gf, NCC)});
+   PWCoefficient PWrhocp(tags, GFCrhocp);
+
+   const Array<GridFunctionCoefficient*> GFCkappa({kappa(u_gf, PCC),
+                                                   kappa(u_gf, PE),
+                                                   kappa(u_gf, SEP),
+                                                   kappa(u_gf, NE),
+                                                   kappa(u_gf, NCC)});
+   PWCoefficient PWkappa(tags, GFCkappa);
+
+   const Array<GridFunctionCoefficient*> GFCq({q(u_gf, PCC),
+                                               q(u_gf, PE),
+                                               q(u_gf, SEP),
+                                               q(u_gf, NE),
+                                               q(u_gf, NCC)});
+   PWCoefficient PWq(tags, GFCq);
+
+   FunctionCoefficient diff(function1);
+   FunctionCoefficient coeff(function2);
+
+   delete M;
+   M = new ParBilinearForm(&fespace);
+   M->AddDomainIntegrator(new MassIntegrator(PWrhocp));
+   M->Assemble(0); // keep sparsity pattern of M and K the same
+   M->FormSystemMatrix(ess_tdof_list, Mmat);
+
+
+   delete K;
+   K = new ParBilinearForm(&fespace);
+   K->AddDomainIntegrator(new DiffusionIntegrator(PWkappa));
+   K->Assemble(0); // keep sparsity pattern of M and K the same
+   K->FormSystemMatrix(ess_tdof_list, Kmat);
+
+   delete Q;
+   Q = new ParLinearForm(&fespace);
+   Q->AddDomainIntegrator(new DomainLFIntegrator(PWq));
+   Q->Assemble();
+   Qvec = std::move(*(Q->ParallelAssemble()));
+   Qvec.SetSubVector(ess_tdof_list, 0.0); // do we need this?
+
+   delete T;
+   T = NULL; // re-compute T on the next ImplicitSolve
+
+   for (auto gfc: GFCrhocp)
+      delete gfc;
+
+   for (auto gfc: GFCkappa)
+      delete gfc;
+
+   for (auto gfc: GFCq)
+      delete gfc;
+}
+
+ConductionOperator::~ConductionOperator()
+{
+   delete T;
+   delete M;
+   delete K;
+   delete Q;
+}
