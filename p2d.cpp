@@ -37,9 +37,7 @@ using namespace std;
 using namespace mfem;
 
 const real_t T0 = 298.15;
-const real_t C = 100000;
 const real_t D = 1.0;
-enum UnitCell {PCC = 1, PE, SEP, NE, NCC};
 
 double  function1(const Vector & x){ D * x(0) * x(0); }
 double  function2(const Vector & x){ x(0) * x(0); }
@@ -102,7 +100,6 @@ int main(int argc, char *argv[])
    Hypre::Init();
 
    // 2. Parse command-line options.
-   const char *mesh_file = "mesh/pouch.e";
    int ser_ref_levels = 0;
    int par_ref_levels = 0;
    int order = 1;
@@ -116,8 +113,6 @@ int main(int argc, char *argv[])
    cout.precision(precision);
 
    OptionsParser args(argc, argv);
-   args.AddOption(&mesh_file, "-m", "--mesh",
-                  "Mesh file to use.");
    args.AddOption(&ser_ref_levels, "-rs", "--refine-serial",
                   "Number of times to refine the mesh uniformly in serial.");
    args.AddOption(&par_ref_levels, "-rp", "--refine-parallel",
@@ -149,8 +144,8 @@ int main(int argc, char *argv[])
    // 3. Read the serial mesh from the given mesh file on all processors. We can
    //    handle triangular, quadrilateral, tetrahedral and hexahedral meshes
    //    with the same code.
-   Mesh *mesh = new Mesh(mesh_file, 1, 1);
-   int dim = mesh->Dimension();
+   Mesh serial_mesh = Mesh::MakeCartesian1D(10);
+   int dim = serial_mesh.Dimension();
 
    // 4. Define the ODE solver used for time integration. Several implicit
    //    singly diagonal implicit Runge-Kutta (SDIRK) methods, as well as
@@ -174,21 +169,20 @@ int main(int argc, char *argv[])
       case 24: ode_solver = new SDIRK34Solver; break;
       default:
          cout << "Unknown ODE solver type: " << ode_solver_type << '\n';
-         delete mesh;
-         return 3;
+         return 1;
    }
 
    // 5. Refine the mesh in serial to increase the resolution. In this example
    //    we do 'ser_ref_levels' of uniform refinement, where 'ser_ref_levels' is
    //    a command-line parameter.
    for (int lev = 0; lev < ser_ref_levels; lev++)
-      mesh->UniformRefinement();
+      serial_mesh.UniformRefinement();
 
    // 6. Define a parallel mesh by a partitioning of the serial mesh. Refine
    //    this mesh further in parallel to increase the resolution. Once the
    //    parallel mesh is defined, the serial mesh can be deleted.
-   ParMesh *pmesh = new ParMesh(MPI_COMM_WORLD, *mesh);
-   delete mesh;
+   ParMesh *pmesh = new ParMesh(MPI_COMM_WORLD, serial_mesh);
+   serial_mesh.Clear(); // the serial mesh is no longer needed
    for (int lev = 0; lev < par_ref_levels; lev++)
       pmesh->UniformRefinement();
 
