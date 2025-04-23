@@ -36,7 +36,7 @@
 using namespace std;
 using namespace mfem;
 
-const real_t T0 = 298.15;
+const real_t T0 = 0.0;
 const real_t D = 1.0;
 
 double  function1(const Vector & x){ D * x(0) * x(0); }
@@ -57,6 +57,7 @@ class ConductionOperator : public TimeDependentOperator
 protected:
    ParFiniteElementSpace &fespace;
    Array<int> ess_tdof_list; // this list remains empty for pure Neumann b.c.
+   Array<int> nbc_bdr; // this list remains empty for pure Neumann b.c.
 
    ParBilinearForm *M;
    ParBilinearForm *K;
@@ -78,7 +79,7 @@ protected:
    mutable Vector z; // auxiliary vector
 
 public:
-   ConductionOperator(ParFiniteElementSpace &f, const Vector &u, const Array<int> &etl);
+   ConductionOperator(ParFiniteElementSpace &f, const Vector &u, const Array<int> &etl, const Array<int> &nb);
 
    virtual void Mult(const Vector &u, Vector &du_dt) const;
    /** Solve the Backward-Euler equation: k = f(u + dt*k, t), for the unknown k.
@@ -104,7 +105,7 @@ int main(int argc, char *argv[])
    int par_ref_levels = 0;
    int order = 1;
    int ode_solver_type = 3;
-   real_t t_final = 0.5;
+   real_t t_final = 1.0;
    real_t dt = 1.0e-2;
    bool visualization = true;
    int vis_steps = 5;
@@ -203,8 +204,11 @@ int main(int argc, char *argv[])
    // 8. Set the initial/boundary conditions for u.
    Array<int> ess_tdof_list;
    Array<int> ess_bdr(pmesh->bdr_attributes.Max());
-   ess_bdr = 1;
+   ess_bdr = 0;
    fespace.GetEssentialTrueDofs(ess_bdr, ess_tdof_list);
+
+   Array<int> nbc_bdr(pmesh->bdr_attributes.Max());
+   nbc_bdr = 0; nbc_bdr[0] = 1;
 
    ConstantCoefficient u_0(T0);
    u_gf.ProjectCoefficient(u_0);
@@ -214,7 +218,7 @@ int main(int argc, char *argv[])
    u_gf.GetTrueDofs(u);
 
    // 9. Initialize the conduction operator and the VisIt visualization.
-   ConductionOperator oper(fespace, u, ess_tdof_list);
+   ConductionOperator oper(fespace, u, ess_tdof_list, nbc_bdr);
 
    //u_gf.SetFromTrueDofs(u);
    ParaViewDataCollection pd("particle", pmesh);
@@ -262,9 +266,9 @@ int main(int argc, char *argv[])
    return 0;
 }
 
-ConductionOperator::ConductionOperator(ParFiniteElementSpace &f, const Vector &u, const Array<int> &etl)
+ConductionOperator::ConductionOperator(ParFiniteElementSpace &f, const Vector &u, const Array<int> &etl, const Array<int> &nb)
    : TimeDependentOperator(f.GetTrueVSize(), (real_t) 0.0), fespace(f),
-     ess_tdof_list(etl), M(NULL), K(NULL), Q(NULL), T(NULL), current_dt(0.0),
+     ess_tdof_list(etl), nbc_bdr(nb), M(NULL), K(NULL), Q(NULL), T(NULL), current_dt(0.0),
      M_solver(f.GetComm()), T_solver(f.GetComm()), z(height)
 {
    const real_t rel_tol = 1e-8;
@@ -339,7 +343,7 @@ void ConductionOperator::SetParameters(const Vector &u)
 
    FunctionCoefficient diff(function1);
    FunctionCoefficient coeff(function2);
-   ConstantCoefficient zero(0.0);
+   ConstantCoefficient nbcCoef(1.0);
 
    delete M;
    M = new ParBilinearForm(&fespace);
@@ -355,7 +359,7 @@ void ConductionOperator::SetParameters(const Vector &u)
 
    delete Q;
    Q = new ParLinearForm(&fespace);
-   Q->AddDomainIntegrator(new DomainLFIntegrator(zero));
+   Q->AddBoundaryIntegrator(new BoundaryLFIntegrator(nbcCoef), nbc_bdr);
    Q->Assemble();
    Qvec = std::move(*(Q->ParallelAssemble()));
    Qvec.SetSubVector(ess_tdof_list, 0.0); // do we need this?
