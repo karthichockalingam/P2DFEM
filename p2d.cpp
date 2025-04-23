@@ -21,9 +21,9 @@
 //               operator C(u) = \nabla \cdot (\kappa + \alpha u) \nabla u.
 //
 //               The example demonstrates the use of nonlinear operators (the
-//               class ConductionOperator defining C(u)), as well as their
+//               class ConcentrationOperator defining C(u)), as well as their
 //               implicit time integration. Note that implementing the method
-//               ConductionOperator::ImplicitSolve is the only requirement for
+//               ConcentrationOperator::ImplicitSolve is the only requirement for
 //               high-order implicit (SDIRK) time integration. In this example,
 //               the diffusion operator is linearized by evaluating with the
 //               lagged solution from the previous timestep, so there is only
@@ -36,7 +36,7 @@
 using namespace std;
 using namespace mfem;
 
-const real_t T0 = 0.0;
+const real_t C0 = 0.0;
 const real_t D = 1.0;
 
 double  function1(const Vector & x){ D * x(0) * x(0); }
@@ -50,9 +50,9 @@ double  function2(const Vector & x){ x(0) * x(0); }
  *  and K is the diffusion operator with diffusivity depending on u:
  *  (\kappa + \alpha u).
  *
- *  Class ConductionOperator represents the right-hand side of the above ODE.
+ *  Class ConcentrationOperator represents the right-hand side of the above ODE.
  */
-class ConductionOperator : public TimeDependentOperator
+class ConcentrationOperator : public TimeDependentOperator
 {
 protected:
    ParFiniteElementSpace &fespace;
@@ -67,19 +67,19 @@ protected:
    HypreParMatrix Kmat;
    HypreParVector Qvec;
 
-   HypreParMatrix *T; // T = M + dt K
+   HypreParMatrix *C; // C = M + dt K
    real_t current_dt;
 
    CGSolver M_solver;    // Krylov solver for inverting the mass matrix M
    HypreSmoother M_prec; // Preconditioner for the mass matrix M
 
-   CGSolver T_solver;    // Implicit solver for T = M + dt K
-   HypreSmoother T_prec; // Preconditioner for the implicit solver
+   CGSolver C_solver;    // Implicit solver for T = M + dt K
+   HypreSmoother C_prec; // Preconditioner for the implicit solver
 
    mutable Vector z; // auxiliary vector
 
 public:
-   ConductionOperator(ParFiniteElementSpace &f, const Vector &u, const Array<int> &etl, const Array<int> &nb);
+   ConcentrationOperator(ParFiniteElementSpace &f, const Vector &u, const Array<int> &etl, const Array<int> &nb);
 
    virtual void Mult(const Vector &u, Vector &du_dt) const;
    /** Solve the Backward-Euler equation: k = f(u + dt*k, t), for the unknown k.
@@ -89,7 +89,7 @@ public:
    /// Update the diffusion BilinearForm K using the given true-dof vector `u`.
    void SetParameters(const Vector &u);
 
-   virtual ~ConductionOperator();
+   virtual ~ConcentrationOperator();
 };
 
 int main(int argc, char *argv[])
@@ -210,15 +210,15 @@ int main(int argc, char *argv[])
    Array<int> nbc_bdr(pmesh->bdr_attributes.Max());
    nbc_bdr = 0; nbc_bdr[0] = 1;
 
-   ConstantCoefficient u_0(T0);
+   ConstantCoefficient u_0(C0);
    u_gf.ProjectCoefficient(u_0);
-   ConstantCoefficient u_b(T0);
+   ConstantCoefficient u_b(C0);
    u_gf.ProjectBdrCoefficient(u_b, ess_bdr);
    Vector u;
    u_gf.GetTrueDofs(u);
 
    // 9. Initialize the conduction operator and the VisIt visualization.
-   ConductionOperator oper(fespace, u, ess_tdof_list, nbc_bdr);
+   ConcentrationOperator oper(fespace, u, ess_tdof_list, nbc_bdr);
 
    //u_gf.SetFromTrueDofs(u);
    ParaViewDataCollection pd("particle", pmesh);
@@ -266,10 +266,10 @@ int main(int argc, char *argv[])
    return 0;
 }
 
-ConductionOperator::ConductionOperator(ParFiniteElementSpace &f, const Vector &u, const Array<int> &etl, const Array<int> &nb)
+ConcentrationOperator::ConcentrationOperator(ParFiniteElementSpace &f, const Vector &u, const Array<int> &etl, const Array<int> &nb)
    : TimeDependentOperator(f.GetTrueVSize(), (real_t) 0.0), fespace(f),
-     ess_tdof_list(etl), nbc_bdr(nb), M(NULL), K(NULL), Q(NULL), T(NULL), current_dt(0.0),
-     M_solver(f.GetComm()), T_solver(f.GetComm()), z(height)
+     ess_tdof_list(etl), nbc_bdr(nb), M(NULL), K(NULL), Q(NULL), C(NULL), current_dt(0.0),
+     M_solver(f.GetComm()), C_solver(f.GetComm()), z(height)
 {
    const real_t rel_tol = 1e-8;
 
@@ -284,15 +284,15 @@ ConductionOperator::ConductionOperator(ParFiniteElementSpace &f, const Vector &u
    M_solver.SetPreconditioner(M_prec);
    M_solver.SetOperator(Mmat);
 
-   T_solver.iterative_mode = false;
-   T_solver.SetRelTol(rel_tol);
-   T_solver.SetAbsTol(0.0);
-   T_solver.SetMaxIter(100);
-   T_solver.SetPrintLevel(0);
-   T_solver.SetPreconditioner(T_prec);
+   C_solver.iterative_mode = false;
+   C_solver.SetRelTol(rel_tol);
+   C_solver.SetAbsTol(0.0);
+   C_solver.SetMaxIter(100);
+   C_solver.SetPrintLevel(0);
+   C_solver.SetPreconditioner(C_prec);
 }
 
-void ConductionOperator::Mult(const Vector &u, Vector &du_dt) const
+void ConcentrationOperator::Mult(const Vector &u, Vector &du_dt) const
 {
    // Compute:
    //    du_dt = M^{-1}*-Ku
@@ -310,17 +310,17 @@ void ConductionOperator::Mult(const Vector &u, Vector &du_dt) const
    du_dt.SetSubVector(ess_tdof_list, 0.0);
 }
 
-void ConductionOperator::ImplicitSolve(const real_t dt,
+void ConcentrationOperator::ImplicitSolve(const real_t dt,
                                        const Vector &u, Vector &du_dt)
 {
    // Solve the equation:
    //    du_dt = M^{-1}*[-K(u + dt*du_dt)]
    // for du_dt, where K is linearized by using u from the previous timestep
-   if (!T)
+   if (!C)
    {
-      T = Add(1.0, Mmat, dt, Kmat);
+      C = Add(1.0, Mmat, dt, Kmat);
       current_dt = dt;
-      T_solver.SetOperator(*T);
+      C_solver.SetOperator(*C);
    }
    MFEM_VERIFY(dt == current_dt, ""); // SDIRK methods use the same dt
    Kmat.Mult(u, z);
@@ -332,11 +332,11 @@ void ConductionOperator::ImplicitSolve(const real_t dt,
    const SparseMatrix &R = *(fespace.GetRestrictionMatrix());
    R.MultTranspose(z, zz);
    K->FormLinearSystem(ess_tdof_list, uu, zz, A, X, Z);
-   T_solver.Mult(Z, du_dt);
+   C_solver.Mult(Z, du_dt);
    du_dt.SetSubVector(ess_tdof_list, 0.0);
 }
 
-void ConductionOperator::SetParameters(const Vector &u)
+void ConcentrationOperator::SetParameters(const Vector &u)
 {
    ParGridFunction u_gf(&fespace);
    u_gf.SetFromTrueDofs(u);
@@ -364,13 +364,13 @@ void ConductionOperator::SetParameters(const Vector &u)
    Qvec = std::move(*(Q->ParallelAssemble()));
    Qvec.SetSubVector(ess_tdof_list, 0.0); // do we need this?
    
-   delete T;
-   T = NULL; // re-compute T on the next ImplicitSolve
+   delete C;
+   C = NULL; // re-compute C on the next ImplicitSolve
 }
 
-ConductionOperator::~ConductionOperator()
+ConcentrationOperator::~ConcentrationOperator()
 {
-   delete T;
+   delete C;
    delete M;
    delete K;
    delete Q;
