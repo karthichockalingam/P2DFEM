@@ -39,8 +39,8 @@ using namespace mfem;
 const real_t C0 = 0.0;
 const real_t D = 1.0;
 
-double  function1(const Vector & x){ D * x(0) * x(0); }
-double  function2(const Vector & x){ x(0) * x(0); }
+double  function1(const Vector & x){ return D * x(0) * x(0); }
+double  function2(const Vector & x){ return x(0) * x(0); }
 
 /** After spatial discretization, the conduction model can be written as:
  *
