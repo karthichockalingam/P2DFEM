@@ -223,7 +223,7 @@ int main(int argc, char *argv[])
    ConductionOperator oper(fespace, u, ess_tdof_list);
 
    //u_gf.SetFromTrueDofs(u);
-   ParaViewDataCollection pd("pouch", pmesh);
+   ParaViewDataCollection pd("particle", pmesh);
    pd.SetPrefixPath("ParaView");
    pd.SetLevelsOfDetail(order);
    pd.SetHighOrderOutput(true);
@@ -338,161 +338,36 @@ void ConductionOperator::ImplicitSolve(const real_t dt,
    du_dt.SetSubVector(ess_tdof_list, 0.0);
 }
 
-GridFunctionCoefficient * rhocp(GridFunction & u_gf, const UnitCell & s)
-{
-   GridFunction * rhocp_gf = new GridFunction(u_gf.FESpace());
-
-   switch (s)
-   {
-      case PCC:
-         for (int i = 0; i < u_gf.Size(); i++)
-            (*rhocp_gf)(i) = 2707 * 898;
-         break;
-      case PE:
-         for (int i = 0; i < u_gf.Size(); i++)
-            (*rhocp_gf)(i) = 2780 * 784;
-         break;
-      case SEP:
-         for (int i = 0; i < u_gf.Size(); i++)
-            (*rhocp_gf)(i) = 1139 * 1700;
-         break;
-      case NE:
-         for (int i = 0; i < u_gf.Size(); i++)
-            (*rhocp_gf)(i) = 1851 * 955;
-         break;
-      case NCC:
-         for (int i = 0; i < u_gf.Size(); i++)
-            (*rhocp_gf)(i) = 8710 * 385;
-         break;
-
-      default:
-         break;
-   }
-   *rhocp_gf /= (C * C * C);
-   return new GridFunctionCoefficient(rhocp_gf);
-}
-
-GridFunctionCoefficient * kappa(GridFunction & u_gf, const UnitCell & s)
-{
-   GridFunction * kappa_gf = new GridFunction(u_gf.FESpace());
-
-   switch (s)
-   {
-      case PCC:
-         for (int i = 0; i < u_gf.Size(); i++)
-            (*kappa_gf)(i) = 236;
-         break;
-      case PE:
-         for (int i = 0; i < u_gf.Size(); i++)
-            (*kappa_gf)(i) = 1.101;
-         break;
-      case SEP:
-         for (int i = 0; i < u_gf.Size(); i++)
-            (*kappa_gf)(i) = 0.210;
-         break;
-      case NE:
-         for (int i = 0; i < u_gf.Size(); i++)
-            (*kappa_gf)(i) = 2.820;
-         break;
-      case NCC:
-         for (int i = 0; i < u_gf.Size(); i++)
-            (*kappa_gf)(i) = 399;
-         break;
-
-      default:
-         break;
-   }
-   *kappa_gf /= C;
-   return new GridFunctionCoefficient(kappa_gf);
-}
-
-GridFunctionCoefficient * q(GridFunction & u_gf, const UnitCell & s)
-{
-   GridFunction * q_gf = new GridFunction(u_gf.FESpace());
-
-   switch (s)
-   {
-      case PCC:
-      case NCC:
-      case SEP:
-         for (int i = 0; i < u_gf.Size(); i++)
-            (*q_gf)(i) = 0;
-         break;
-      case PE:
-      case NE:
-         for (int i = 0; i < u_gf.Size(); i++)
-            (*q_gf)(i) = C;
-         break;
-
-      default:
-         break;
-   }
-   *q_gf /= (C * C * C);
-   return new GridFunctionCoefficient(q_gf);
-}
-
 void ConductionOperator::SetParameters(const Vector &u)
 {
    ParGridFunction u_gf(&fespace);
    u_gf.SetFromTrueDofs(u);
 
-   const Array<UnitCell> tags({PCC, PE, SEP, NE, NCC});
-
-   const Array<GridFunctionCoefficient*> GFCrhocp({rhocp(u_gf, PCC),
-                                                   rhocp(u_gf, PE),
-                                                   rhocp(u_gf, SEP),
-                                                   rhocp(u_gf, NE),
-                                                   rhocp(u_gf, NCC)});
-   PWCoefficient PWrhocp(tags, GFCrhocp);
-
-   const Array<GridFunctionCoefficient*> GFCkappa({kappa(u_gf, PCC),
-                                                   kappa(u_gf, PE),
-                                                   kappa(u_gf, SEP),
-                                                   kappa(u_gf, NE),
-                                                   kappa(u_gf, NCC)});
-   PWCoefficient PWkappa(tags, GFCkappa);
-
-   const Array<GridFunctionCoefficient*> GFCq({q(u_gf, PCC),
-                                               q(u_gf, PE),
-                                               q(u_gf, SEP),
-                                               q(u_gf, NE),
-                                               q(u_gf, NCC)});
-   PWCoefficient PWq(tags, GFCq);
-
    FunctionCoefficient diff(function1);
    FunctionCoefficient coeff(function2);
+   ConstantCoefficient zero(0.0);
 
    delete M;
    M = new ParBilinearForm(&fespace);
-   M->AddDomainIntegrator(new MassIntegrator(PWrhocp));
+   M->AddDomainIntegrator(new MassIntegrator(coeff));
    M->Assemble(0); // keep sparsity pattern of M and K the same
    M->FormSystemMatrix(ess_tdof_list, Mmat);
 
-
    delete K;
    K = new ParBilinearForm(&fespace);
-   K->AddDomainIntegrator(new DiffusionIntegrator(PWkappa));
+   K->AddDomainIntegrator(new DiffusionIntegrator(diff));
    K->Assemble(0); // keep sparsity pattern of M and K the same
    K->FormSystemMatrix(ess_tdof_list, Kmat);
 
    delete Q;
    Q = new ParLinearForm(&fespace);
-   Q->AddDomainIntegrator(new DomainLFIntegrator(PWq));
+   Q->AddDomainIntegrator(new DomainLFIntegrator(zero));
    Q->Assemble();
    Qvec = std::move(*(Q->ParallelAssemble()));
    Qvec.SetSubVector(ess_tdof_list, 0.0); // do we need this?
-
+   
    delete T;
    T = NULL; // re-compute T on the next ImplicitSolve
-
-   for (auto gfc: GFCrhocp)
-      delete gfc;
-
-   for (auto gfc: GFCkappa)
-      delete gfc;
-
-   for (auto gfc: GFCq)
-      delete gfc;
 }
 
 ConductionOperator::~ConductionOperator()
