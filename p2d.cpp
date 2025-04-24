@@ -208,7 +208,7 @@ int main(int argc, char *argv[])
    fespace.GetEssentialTrueDofs(ess_bdr, ess_tdof_list);
 
    Array<int> nbc_bdr(pmesh->bdr_attributes.Max());
-   nbc_bdr = 0; nbc_bdr[0] = 1;
+   nbc_bdr = 0; nbc_bdr[1] = 1;
 
    ConstantCoefficient u_0(C0);
    u_gf.ProjectCoefficient(u_0);
@@ -341,19 +341,21 @@ void ConcentrationOperator::SetParameters(const Vector &u)
    ParGridFunction u_gf(&fespace);
    u_gf.SetFromTrueDofs(u);
 
+   IntegrationRule ir = IntRules.Get(Geometry::SEGMENT, 5);
+
    FunctionCoefficient diff(function1);
    FunctionCoefficient coeff(function2);
    ConstantCoefficient nbcCoef(1.0);
 
    delete M;
    M = new ParBilinearForm(&fespace);
-   M->AddDomainIntegrator(new MassIntegrator(coeff));
+   M->AddDomainIntegrator(new MassIntegrator(coeff, &ir));
    M->Assemble(0); // keep sparsity pattern of M and K the same
    M->FormSystemMatrix(ess_tdof_list, Mmat);
 
    delete K;
    K = new ParBilinearForm(&fespace);
-   K->AddDomainIntegrator(new DiffusionIntegrator(diff));
+   K->AddDomainIntegrator(new DiffusionIntegrator(diff, &ir));
    K->Assemble(0); // keep sparsity pattern of M and K the same
    K->FormSystemMatrix(ess_tdof_list, Kmat);
 
