@@ -249,6 +249,16 @@ int main(int argc, char *argv[])
             cout << "step " << ti << ", t = " << t << endl;
 
          u_gf.SetFromTrueDofs(u);
+
+         LinearForm sum(&fespace);
+         GridFunctionCoefficient u_gfc(&u_gf);
+         FunctionCoefficient r2(function1);
+         ProductCoefficient ur2(u_gfc,r2);
+         sum.AddDomainIntegrator(new DomainLFIntegrator(ur2));
+         sum.Assemble();
+   
+         std::cout << "To total flux accumulated = " << sum.Sum() << std::endl;
+
          if (last_step || visualization)
          {
             pd.SetCycle(ti);
@@ -341,7 +351,9 @@ void ConcentrationOperator::SetParameters(const Vector &u)
    ParGridFunction u_gf(&fespace);
    u_gf.SetFromTrueDofs(u);
 
-   IntegrationRule ir = IntRules.Get(Geometry::SEGMENT, 5);
+   IntegrationRule ir = IntRules.Get(Geometry::SEGMENT, 6);
+
+   //std::cout << "Number of points " << ir.GetNPoints() << std::endl;
 
    FunctionCoefficient diff(function1);
    FunctionCoefficient coeff(function2);
