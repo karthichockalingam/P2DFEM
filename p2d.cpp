@@ -92,12 +92,12 @@ public:
    virtual ~EquationOperator() {}
 };
 
-class ConcentrationOperator : public EquationOperator
+class ParticleConcentrationOperator : public EquationOperator
 {
    public:
       using EquationOperator::EquationOperator;
       virtual void SetParameters(const Vector &u);
-      virtual ~ConcentrationOperator();
+      virtual ~ParticleConcentrationOperator();
 };
 
 int main(int argc, char *argv[])
@@ -226,7 +226,7 @@ int main(int argc, char *argv[])
    u_gf.GetTrueDofs(u);
 
    // 9. Initialize the conduction operator and the VisIt visualization.
-   ConcentrationOperator oper(fespace, u, ess_tdof_list, nbc_bdr);
+   ParticleConcentrationOperator oper(fespace, u, ess_tdof_list, nbc_bdr);
 
    //u_gf.SetFromTrueDofs(u);
    ParaViewDataCollection pd("particle", pmesh);
@@ -354,7 +354,7 @@ void EquationOperator::ImplicitSolve(const real_t dt,
    du_dt.SetSubVector(ess_tdof_list, 0.0);
 }
 
-void ConcentrationOperator::SetParameters(const Vector &u)
+void ParticleConcentrationOperator::SetParameters(const Vector &u)
 {
    ParGridFunction u_gf(&fespace);
    u_gf.SetFromTrueDofs(u);
@@ -390,7 +390,7 @@ void ConcentrationOperator::SetParameters(const Vector &u)
    C = NULL; // re-compute C on the next ImplicitSolve
 }
 
-ConcentrationOperator::~ConcentrationOperator()
+ParticleConcentrationOperator::~ParticleConcentrationOperator()
 {
    delete C;
    delete M;
