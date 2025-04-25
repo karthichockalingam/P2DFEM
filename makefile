@@ -20,6 +20,8 @@ MFEM_LIB_FILE = mfem_is_not_built
 -include $(CONFIG_MK)
 
 EXECUTABLES = p2d
+SRC_FILES = EquationOperator.cpp ParticleConcentrationOperator.cpp ElectrolyteConcentrationOperator.cpp
+INC_FILES = EquationOperator.hpp ParticleConcentrationOperator.hpp ElectrolyteConcentrationOperator.hpp
 
 .PHONY: all clean
 
@@ -27,6 +29,9 @@ all: $(EXECUTABLES)
 
 # Remove built-in rule
 %: %.cpp
+
+p2d: p2d.cpp $(SRC_FILES) $(INC_FILES) $(MFEM_LIB_FILE) $(CONFIG_MK)
+	$(MFEM_CXX) $(MFEM_FLAGS) p2d.cpp $(SRC_FILES) -o $@ $(MFEM_LIBS)
 
 # Replace the default implicit rule for *.cpp files
 %: %.cpp $(MFEM_LIB_FILE) $(CONFIG_MK)
