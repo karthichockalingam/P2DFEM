@@ -21,9 +21,9 @@
 //               operator C(u) = \nabla \cdot (\kappa + \alpha u) \nabla u.
 //
 //               The example demonstrates the use of nonlinear operators (the
-//               class ConcentrationOperator defining C(u)), as well as their
+//               class EquationOperator defining C(u)), as well as their
 //               implicit time integration. Note that implementing the method
-//               ConcentrationOperator::ImplicitSolve is the only requirement for
+//               EquationOperator::ImplicitSolve is the only requirement for
 //               high-order implicit (SDIRK) time integration. In this example,
 //               the diffusion operator is linearized by evaluating with the
 //               lagged solution from the previous timestep, so there is only
@@ -50,9 +50,9 @@ double  function2(const Vector & x){ return x(0) * x(0); }
  *  and K is the diffusion operator with diffusivity depending on u:
  *  (\kappa + \alpha u).
  *
- *  Class ConcentrationOperator represents the right-hand side of the above ODE.
+ *  Class EquationOperator represents the right-hand side of the above ODE.
  */
-class ConcentrationOperator : public TimeDependentOperator
+class EquationOperator : public TimeDependentOperator
 {
 protected:
    ParFiniteElementSpace &fespace;
@@ -79,7 +79,7 @@ protected:
    mutable Vector z; // auxiliary vector
 
 public:
-   ConcentrationOperator(ParFiniteElementSpace &f, const Vector &u, const Array<int> &etl, const Array<int> &nb);
+   EquationOperator(ParFiniteElementSpace &f, const Vector &u, const Array<int> &etl, const Array<int> &nb);
 
    virtual void Mult(const Vector &u, Vector &du_dt) const;
    /** Solve the Backward-Euler equation: k = f(u + dt*k, t), for the unknown k.
@@ -87,9 +87,17 @@ public:
    virtual void ImplicitSolve(const real_t dt, const Vector &u, Vector &k);
 
    /// Update the diffusion BilinearForm K using the given true-dof vector `u`.
-   void SetParameters(const Vector &u);
+   virtual void SetParameters(const Vector &u) = 0;
 
-   virtual ~ConcentrationOperator();
+   virtual ~EquationOperator() {}
+};
+
+class ConcentrationOperator : public EquationOperator
+{
+   public:
+      using EquationOperator::EquationOperator;
+      virtual void SetParameters(const Vector &u);
+      virtual ~ConcentrationOperator();
 };
 
 int main(int argc, char *argv[])
@@ -236,6 +244,8 @@ int main(int argc, char *argv[])
    ode_solver->Init(oper);
    real_t t = 0.0;
 
+   oper.SetParameters(u);
+
    bool last_step = false;
    for (int ti = 1; !last_step; ti++)
    {
@@ -276,14 +286,12 @@ int main(int argc, char *argv[])
    return 0;
 }
 
-ConcentrationOperator::ConcentrationOperator(ParFiniteElementSpace &f, const Vector &u, const Array<int> &etl, const Array<int> &nb)
+EquationOperator::EquationOperator(ParFiniteElementSpace &f, const Vector &u, const Array<int> &etl, const Array<int> &nb)
    : TimeDependentOperator(f.GetTrueVSize(), (real_t) 0.0), fespace(f),
      ess_tdof_list(etl), nbc_bdr(nb), M(NULL), K(NULL), Q(NULL), C(NULL), current_dt(0.0),
      M_solver(f.GetComm()), C_solver(f.GetComm()), z(height)
 {
    const real_t rel_tol = 1e-8;
-
-   SetParameters(u);
 
    M_solver.iterative_mode = false;
    M_solver.SetRelTol(rel_tol);
@@ -302,7 +310,7 @@ ConcentrationOperator::ConcentrationOperator(ParFiniteElementSpace &f, const Vec
    C_solver.SetPreconditioner(C_prec);
 }
 
-void ConcentrationOperator::Mult(const Vector &u, Vector &du_dt) const
+void EquationOperator::Mult(const Vector &u, Vector &du_dt) const
 {
    // Compute:
    //    du_dt = M^{-1}*-Ku
@@ -320,7 +328,7 @@ void ConcentrationOperator::Mult(const Vector &u, Vector &du_dt) const
    du_dt.SetSubVector(ess_tdof_list, 0.0);
 }
 
-void ConcentrationOperator::ImplicitSolve(const real_t dt,
+void EquationOperator::ImplicitSolve(const real_t dt,
                                        const Vector &u, Vector &du_dt)
 {
    // Solve the equation:
