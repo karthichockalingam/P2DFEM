@@ -1,41 +1,6 @@
 
 #include "ElectrolyteConcentrationOperator.hpp"
 
-double  function3(const double & electrolyte_potential, const double & electrode_potential, const Vector & x)
-{ 
-   double val = (electrode_potential - electrolyte_potential) / (2.0);
-
-   return std::sinh(val);
-}
-
-class FluxJGridFuncCoefficient : public Coefficient
- {
-    GridFunction & _electrolyte_potential;
-    GridFunction & _electrode_potential;
-    function<double(const double &, const double &, const Vector &)>                GFunction;
-    function<double(const double &, const double &, const Vector &, const double)>  TDGFunction;
- public:
- FluxJGridFuncCoefficient(GridFunction & electrolyte_potential, GridFunction & electrode_potential
-                       , function<double(const double &, const double &, const Vector &)> foo)
-                       : _electrolyte_potential(electrolyte_potential), _electrode_potential(electrode_potential), 
-                       GFunction( move(foo) ) {};
- 
-                       FluxJGridFuncCoefficient(GridFunction & electrolyte_potential, GridFunction & electrode_potential
-                       , function<double(const double &, const double &, const Vector &, const double)> foo)
-                       : _electrolyte_potential(electrolyte_potential), _electrode_potential(electrode_potential),
-                       TDGFunction( move(foo) ) {};
- 
-     double Eval(ElementTransformation &T, const IntegrationPoint &ip)
-     {
-       double x[3];
-       Vector transip(x, 3);
-       T.Transform(ip, transip);
-       return (GFunction)? GFunction(_electrolyte_potential.GetValue(T, ip), _electrode_potential.GetValue(T, ip), transip) 
-                         : TDGFunction(_electrolyte_potential.GetValue(T, ip), _electrode_potential.GetValue(T, ip), transip, GetTime() );
-     }
- };
-
-
 void ElectrolyteConcentrationOperator::SetParameters(const Vector &u)
 {
    ParGridFunction u_gf(&fespace);
