@@ -14,7 +14,8 @@ P2DOperator::P2DOperator(ParFiniteElementSpace * &x_fespace, Array<ParFiniteElem
    Solver.SetPrintLevel(0);
    Solver.SetPreconditioner(Prec);
 
-   const unsigned nb = 3 + r_fespace.Size(); // 3 macro eqs + 1 micro eq/particle
+   const unsigned npar = r_fespace.Size();
+   const unsigned nb = 3 + npar; // 3 macro eqs + 1 micro eq/particle
 
    block_offsets.SetSize(nb + 1);
    block_trueOffsets.SetSize(nb + 1);
@@ -40,19 +41,24 @@ P2DOperator::P2DOperator(ParFiniteElementSpace * &x_fespace, Array<ParFiniteElem
    }
 
    u.Update(block_trueOffsets);
-   B = new BlockOperator(block_trueOffsets);
+
+   for (size_t p = 0; p < npar; p++)
+      pc[p] = new ParticleConcentration(*r_fespace[p]);
+   
 }
 
 void P2DOperator::ImplicitSolve(const real_t dt,
-                                       const Vector &u, Vector &du_dt)
+                                const Vector &u, Vector &du_dt)
 {
    // Solve the equation:
    //   M du_dt = -K(u + dt*du_dt) <=> (M + dt K) du_dt = -Ku
    // for du_dt, where K is linearized by using u from the previous timestep
    
 }
-
+   
 void P2DOperator::update(const Vector &u)
 {
    // assemble B
+   delete B;
+   B = new BlockOperator(block_trueOffsets);
 }

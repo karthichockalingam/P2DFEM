@@ -2,6 +2,8 @@
 using namespace std;
 using namespace mfem;
 
+#include "ParticleConcentration.hpp"
+
 #pragma once
 
 class P2DOperator : public TimeDependentOperator
@@ -9,6 +11,8 @@ class P2DOperator : public TimeDependentOperator
 protected:
    ParFiniteElementSpace * &x_fespace;
    Array<ParFiniteElementSpace *> &r_fespace;
+
+   Array<ParticleConcentration *> pc;
 
    Array<int> ess_tdof_list; // this list remains empty for pure Neumann b.c.
    Array<int> nbc_bdr; // this list remains empty for pure Neumann b.c.

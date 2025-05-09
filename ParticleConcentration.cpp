@@ -5,7 +5,7 @@ const real_t D = 1.0;
 double  function1(const Vector & x){ return D * x(0) * x(0); }
 double  function2(const Vector & x){ return x(0) * x(0); }
 
-void ParticleConcentration::update(const Vector &u)
+void ParticleConcentration::update(const BlockVector &u)
 {
    ParGridFunction u_gf(&fespace);
    u_gf.SetFromTrueDofs(u);
@@ -37,7 +37,7 @@ void ParticleConcentration::update(const Vector &u)
    Qvec = std::move(*(Q->ParallelAssemble()));
    Qvec.SetSubVector(ess_tdof_list, 0.0); // do we need this?
 
-   Kmat.Mult(u.GetBlock(), z);
+   Kmat.Mult(u.GetBlock(0), z);
    
    delete C;
    C = NULL; // re-compute C on the next ImplicitSolve

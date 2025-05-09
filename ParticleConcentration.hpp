@@ -1,5 +1,5 @@
 #include "mfem.hpp"
-#include "EquationOperator.hpp"
+#include "Equation.hpp"
 
 using namespace std;
 using namespace mfem;
@@ -11,6 +11,5 @@ class ParticleConcentration : public Equation
 {
    public:
       using Equation::Equation;
-      using Equation::~Equation;
-      virtual void update(const Vector &u);
+      virtual void update(const BlockVector &u);
 };

@@ -31,14 +31,14 @@ protected:
    mutable Vector z; // auxiliary vector
 
 public:
-   Equation(ParFiniteElementSpace &f, const Vector &u, const Array<int> &etl, const Array<int> &nb);
+   Equation(ParFiniteElementSpace &f) : fespace(f) {};
 
-   ParBilinearForm * M() const { return M; };
-   ParBilinearForm * K() const { return K; };
-   ParLinearForm   * Q() const { return Q; };
+   ParBilinearForm * getM() const { return M; };
+   ParBilinearForm * getK() const { return K; };
+   ParLinearForm   * getQ() const { return Q; };
 
    /// Update the diffusion BilinearForm K using the given true-dof vector `u`.
-   virtual void update(const Vector &u) = 0;
+   virtual void update(const BlockVector &u) = 0;
 
    virtual ~Equation()
    {
