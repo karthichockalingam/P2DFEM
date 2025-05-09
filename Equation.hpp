@@ -4,7 +4,7 @@ using namespace mfem;
 
 #pragma once
 
-class EquationOperator : public TimeDependentOperator
+class Equation
 {
 protected:
    ParFiniteElementSpace &fespace;
@@ -31,15 +31,20 @@ protected:
    mutable Vector z; // auxiliary vector
 
 public:
-   EquationOperator(ParFiniteElementSpace &f, const Vector &u, const Array<int> &etl, const Array<int> &nb);
+   Equation(ParFiniteElementSpace &f, const Vector &u, const Array<int> &etl, const Array<int> &nb);
 
-   virtual void Mult(const Vector &u, Vector &du_dt) const;
-   /** Solve the Backward-Euler equation: k = f(u + dt*k, t), for the unknown k.
-       This is the only requirement for high-order SDIRK implicit integration.*/
-   virtual void ImplicitSolve(const real_t dt, const Vector &u, Vector &k);
+   ParBilinearForm * M() const { return M; };
+   ParBilinearForm * K() const { return K; };
+   ParLinearForm   * Q() const { return Q; };
 
    /// Update the diffusion BilinearForm K using the given true-dof vector `u`.
-   virtual void SetParameters(const Vector &u) = 0;
+   virtual void update(const Vector &u) = 0;
 
-   virtual ~EquationOperator() {}
+   virtual ~Equation()
+   {
+      delete C;
+      delete M;
+      delete K;
+      delete Q;
+   }
 };

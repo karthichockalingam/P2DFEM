@@ -1,11 +1,11 @@
-#include "ParticleConcentrationOperator.hpp"
+#include "ParticleConcentration.hpp"
 
 const real_t D = 1.0;
 
 double  function1(const Vector & x){ return D * x(0) * x(0); }
 double  function2(const Vector & x){ return x(0) * x(0); }
 
-void ParticleConcentrationOperator::SetParameters(const Vector &u)
+void ParticleConcentration::update(const Vector &u)
 {
    ParGridFunction u_gf(&fespace);
    u_gf.SetFromTrueDofs(u);
@@ -39,12 +39,4 @@ void ParticleConcentrationOperator::SetParameters(const Vector &u)
    
    delete C;
    C = NULL; // re-compute C on the next ImplicitSolve
-}
-
-ParticleConcentrationOperator::~ParticleConcentrationOperator()
-{
-   delete C;
-   delete M;
-   delete K;
-   delete Q;
 }
