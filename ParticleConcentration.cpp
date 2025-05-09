@@ -36,6 +36,8 @@ void ParticleConcentration::update(const Vector &u)
    Q->Assemble();
    Qvec = std::move(*(Q->ParallelAssemble()));
    Qvec.SetSubVector(ess_tdof_list, 0.0); // do we need this?
+
+   Kmat.Mult(u.GetBlock(), z);
    
    delete C;
    C = NULL; // re-compute C on the next ImplicitSolve

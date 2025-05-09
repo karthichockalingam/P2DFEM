@@ -32,8 +32,7 @@
 #include "mfem.hpp"
 #include <fstream>
 #include <iostream>
-#include "EquationOperator.hpp"
-#include "ParticleConcentrationOperator.hpp"
+#include "P2DOperator.hpp"
 
 using namespace std;
 using namespace mfem;
@@ -91,12 +90,7 @@ int main(int argc, char *argv[])
    if (myid == 0)
       args.PrintOptions(cout);
 
-   // 3. Read the serial mesh from the given mesh file on all processors. We can
-   //    handle triangular, quadrilateral, tetrahedral and hexahedral meshes
-   //    with the same code.
-   Mesh serial_mesh = Mesh::MakeCartesian1D(10);
-   int dim = serial_mesh.Dimension();
-
+      
    // 4. Define the ODE solver used for time integration. Several implicit
    //    singly diagonal implicit Runge-Kutta (SDIRK) methods, as well as
    //    explicit Runge-Kutta methods are available.
@@ -118,74 +112,59 @@ int main(int argc, char *argv[])
       case 23: ode_solver = new SDIRK23Solver; break;
       case 24: ode_solver = new SDIRK34Solver; break;
       default:
-         cout << "Unknown ODE solver type: " << ode_solver_type << '\n';
-         return 1;
+      cout << "Unknown ODE solver type: " << ode_solver_type << '\n';
+      return 1;
    }
 
-   // 5. Refine the mesh in serial to increase the resolution. In this example
-   //    we do 'ser_ref_levels' of uniform refinement, where 'ser_ref_levels' is
-   //    a command-line parameter.
-   for (int lev = 0; lev < ser_ref_levels; lev++)
-      serial_mesh.UniformRefinement();
+   // 3. Read the serial mesh from the given mesh file on all processors. We can
+   //    handle triangular, quadrilateral, tetrahedral and hexahedral meshes
+   //    with the same code.
+   const unsigned dim = 1;
+   const unsigned np = 50, nn = 50, ns = 50, nr = 10;
+   const unsigned nx = np + nn + ns;
+   const unsigned npar = (np - 2) + (nn - 2);
+   Mesh x_smesh = Mesh::MakeCartesian1D(nx);
+   Mesh r_smesh[npar];
+   for (size_t p = 0; p < npar; p++)
+      r_smesh[p] = Mesh::MakeCartesian1D(nr);
 
    // 6. Define a parallel mesh by a partitioning of the serial mesh. Refine
    //    this mesh further in parallel to increase the resolution. Once the
    //    parallel mesh is defined, the serial mesh can be deleted.
-   ParMesh *pmesh = new ParMesh(MPI_COMM_WORLD, serial_mesh);
-   serial_mesh.Clear(); // the serial mesh is no longer needed
-   for (int lev = 0; lev < par_ref_levels; lev++)
-      pmesh->UniformRefinement();
+   ParMesh *x_pmesh = new ParMesh(MPI_COMM_WORLD, x_smesh);
+   x_smesh.Clear(); // the serial mesh is no longer needed
+   ParMesh *r_pmesh[npar];
+   for (size_t p = 0; p < npar; p++)
+   {
+      r_pmesh[p] = new ParMesh(MPI_COMM_WORLD, r_smesh[p]);
+      r_smesh[p].Clear(); // the serial mesh is no longer needed
+   }
 
    // 7. Define the vector finite element space representing the current and the
    //    initial temperature, u_ref.
    H1_FECollection fe_coll(order, dim);
-   ParFiniteElementSpace fespace(pmesh, &fe_coll);
+   ParFiniteElementSpace * x_fespace = new ParFiniteElementSpace(x_pmesh, &fe_coll);
+   Array<ParFiniteElementSpace *> r_fespace(npar);
+   for (size_t p = 0; p < npar; p++)
+      r_fespace[p] = new ParFiniteElementSpace(r_pmesh[p], &fe_coll);
 
-   HYPRE_BigInt fe_size_global = fespace.GlobalTrueVSize();
+   HYPRE_BigInt fe_size_global = 3 * x_fespace->GlobalTrueVSize();
+   for (size_t p = 0; p < npar; p++)
+      fe_size_global += r_fespace[p]->GlobalTrueVSize();
+
    if (myid == 0)
       cout << "Unknowns (total): " << fe_size_global << endl;
-
-   HYPRE_BigInt fe_size_owned = fespace.TrueVSize();
-   cout << "Unknowns (rank " << myid << "): " << fe_size_owned << endl;
-
-   ParGridFunction u_gf(&fespace);
-
-   // 8. Set the initial/boundary conditions for u.
-   Array<int> ess_tdof_list;
-   Array<int> ess_bdr(pmesh->bdr_attributes.Max());
-   ess_bdr = 0;
-   fespace.GetEssentialTrueDofs(ess_bdr, ess_tdof_list);
-
-   Array<int> nbc_bdr(pmesh->bdr_attributes.Max());
-   nbc_bdr = 0; nbc_bdr[1] = 1;
-
-   ConstantCoefficient u_0(C0);
-   u_gf.ProjectCoefficient(u_0);
-   ConstantCoefficient u_b(C0);
-   u_gf.ProjectBdrCoefficient(u_b, ess_bdr);
-   Vector u;
-   u_gf.GetTrueDofs(u);
-
+   
    // 9. Initialize the conduction operator and the VisIt visualization.
-   ParticleConcentrationOperator oper(fespace, u, ess_tdof_list, nbc_bdr);
-
-   //u_gf.SetFromTrueDofs(u);
-   ParaViewDataCollection pd("particle", pmesh);
-   pd.SetPrefixPath("ParaView");
-   pd.SetLevelsOfDetail(order);
-   pd.SetHighOrderOutput(true);
-   pd.SetDataFormat(VTKFormat::BINARY);
-   pd.RegisterField("u", &u_gf);
-   pd.SetCycle(0);
-   pd.SetTime(0.0);
-   pd.Save();
+   BlockVector u;
+   P2DOperator oper(x_fespace, r_fespace, fe_size_global, u);
 
    // 10. Perform time-integration (looping over the time iterations, ti, with a
    //     time-step dt).
    ode_solver->Init(oper);
    real_t t = 0.0;
 
-   oper.SetParameters(u);
+   oper.update(u);
 
    bool last_step = false;
    for (int ti = 1; !last_step; ti++)
@@ -198,22 +177,15 @@ int main(int argc, char *argv[])
       {
          if (myid == 0)
             cout << "step " << ti << ", t = " << t << endl;
-
-         u_gf.SetFromTrueDofs(u);
-
-         if (last_step || visualization)
-         {
-            pd.SetCycle(ti);
-            pd.SetTime(t);
-            pd.Save();
-         }
       }
-      oper.SetParameters(u);
+      oper.update(u);
    }
 
    // 11. Free the used memory.
    delete ode_solver;
-   delete pmesh;
+   delete x_pmesh;
+   for (size_t p = 0; p < npar; p++)
+      delete r_pmesh[p];
 
    return 0;
 }

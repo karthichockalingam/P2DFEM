@@ -1,11 +1,10 @@
 #include "P2DOperator.hpp"
 
-P2DOperator::P2DOperator(ParFiniteElementSpace &x_fespace, Array<ParFiniteElementSpace> &r_fespace,
-                         const unsigned &ndofs, const Vector &u)
+P2DOperator::P2DOperator(ParFiniteElementSpace * &x_fespace, Array<ParFiniteElementSpace *> &r_fespace,
+                         const unsigned &ndofs, BlockVector &u)
    : TimeDependentOperator(ndofs, (real_t) 0.0), x_fespace(x_fespace), r_fespace(r_fespace),
-     B(NULL), current_dt(0.0), Solver(x_fespace.GetComm()), z(height)
+     B(NULL), current_dt(0.0), Solver(x_fespace->GetComm())
 {
-
    const real_t rel_tol = 1e-8;
 
    Solver.iterative_mode = false;
@@ -14,35 +13,46 @@ P2DOperator::P2DOperator(ParFiniteElementSpace &x_fespace, Array<ParFiniteElemen
    Solver.SetMaxIter(100);
    Solver.SetPrintLevel(0);
    Solver.SetPreconditioner(Prec);
+
+   const unsigned nb = 3 + r_fespace.Size(); // 3 macro eqs + 1 micro eq/particle
+
+   block_offsets.SetSize(nb + 1);
+   block_trueOffsets.SetSize(nb + 1);
+   block_offsets[0] = 0;
+   block_trueOffsets[0] = 0;
+   for (size_t x = 1; x < 4; x++)
+   {
+      block_offsets[x] = x_fespace->GetVSize();
+      block_trueOffsets[x] = x_fespace->TrueVSize();
+   }
+   for (size_t p = 0; p < r_fespace.Size(); p++)
+   {
+      block_offsets[4 + p] = r_fespace[p]->GetVSize();
+      block_trueOffsets[4 + p] = r_fespace[p]->TrueVSize();
+   }
+   block_offsets.PartialSum();
+   block_trueOffsets.PartialSum();
+
+   if (!Mpi::WorldRank())
+   {
+      std::cout << "Variables: " << nb << std::endl;
+      std::cout << "Unknowns (total): " << block_trueOffsets[nb] << std::endl;
+   }
+
+   u.Update(block_trueOffsets);
+   B = new BlockOperator(block_trueOffsets);
 }
 
 void P2DOperator::ImplicitSolve(const real_t dt,
                                        const Vector &u, Vector &du_dt)
 {
    // Solve the equation:
-   //    du_dt = M^{-1}*[-K(u + dt*du_dt)]
+   //   M du_dt = -K(u + dt*du_dt) <=> (M + dt K) du_dt = -Ku
    // for du_dt, where K is linearized by using u from the previous timestep
-   if (!C)
-   {
-      C = Add(1.0, Mmat, dt, Kmat);
-      current_dt = dt;
-      Solver.SetOperator(*B);
-   }
-   MFEM_VERIFY(dt == current_dt, ""); // SDIRK methods use the same dt
-   Kmat.Mult(u, z);
-   z.Neg();
-   z += Qvec;
-   HypreParMatrix A; Vector X, Z;
-   ParGridFunction uu(&fespace), zz(&fespace);
-   uu.SetFromTrueDofs(u);
-   const SparseMatrix &R = *(fespace.GetRestrictionMatrix());
-   R.MultTranspose(z, zz);
-   K->FormLinearSystem(ess_tdof_list, uu, zz, A, X, Z);
-   Solver.Mult(Z, du_dt);
-   du_dt.SetSubVector(ess_tdof_list, 0.0);
+   
 }
 
 void P2DOperator::update(const Vector &u)
 {
-   
+   // assemble B
 }
