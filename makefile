@@ -10,10 +10,7 @@
 # CONTRIBUTING.md for details.
 
 # Use the MFEM install directory
-#
-# export MFEM_INSTALL_DIR=/your/MFEMInstall
-#
-MFEM_INSTALL_DIR=/home/kchockalingam/mfem-4.7/mfem-debug
+MFEM_INSTALL_DIR ?= ../mfem-debug
 CONFIG_MK = $(MFEM_INSTALL_DIR)/share/mfem/config.mk
 
 MFEM_LIB_FILE = mfem_is_not_built
