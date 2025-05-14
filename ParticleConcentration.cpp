@@ -16,7 +16,7 @@ void ParticleConcentration::update(const BlockVector &u)
 
    FunctionCoefficient diff(function1);
    FunctionCoefficient coeff(function2);
-   ConstantCoefficient nbcCoef(1.0);
+   ConstantCoefficient nbcCoef(2.0);
 
    delete M;
    M = new ParBilinearForm(&fespace);
