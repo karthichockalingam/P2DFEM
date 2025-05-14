@@ -13,6 +13,6 @@ class ParticleConcentration : public Equation
       size_t id;
 
    public:
-      ParticleConcentration(ParFiniteElementSpace &f, size_t id) : Equation(f), id(id) {};
+      ParticleConcentration(ParFiniteElementSpace &f, size_t id) : Equation(f), id(id) { nbc_bdr = 0; nbc_bdr[1] = 1; };
       virtual void update(const BlockVector &u);
 };

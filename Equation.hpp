@@ -35,7 +35,7 @@ public:
 
    const HypreParMatrix & getM() const { return Mmat; };
    const HypreParMatrix & getK() const { return Kmat; };
-   const HypreParVector & getQ() const { return Qvec; };
+   const Vector         & getZ() const { return z; };
 
    /// Update the diffusion BilinearForm K using the given true-dof vector `u`.
    virtual void update(const BlockVector &u) = 0;

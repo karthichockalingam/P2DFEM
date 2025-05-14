@@ -38,7 +38,6 @@ void ParticleConcentration::update(const BlockVector &u)
    Qvec.SetSubVector(ess_tdof_list, 0.0); // do we need this?
 
    Kmat.Mult(u.GetBlock(id), z);
-   
-   delete C;
-   C = NULL; // re-compute C on the next ImplicitSolve
+   z.Neg();
+   z += Qvec;
 }

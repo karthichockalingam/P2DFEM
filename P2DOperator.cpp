@@ -12,7 +12,7 @@ P2DOperator::P2DOperator(ParFiniteElementSpace * &x_fespace, Array<ParFiniteElem
    Solver.SetAbsTol(0.0);
    Solver.SetMaxIter(100);
    Solver.SetPrintLevel(0);
-   Solver.SetPreconditioner(Prec);
+   //Solver.SetPreconditioner(Prec);
 
    const unsigned nb = 3 + npar; // 3 macro eqs + 1 micro eq/particle
 
@@ -40,6 +40,7 @@ P2DOperator::P2DOperator(ParFiniteElementSpace * &x_fespace, Array<ParFiniteElem
    }
 
    u.Update(block_trueOffsets);
+   z.Update(block_trueOffsets);
 
    for (size_t p = 0; p < npar; p++)
       pc.Append(new ParticleConcentration(*r_fespace[p], p));
@@ -53,6 +54,7 @@ void P2DOperator::ImplicitSolve(const real_t dt,
    //   M du_dt = -K(u + dt*du_dt) <=> (M + dt K) du_dt = -Ku
    // for du_dt, where K is linearized by using u from the previous timestep
 
+   // assemble B
    for (size_t p = 0; p < npar; p++)
       B->SetDiagonalBlock(p, Add(1, pc[p]->getM(), dt, pc[p]->getK()));
 
@@ -61,11 +63,18 @@ void P2DOperator::ImplicitSolve(const real_t dt,
       IdentityOperator * I = new IdentityOperator(x_fespace->TrueVSize());
       B->SetDiagonalBlock(npar + x, I);
    }
+
+   Solver.SetOperator(*B);
+
+   for (size_t p = 0; p < npar; p++)
+      z.GetBlock(p) = pc[p]->getZ();
+
+   Solver.Mult(z, du_dt);
 }
    
 void P2DOperator::update(const BlockVector &u)
 {
-   // assemble B
+   // rebuild B
    delete B;
    B = new BlockOperator(block_trueOffsets);
    B->owns_blocks = 1;
