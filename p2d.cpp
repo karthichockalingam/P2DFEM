@@ -160,6 +160,20 @@ int main(int argc, char *argv[])
    BlockVector u;
    P2DOperator oper(x_fespace, r_fespace, fe_size_global, u);
 
+   // X. Viz
+   ParGridFunction u_gf(r_fespace[0]);
+   u_gf.GetTrueDofs(u.GetBlock(0));
+
+   ParaViewDataCollection pd("particle", r_pmesh[0]);
+   pd.SetPrefixPath("ParaView");
+   pd.SetLevelsOfDetail(order);
+   pd.SetHighOrderOutput(true);
+   pd.SetDataFormat(VTKFormat::BINARY);
+   pd.RegisterField("u", &u_gf);
+   pd.SetCycle(0);
+   pd.SetTime(0.0);
+   pd.Save();
+
    // 10. Perform time-integration (looping over the time iterations, ti, with a
    //     time-step dt).
    ode_solver->Init(oper);
@@ -178,6 +192,15 @@ int main(int argc, char *argv[])
       {
          if (myid == 0)
             cout << "step " << ti << ", t = " << t << endl;
+
+         u_gf.SetFromTrueDofs(u);
+
+         if (last_step || visualization)
+         {
+            pd.SetCycle(ti);
+            pd.SetTime(t);
+            pd.Save();
+         }
       }
       oper.update(u);
    }
