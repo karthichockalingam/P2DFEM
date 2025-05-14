@@ -21,15 +21,15 @@ P2DOperator::P2DOperator(ParFiniteElementSpace * &x_fespace, Array<ParFiniteElem
    block_trueOffsets.SetSize(nb + 1);
    block_offsets[0] = 0;
    block_trueOffsets[0] = 0;
-   for (size_t x = 1; x < 4; x++)
+   for (size_t p = 0; p < npar; p++)
    {
-      block_offsets[x] = x_fespace->GetVSize();
-      block_trueOffsets[x] = x_fespace->TrueVSize();
+      block_offsets[p + 1] = r_fespace[p]->GetVSize();
+      block_trueOffsets[p + 1] = r_fespace[p]->TrueVSize();
    }
-   for (size_t p = 0; p < r_fespace.Size(); p++)
+   for (size_t x = 0; x < 3; x++)
    {
-      block_offsets[4 + p] = r_fespace[p]->GetVSize();
-      block_trueOffsets[4 + p] = r_fespace[p]->TrueVSize();
+      block_offsets[npar + x + 1] = x_fespace->GetVSize();
+      block_trueOffsets[npar + x + 1] = x_fespace->TrueVSize();
    }
    block_offsets.PartialSum();
    block_trueOffsets.PartialSum();
@@ -43,7 +43,7 @@ P2DOperator::P2DOperator(ParFiniteElementSpace * &x_fespace, Array<ParFiniteElem
    u.Update(block_trueOffsets);
 
    for (size_t p = 0; p < npar; p++)
-      pc[p] = new ParticleConcentration(*r_fespace[p]);
+      pc[p] = new ParticleConcentration(*r_fespace[p], p);
    
 }
 

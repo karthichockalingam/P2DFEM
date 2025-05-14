@@ -9,7 +9,10 @@ using namespace mfem;
 
 class ParticleConcentration : public Equation
 {
+   protected:
+      size_t id;
+
    public:
-      using Equation::Equation;
+      ParticleConcentration(ParFiniteElementSpace &f, size_t id) : Equation(f), id(id) {};
       virtual void update(const BlockVector &u);
 };
