@@ -12,6 +12,8 @@ protected:
    ParFiniteElementSpace * &x_fespace;
    Array<ParFiniteElementSpace *> &r_fespace;
 
+   size_t npar;
+
    Array<ParticleConcentration *> pc;
 
    Array<int> ess_tdof_list; // this list remains empty for pure Neumann b.c.
@@ -40,7 +42,7 @@ public:
        This is the only requirement for high-order SDIRK implicit integration.*/
    virtual void ImplicitSolve(const real_t dt, const Vector &u, Vector &k) override;
 
-   virtual void update(const Vector &u);
+   virtual void update(const BlockVector &u);
 
    virtual ~P2DOperator() {}
 };

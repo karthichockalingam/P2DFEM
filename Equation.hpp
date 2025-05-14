@@ -31,11 +31,11 @@ protected:
    mutable Vector z; // auxiliary vector
 
 public:
-   Equation(ParFiniteElementSpace &f) : fespace(f) {};
+   Equation(ParFiniteElementSpace &f) : fespace(f), nbc_bdr(2), z(f.TrueVSize()) {};
 
-   ParBilinearForm * getM() const { return M; };
-   ParBilinearForm * getK() const { return K; };
-   ParLinearForm   * getQ() const { return Q; };
+   const HypreParMatrix & getM() const { return Mmat; };
+   const HypreParMatrix & getK() const { return Kmat; };
+   const HypreParVector & getQ() const { return Qvec; };
 
    /// Update the diffusion BilinearForm K using the given true-dof vector `u`.
    virtual void update(const BlockVector &u) = 0;
