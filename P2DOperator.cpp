@@ -39,7 +39,7 @@ P2DOperator::P2DOperator(ParFiniteElementSpace * &x_fespace, Array<ParFiniteElem
       std::cout << "Unknowns (total): " << block_trueOffsets[nb] << std::endl;
    }
 
-   u.Update(block_trueOffsets);
+   u.Update(block_trueOffsets); u = 0.;
    z.Update(block_trueOffsets);
 
    for (size_t p = 0; p < npar; p++)
