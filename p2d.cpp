@@ -121,7 +121,7 @@ int main(int argc, char *argv[])
    //    handle triangular, quadrilateral, tetrahedral and hexahedral meshes
    //    with the same code.
    const unsigned dim = 1;
-   const unsigned np = 50, nn = 50, ns = 50, nr = 10;
+   const unsigned np = 5, nn = 5, ns = 5, nr = 10;
    const unsigned nx = np + nn + ns;
    const unsigned npar = (np - 1) + (nn - 1);
    Mesh x_smesh = Mesh::MakeCartesian1D(nx);
