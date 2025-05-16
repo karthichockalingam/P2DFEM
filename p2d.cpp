@@ -123,7 +123,7 @@ int main(int argc, char *argv[])
    const unsigned dim = 1;
    const unsigned np = 50, nn = 50, ns = 50, nr = 10;
    const unsigned nx = np + nn + ns;
-   const unsigned npar = (np - 2) + (nn - 2);
+   const unsigned npar = (np - 1) + (nn - 1);
    Mesh x_smesh = Mesh::MakeCartesian1D(nx);
    Mesh r_smesh[npar];
    for (size_t p = 0; p < npar; p++)
