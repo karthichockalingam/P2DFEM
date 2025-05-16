@@ -22,14 +22,7 @@ protected:
    HypreParMatrix Kmat;
    HypreParVector Qvec;
 
-   HypreParMatrix *C; // C = M + dt K
-   real_t current_dt;
-
-   CGSolver M_solver;    // Krylov solver for inverting the mass matrix M
-   HypreSmoother M_prec; // Preconditioner for the mass matrix M
-
-   CGSolver C_solver;    // Implicit solver for T = M + dt K
-   HypreSmoother C_prec; // Preconditioner for the implicit solver
+   HypreSmoother prec; // Preconditioner for the implicit solver
 
    mutable Vector z; // auxiliary vector
 
@@ -45,7 +38,6 @@ public:
 
    virtual ~Equation()
    {
-      delete C;
       delete M;
       delete K;
       delete Q;
