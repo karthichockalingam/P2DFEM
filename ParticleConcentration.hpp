@@ -11,5 +11,5 @@ class ParticleConcentration : public Equation
 {
    public:
       ParticleConcentration(ParFiniteElementSpace &f, size_t id) : Equation(f, id) { nbc_bdr = 0; nbc_bdr[1] = 1; };
-      virtual void update(const BlockVector &u);
+      virtual void update(const BlockVector &u, Coefficient &j = cc);
 };

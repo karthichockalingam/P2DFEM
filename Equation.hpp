@@ -4,6 +4,8 @@ using namespace mfem;
 
 #pragma once
 
+static ConstantCoefficient cc;
+
 class Equation
 {
 protected:
@@ -34,7 +36,7 @@ public:
    const Vector         & getZ() const { return z; };
 
    /// Update the diffusion BilinearForm K using the given true-dof vector `u`.
-   virtual void update(const BlockVector &u) = 0;
+   virtual void update(const BlockVector &u, Coefficient &j) = 0;
 
    virtual ~Equation()
    {
