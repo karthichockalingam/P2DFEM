@@ -56,8 +56,13 @@ void P2DOperator::ImplicitSolve(const real_t dt,
 
    // assemble B
    for (size_t p = 0; p < npar; p++)
+   {
       B->SetDiagonalBlock(p, Add(1, pc[p]->getM(), dt, pc[p]->getK()));
+      z.GetBlock(p) = pc[p]->getZ();
+   }
+
    B->SetDiagonalBlock(npar, Add(1, ec->getM(), dt, ec->getK()));
+   z.GetBlock(npar) = ec->getZ();
 
    for (size_t x = 0; x < 2; x++)
    {
@@ -66,11 +71,6 @@ void P2DOperator::ImplicitSolve(const real_t dt,
    }
 
    Solver.SetOperator(*B);
-
-   for (size_t p = 0; p < npar; p++)
-      z.GetBlock(p) = pc[p]->getZ();
-   z.GetBlock(npar) = ec->getZ();
-
    Solver.Mult(z, du_dt);
 }
    
