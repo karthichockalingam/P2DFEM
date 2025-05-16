@@ -6,7 +6,7 @@ void ElectrolyteConcentration::update(const BlockVector &u, Coefficient &j)
    ParGridFunction u_gf(&fespace);
    u_gf.SetFromTrueDofs(u);
 
-   real_t a = 1, tplus = 1;
+   real_t a = 1, tplus = 0;
    ProductCoefficient source((1 - tplus) * a, j);
 
    IntegrationRule ir = IntRules.Get(Geometry::SEGMENT, 6);
