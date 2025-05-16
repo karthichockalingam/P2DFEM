@@ -8,6 +8,9 @@ class Equation
 {
 protected:
    ParFiniteElementSpace &fespace;
+
+   size_t block_id;
+
    Array<int> ess_tdof_list; // this list remains empty for pure Neumann b.c.
    Array<int> nbc_bdr; // this list remains empty for pure Neumann b.c.
 
@@ -31,7 +34,7 @@ protected:
    mutable Vector z; // auxiliary vector
 
 public:
-   Equation(ParFiniteElementSpace &f) : fespace(f), nbc_bdr(2), z(f.TrueVSize()) {};
+   Equation(ParFiniteElementSpace &f, size_t id) : fespace(f), block_id(id), nbc_bdr(2), z(f.TrueVSize()) {};
 
    const HypreParMatrix & getM() const { return Mmat; };
    const HypreParMatrix & getK() const { return Kmat; };

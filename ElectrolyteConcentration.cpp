@@ -1,7 +1,7 @@
 
-#include "ElectrolyteConcentrationOperator.hpp"
+#include "ElectrolyteConcentration.hpp"
 
-void ElectrolyteConcentrationOperator::SetParameters(const Vector &u)
+void ElectrolyteConcentration::update(const BlockVector &u)
 {
    ParGridFunction u_gf(&fespace);
    u_gf.SetFromTrueDofs(u);
@@ -36,14 +36,7 @@ void ElectrolyteConcentrationOperator::SetParameters(const Vector &u)
    Qvec = std::move(*(Q->ParallelAssemble()));
    Qvec.SetSubVector(ess_tdof_list, 0.0); // do we need this?
    
-   delete C;
-   C = NULL; // re-compute C on the next ImplicitSolve
-}
-
-ElectrolyteConcentrationOperator::~ElectrolyteConcentrationOperator()
-{
-   delete C;
-   delete M;
-   delete K;
-   delete Q;
+   Kmat.Mult(u.GetBlock(block_id), z);
+   z.Neg();
+   z += Qvec;
 }

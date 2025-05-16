@@ -37,7 +37,7 @@ void ParticleConcentration::update(const BlockVector &u)
    Qvec = std::move(*(Q->ParallelAssemble()));
    Qvec.SetSubVector(ess_tdof_list, 0.0); // do we need this?
 
-   Kmat.Mult(u.GetBlock(id), z);
+   Kmat.Mult(u.GetBlock(block_id), z);
    z.Neg();
    z += Qvec;
 }
