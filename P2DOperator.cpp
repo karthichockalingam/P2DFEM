@@ -44,7 +44,7 @@ P2DOperator::P2DOperator(ParFiniteElementSpace * &x_fespace, Array<ParFiniteElem
 
    for (size_t p = 0; p < npar; p++)
       pc.Append(new ParticleConcentration(*r_fespace[p], p));
-   
+   ec = new ElectrolyteConcentration(*x_fespace, npar);
 }
 
 void P2DOperator::ImplicitSolve(const real_t dt,
@@ -57,17 +57,19 @@ void P2DOperator::ImplicitSolve(const real_t dt,
    // assemble B
    for (size_t p = 0; p < npar; p++)
       B->SetDiagonalBlock(p, Add(1, pc[p]->getM(), dt, pc[p]->getK()));
+   B->SetDiagonalBlock(npar, Add(1, ec->getM(), dt, ec->getK()));
 
-   for (size_t x = 0; x < 3; x++)
+   for (size_t x = 0; x < 2; x++)
    {
       IdentityOperator * I = new IdentityOperator(x_fespace->TrueVSize());
-      B->SetDiagonalBlock(npar + x, I);
+      B->SetDiagonalBlock(npar + x + 1, I);
    }
 
    Solver.SetOperator(*B);
 
    for (size_t p = 0; p < npar; p++)
       z.GetBlock(p) = pc[p]->getZ();
+   z.GetBlock(npar) = ec->getZ();
 
    Solver.Mult(z, du_dt);
 }
@@ -81,4 +83,5 @@ void P2DOperator::update(const BlockVector &u)
 
    for (size_t p = 0; p < npar; p++)
       pc[p]->update(u);
+   ec->update(u);
 }

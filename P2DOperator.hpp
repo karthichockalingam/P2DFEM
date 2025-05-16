@@ -3,6 +3,7 @@ using namespace std;
 using namespace mfem;
 
 #include "ParticleConcentration.hpp"
+#include "ElectrolyteConcentration.hpp"
 
 #pragma once
 
@@ -15,6 +16,7 @@ protected:
    size_t npar;
 
    Array<ParticleConcentration *> pc;
+   ElectrolyteConcentration * ec;
 
    Array<int> ess_tdof_list; // this list remains empty for pure Neumann b.c.
    Array<int> nbc_bdr; // this list remains empty for pure Neumann b.c.
