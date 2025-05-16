@@ -16,9 +16,9 @@ protected:
    Array<int> ess_tdof_list; // this list remains empty for pure Neumann b.c.
    Array<int> nbc_bdr; // this list remains empty for pure Neumann b.c.
 
-   ParBilinearForm *M;
-   ParBilinearForm *K;
-   ParLinearForm *Q;
+   ParBilinearForm *M = nullptr;
+   ParBilinearForm *K = nullptr;
+   ParLinearForm *Q = nullptr;
 
    HypreParMatrix Mmat;
    HypreParMatrix Kmat;
