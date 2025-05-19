@@ -37,6 +37,33 @@ class FluxJGridFuncCoefficient : public Coefficient
     virtual   double Eval(ElementTransformation &T, const IntegrationPoint &ip);
  };
 
+/*
+class GridFuncFunctionCoefficient : public Coefficient
+ {
+    const GridFunction & _electrolyte_concentration;
+    function<double(const double &)>  GFunction;
+
+ public:
+    GridFuncFunctionCoefficient(const GridFunction & electrolyte_concentration, function<double(const double &)> foo);
+
+    virtual   double Eval(ElementTransformation &T, const IntegrationPoint &ip);
+ };
+*/
+
+ class VectorGridFuncFunctionCoefficient : public VectorCoefficient 
+ {
+    const GridFunction & _electrolyte_concentration;
+    GradientGridFunctionCoefficient  & _grad_electrolyte_concentration;
+    function<real_t(const double &)>  GFunction;
+
+ public:
+    VectorGridFuncFunctionCoefficient(
+      const GridFunction & electrolyte_concentration, 
+      GradientGridFunctionCoefficient  & grad_electrolyte_concentration,
+      function<real_t(const double &)> foo);
+
+    virtual void Eval(Vector & V, ElementTransformation &T, const IntegrationPoint &ip);
+ };
 
 
  

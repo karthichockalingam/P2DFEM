@@ -50,3 +50,43 @@ FluxJGridFuncCoefficient::Eval(ElementTransformation &T, const IntegrationPoint 
         return (GFunction)? GFunction(_electrolyte_potential.GetValue(T, ip), _electrode_potential.GetValue(T, ip), _electrolyte_concentration.GetValue(T, ip), _electrode_surface_concentration, transip) 
             : TDGFunction(_electrolyte_potential.GetValue(T, ip), _electrode_potential.GetValue(T, ip), _electrolyte_concentration.GetValue(T, ip), _electrode_surface_concentration, transip, GetTime() );
     }
+/*
+GridFuncFunctionCoefficient::GridFuncFunctionCoefficient (
+    const GridFunction & electrolyte_concentration, 
+    function<double(const double &)> foo): 
+    _electrolyte_concentration(electrolyte_concentration),
+    GFunction( move(foo) ) {};
+
+double 
+GridFuncFunctionCoefficient::Eval(ElementTransformation &T, const IntegrationPoint &ip)
+    {
+        double x[3];
+        Vector transip(x, 3);
+        T.Transform(ip, transip);
+        return GFunction(_electrolyte_concentration.GetValue(T, ip)); 
+    }
+*/
+
+VectorGridFuncFunctionCoefficient::VectorGridFuncFunctionCoefficient(
+    const GridFunction & electrolyte_concentration, 
+    GradientGridFunctionCoefficient  & grad_electrolyte_concentration,
+    function<real_t(const double &)> foo):
+    VectorCoefficient(3),  
+    _electrolyte_concentration(electrolyte_concentration),
+    _grad_electrolyte_concentration(grad_electrolyte_concentration),
+    GFunction( move(foo) ) {};
+
+
+void 
+VectorGridFuncFunctionCoefficient::Eval(Vector &V, ElementTransformation &T, const IntegrationPoint &ip)
+    {
+        double x[3];
+        Vector transip(x, 3);
+        T.Transform(ip, transip);
+        Vector  GradV;
+        _grad_electrolyte_concentration.Eval(GradV, T, ip);
+        // decision to be made: do we read in GradientGridFunctionCoefficient (like now) or create a
+        // GradientGridFunctionCoefficient inside here each time?
+        V = GradV;
+        V *= 1.0/GFunction(_electrolyte_concentration.GetValue(T, ip)); 
+    }
