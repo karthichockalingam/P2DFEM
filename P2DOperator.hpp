@@ -1,6 +1,8 @@
 #include "mfem.hpp"
-#include "equations/SolidConcentration.hpp"
+#include "equations/ElectrolytePotential.hpp"
 #include "equations/ElectrolyteConcentration.hpp"
+#include "equations/SolidPotential.hpp"
+#include "equations/SolidConcentration.hpp"
 
 using namespace std;
 using namespace mfem;
@@ -15,8 +17,10 @@ protected:
 
    size_t npar;
 
-   Array<SolidConcentration *> pc;
+   ElectrolytePotential     * ep;
    ElectrolyteConcentration * ec;
+   SolidPotential           * sp;
+   Array<SolidConcentration *> sc;
 
    Array<int> ess_tdof_list; // this list remains empty for pure Neumann b.c.
    Array<int> nbc_bdr; // this list remains empty for pure Neumann b.c.

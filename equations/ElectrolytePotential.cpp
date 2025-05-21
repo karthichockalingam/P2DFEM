@@ -9,12 +9,11 @@ void ElectrolytePotential::update(const BlockVector &u, Coefficient &j)
 
    real_t a = 1;
 
-   ConstantCoefficient one(1.0);
    ConstantCoefficient kappa(1.0);
    ConstantCoefficient kappa_D(1.0);
 
    GridFunctionCoefficient EcCoeff(&u_gf);
-   RatioCoefficient KappaOverEcCoeff(kappa_D, EcCoeff);
+   RatioCoefficient KappaOverEcCoeff(kappa_D, 1.0);
    GradientGridFunctionCoefficient GradEcCoeff(&u_gf);
    ScalarVectorProductCoefficient VecCoeff(KappaOverEcCoeff, GradEcCoeff);
 

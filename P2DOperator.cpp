@@ -46,9 +46,11 @@ P2DOperator::P2DOperator(ParFiniteElementSpace * &x_fespace, Array<ParFiniteElem
    u.Update(block_trueOffsets); u = 0.;
    z.Update(block_trueOffsets);
 
+   ep = new ElectrolytePotential(*x_fespace);
    ec = new ElectrolyteConcentration(*x_fespace);
+   sp = new SolidPotential(*x_fespace);
    for (size_t p = 0; p < npar; p++)
-      pc.Append(new SolidConcentration(*r_fespace[p], p));
+      sc.Append(new SolidConcentration(*r_fespace[p], p));
 }
 
 void P2DOperator::ImplicitSolve(const real_t dt,
@@ -59,17 +61,17 @@ void P2DOperator::ImplicitSolve(const real_t dt,
    // for du_dt, where K is linearized by using u from the previous timestep
 
    // assemble B
+   B->SetDiagonalBlock(EP, new HypreParMatrix(ep->getK()));
    B->SetDiagonalBlock(EC, Add(1, ec->getM(), dt, ec->getK()));
+   B->SetDiagonalBlock(SP, new HypreParMatrix(sp->getK()));
+   z.GetBlock(EP) = ep->getZ();
    z.GetBlock(EC) = ec->getZ();
-
+   z.GetBlock(SP) = sp->getZ();
    for (size_t p = 0; p < npar; p++)
    {
-      B->SetDiagonalBlock(SC + p, Add(1, pc[p]->getM(), dt, pc[p]->getK()));
-      z.GetBlock(SC + p) = pc[p]->getZ();
+      B->SetDiagonalBlock(SC + p, Add(1, sc[p]->getM(), dt, sc[p]->getK()));
+      z.GetBlock(SC + p) = sc[p]->getZ();
    }
-
-   B->SetDiagonalBlock(EP, new IdentityOperator(x_fespace->TrueVSize()));
-   B->SetDiagonalBlock(SP, new IdentityOperator(x_fespace->TrueVSize()));
 
    Solver.SetOperator(*B);
    Solver.Mult(z, du_dt);
@@ -82,7 +84,9 @@ void P2DOperator::update(const BlockVector &u)
    B = new BlockOperator(block_trueOffsets);
    B->owns_blocks = 1;
 
+   ep->update(u);
    ec->update(u);
+   sp->update(u);
    for (size_t p = 0; p < npar; p++)
-      pc[p]->update(u);
+      sc[p]->update(u);
 }
