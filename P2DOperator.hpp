@@ -2,7 +2,7 @@
 using namespace std;
 using namespace mfem;
 
-#include "equations/ParticleConcentration.hpp"
+#include "equations/SolidConcentration.hpp"
 #include "equations/ElectrolyteConcentration.hpp"
 
 #pragma once
@@ -15,7 +15,7 @@ protected:
 
    size_t npar;
 
-   Array<ParticleConcentration *> pc;
+   Array<SolidConcentration *> pc;
    ElectrolyteConcentration * ec;
 
    Array<int> ess_tdof_list; // this list remains empty for pure Neumann b.c.

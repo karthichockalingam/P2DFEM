@@ -43,7 +43,7 @@ P2DOperator::P2DOperator(ParFiniteElementSpace * &x_fespace, Array<ParFiniteElem
    z.Update(block_trueOffsets);
 
    for (size_t p = 0; p < npar; p++)
-      pc.Append(new ParticleConcentration(*r_fespace[p], p));
+      pc.Append(new SolidConcentration(*r_fespace[p], p));
    ec = new ElectrolyteConcentration(*x_fespace, npar);
 }
 

@@ -1,5 +1,3 @@
-
-
 #include "mfem.hpp"
 #include "Equation.hpp"
 
@@ -9,11 +7,9 @@ using namespace mfem;
 
 #pragma once
 
-class ElectrodePotential : public Equation
+class SolidConcentration : public Equation
 {
    public:
-      using Equation::Equation;
+      SolidConcentration(ParFiniteElementSpace &f, size_t id) : Equation(f, id) { nbc_bdr = 0; nbc_bdr[1] = 1; };
       virtual void update(const BlockVector &u, Coefficient &j = cc);
 };
-
-

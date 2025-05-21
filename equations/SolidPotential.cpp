@@ -1,8 +1,8 @@
 
-#include "ElectrodePotential.hpp"
+#include "SolidPotential.hpp"
 #include "../utils.hpp"
 
-void ElectrodePotential::update(const BlockVector &u, Coefficient &j)
+void SolidPotential::update(const BlockVector &u, Coefficient &j)
 {
    ParGridFunction u_gf(&fespace);
    u_gf.SetFromTrueDofs(u);

@@ -1,11 +1,11 @@
-#include "ParticleConcentration.hpp"
+#include "SolidConcentration.hpp"
 
 const real_t D = 1.0;
 
 real_t  function1(const Vector & x){ return D * x(0) * x(0); }
 real_t  function2(const Vector & x){ return x(0) * x(0); }
 
-void ParticleConcentration::update(const BlockVector &u, Coefficient &j)
+void SolidConcentration::update(const BlockVector &u, Coefficient &j)
 {
    ParGridFunction u_gf(&fespace);
    u_gf.SetFromTrueDofs(u);
