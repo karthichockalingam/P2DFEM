@@ -54,12 +54,14 @@ class GridFuncFunctionCoefficient : public Coefficient
  {
     const GridFunction & _electrolyte_concentration;
     GradientGridFunctionCoefficient  & _grad_electrolyte_concentration;
+    ConstantCoefficient & _kappa_D;
     function<real_t(const double &)>  GFunction;
 
  public:
-    VectorGridFuncFunctionCoefficient(
+      VectorGridFuncFunctionCoefficient(
       const GridFunction & electrolyte_concentration, 
       GradientGridFunctionCoefficient  & grad_electrolyte_concentration,
+      ConstantCoefficient & kappa_D,
       function<real_t(const double &)> foo);
 
     virtual void Eval(Vector & V, ElementTransformation &T, const IntegrationPoint &ip);

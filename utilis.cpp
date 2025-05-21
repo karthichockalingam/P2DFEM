@@ -70,10 +70,12 @@ GridFuncFunctionCoefficient::Eval(ElementTransformation &T, const IntegrationPoi
 VectorGridFuncFunctionCoefficient::VectorGridFuncFunctionCoefficient(
     const GridFunction & electrolyte_concentration, 
     GradientGridFunctionCoefficient  & grad_electrolyte_concentration,
+    ConstantCoefficient & kappa_D,
     function<real_t(const double &)> foo):
     VectorCoefficient(3),  
     _electrolyte_concentration(electrolyte_concentration),
     _grad_electrolyte_concentration(grad_electrolyte_concentration),
+    _kappa_D(kappa_D),
     GFunction( move(foo) ) {};
 
 
@@ -88,5 +90,5 @@ VectorGridFuncFunctionCoefficient::Eval(Vector &V, ElementTransformation &T, con
         // decision to be made: do we read in GradientGridFunctionCoefficient (like now) or create a
         // GradientGridFunctionCoefficient inside here each time?
         V = GradV;
-        V *= 1.0/GFunction(_electrolyte_concentration.GetValue(T, ip)); 
+        V *= _kappa_D.Eval(T, ip)/GFunction(_electrolyte_concentration.GetValue(T, ip)); 
     }
