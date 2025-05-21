@@ -149,7 +149,7 @@ int main(int argc, char *argv[])
    for (size_t p = 0; p < npar; p++)
       r_fespace[p] = new ParFiniteElementSpace(r_pmesh[p], &fe_coll);
 
-   HYPRE_BigInt fe_size_global = 3 * x_fespace->GlobalTrueVSize();
+   HYPRE_BigInt fe_size_global = SC * x_fespace->GlobalTrueVSize();
    for (size_t p = 0; p < npar; p++)
       fe_size_global += r_fespace[p]->GlobalTrueVSize();
 
@@ -162,7 +162,6 @@ int main(int argc, char *argv[])
 
    // X. Viz
    ParGridFunction u_gf(r_fespace[0]);
-   u_gf.GetTrueDofs(u.GetBlock(0));
 
    ParaViewDataCollection pd("particle", r_pmesh[0]);
    pd.SetPrefixPath("ParaView");
@@ -193,7 +192,7 @@ int main(int argc, char *argv[])
          if (myid == 0)
             cout << "step " << ti << ", t = " << t << endl;
 
-         u_gf.SetFromTrueDofs(u);
+         u_gf.SetFromTrueDofs(u.GetBlock(SC));
 
          LinearForm sum(r_fespace[0]);
          GridFunctionCoefficient u_gfc(&u_gf);

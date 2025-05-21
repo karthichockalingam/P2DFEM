@@ -1,9 +1,9 @@
 #include "mfem.hpp"
-using namespace std;
-using namespace mfem;
-
 #include "equations/SolidConcentration.hpp"
 #include "equations/ElectrolyteConcentration.hpp"
+
+using namespace std;
+using namespace mfem;
 
 #pragma once
 

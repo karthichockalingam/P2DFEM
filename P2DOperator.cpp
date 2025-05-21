@@ -14,22 +14,26 @@ P2DOperator::P2DOperator(ParFiniteElementSpace * &x_fespace, Array<ParFiniteElem
    Solver.SetPrintLevel(0);
    //Solver.SetPreconditioner(Prec);
 
-   const unsigned nb = 3 + npar; // 3 macro eqs + 1 micro eq/particle
+   const unsigned nb = SC + npar; // 3 macro eqs + 1 micro eq/particle
 
    block_offsets.SetSize(nb + 1);
    block_trueOffsets.SetSize(nb + 1);
+
    block_offsets[0] = 0;
+   block_offsets[EP + 1] = x_fespace->GetVSize();
+   block_offsets[EC + 1] = x_fespace->GetVSize();
+   block_offsets[SP + 1] = x_fespace->GetVSize();
    block_trueOffsets[0] = 0;
+   block_trueOffsets[EP + 1] = x_fespace->TrueVSize();
+   block_trueOffsets[EC + 1] = x_fespace->TrueVSize();
+   block_trueOffsets[SP + 1] = x_fespace->TrueVSize();
+
    for (size_t p = 0; p < npar; p++)
    {
-      block_offsets[p + 1] = r_fespace[p]->GetVSize();
-      block_trueOffsets[p + 1] = r_fespace[p]->TrueVSize();
+      block_offsets[SC + p + 1] = r_fespace[p]->GetVSize();
+      block_trueOffsets[SC + p + 1] = r_fespace[p]->TrueVSize();
    }
-   for (size_t x = 0; x < 3; x++)
-   {
-      block_offsets[npar + x + 1] = x_fespace->GetVSize();
-      block_trueOffsets[npar + x + 1] = x_fespace->TrueVSize();
-   }
+
    block_offsets.PartialSum();
    block_trueOffsets.PartialSum();
 
@@ -42,9 +46,9 @@ P2DOperator::P2DOperator(ParFiniteElementSpace * &x_fespace, Array<ParFiniteElem
    u.Update(block_trueOffsets); u = 0.;
    z.Update(block_trueOffsets);
 
+   ec = new ElectrolyteConcentration(*x_fespace);
    for (size_t p = 0; p < npar; p++)
       pc.Append(new SolidConcentration(*r_fespace[p], p));
-   ec = new ElectrolyteConcentration(*x_fespace, npar);
 }
 
 void P2DOperator::ImplicitSolve(const real_t dt,
@@ -55,20 +59,17 @@ void P2DOperator::ImplicitSolve(const real_t dt,
    // for du_dt, where K is linearized by using u from the previous timestep
 
    // assemble B
+   B->SetDiagonalBlock(EC, Add(1, ec->getM(), dt, ec->getK()));
+   z.GetBlock(EC) = ec->getZ();
+
    for (size_t p = 0; p < npar; p++)
    {
-      B->SetDiagonalBlock(p, Add(1, pc[p]->getM(), dt, pc[p]->getK()));
-      z.GetBlock(p) = pc[p]->getZ();
+      B->SetDiagonalBlock(SC + p, Add(1, pc[p]->getM(), dt, pc[p]->getK()));
+      z.GetBlock(SC + p) = pc[p]->getZ();
    }
 
-   B->SetDiagonalBlock(npar, Add(1, ec->getM(), dt, ec->getK()));
-   z.GetBlock(npar) = ec->getZ();
-
-   for (size_t x = 0; x < 2; x++)
-   {
-      IdentityOperator * I = new IdentityOperator(x_fespace->TrueVSize());
-      B->SetDiagonalBlock(npar + x + 1, I);
-   }
+   B->SetDiagonalBlock(EP, new IdentityOperator(x_fespace->TrueVSize()));
+   B->SetDiagonalBlock(SP, new IdentityOperator(x_fespace->TrueVSize()));
 
    Solver.SetOperator(*B);
    Solver.Mult(z, du_dt);
@@ -81,7 +82,7 @@ void P2DOperator::update(const BlockVector &u)
    B = new BlockOperator(block_trueOffsets);
    B->owns_blocks = 1;
 
+   ec->update(u);
    for (size_t p = 0; p < npar; p++)
       pc[p]->update(u);
-   ec->update(u);
 }
