@@ -1,5 +1,5 @@
 
-#include "utilis.hpp"
+#include "utils.hpp"
 
 const real_t m = 1.0;
 const real_t cmax = 1.0;

@@ -1,6 +1,6 @@
 
 #include "ElectrolytePotential.hpp"
-#include "utilis.hpp"
+#include "../utils.hpp"
 
 void ElectrolytePotential::update(const BlockVector &u, Coefficient &j)
 {

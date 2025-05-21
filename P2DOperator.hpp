@@ -2,8 +2,8 @@
 using namespace std;
 using namespace mfem;
 
-#include "ParticleConcentration.hpp"
-#include "ElectrolyteConcentration.hpp"
+#include "equations/ParticleConcentration.hpp"
+#include "equations/ElectrolyteConcentration.hpp"
 
 #pragma once
 

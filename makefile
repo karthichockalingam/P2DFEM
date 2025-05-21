@@ -17,8 +17,10 @@ MFEM_LIB_FILE = mfem_is_not_built
 -include $(CONFIG_MK)
 
 EXECUTABLES = p2d
-SRC_FILES = P2DOperator.cpp ParticleConcentration.cpp ElectrolyteConcentration.cpp ElectrolytePotential.cpp ElectrodePotential.cpp utilis.cpp
-INC_FILES = P2DOperator.hpp ParticleConcentration.hpp ElectrolyteConcentration.hpp Equation.hpp ElectrolytePotential.hpp ElectrodePotential.hpp utilis.hpp
+EQ_SRC_FILES = ParticleConcentration.cpp ElectrolyteConcentration.cpp ElectrodePotential.cpp ElectrolytePotential.cpp
+EQ_INC_FILES = ParticleConcentration.hpp ElectrolyteConcentration.hpp ElectrodePotential.hpp ElectrolytePotential.hpp Equation.hpp
+SRC_FILES = P2DOperator.cpp utils.cpp $(addprefix equations/, $(EQ_SRC_FILES))
+INC_FILES = P2DOperator.hpp utils.hpp $(addprefix equations/, $(EQ_INC_FILES))
 
 .PHONY: all clean
 

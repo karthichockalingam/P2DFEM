@@ -1,6 +1,6 @@
 
 #include "ElectrodePotential.hpp"
-#include "utilis.hpp"
+#include "../utils.hpp"
 
 void ElectrodePotential::update(const BlockVector &u, Coefficient &j)
 {
