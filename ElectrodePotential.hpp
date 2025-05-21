@@ -13,7 +13,7 @@ class ElectrodePotential : public Equation
 {
    public:
       using Equation::Equation;
-      virtual void update(const BlockVector &u, GridFunction &ce, Coefficient &j = cc);
+      virtual void update(const BlockVector &u, Coefficient &j = cc);
 };
 
 

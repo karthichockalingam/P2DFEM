@@ -3,20 +3,20 @@
 using namespace std;
 using namespace mfem;
 
-using Args = double(const double &, const double &, const double &, const double &, const Vector &);
+using Args = real_t(const real_t &, const real_t &, const real_t &, const real_t &, const Vector &);
 using Func = function<Args>;
-using ArgsT = double(const double &, const double &, const double &, const double &, const Vector &, const double);
+using ArgsT = real_t(const real_t &, const real_t &, const real_t &, const real_t &, const Vector &, const real_t);
 using FuncT = function<ArgsT>;
 
-double  FluxJExt(const double & ce, const double & cs);
-double  FluxJ(const double & electrolyte_potential, const double & electrode_potential, const double & electrolyte_concentration, const double & electrode_surface_concentration, const Vector & x);
+real_t  FluxJExt(const real_t & ce, const real_t & cs);
+real_t  FluxJ(const real_t & electrolyte_potential, const real_t & electrode_potential, const real_t & electrolyte_concentration, const real_t & electrode_surface_concentration, const Vector & x);
 
 class FluxJGridFuncCoefficient : public Coefficient
  {
     const GridFunction & _electrolyte_potential;
     const GridFunction & _electrode_potential;
     const GridFunction & _electrolyte_concentration;
-    const double & _electrode_surface_concentration;
+    const real_t & _electrode_surface_concentration;
     Func               GFunction;
     FuncT              TDGFunction;
  public:
@@ -24,48 +24,16 @@ class FluxJGridFuncCoefficient : public Coefficient
     const GridFunction & electrolyte_potential, 
     const GridFunction & electrode_potential,
     const GridFunction & electrolyte_concentration,
-    const double & _electrode_surface_concentration, 
+    const real_t & _electrode_surface_concentration, 
     Func foo);
  
     FluxJGridFuncCoefficient(
     const GridFunction & electrolyte_potential, 
     const GridFunction & electrode_potential,
     const GridFunction & electrolyte_concentration, 
-    const double & _electrode_surface_concentration, 
+    const real_t & _electrode_surface_concentration, 
     FuncT foo);
  
-    virtual   double Eval(ElementTransformation &T, const IntegrationPoint &ip);
+    virtual   real_t Eval(ElementTransformation &T, const IntegrationPoint &ip);
  };
-
-/*
-class GridFuncFunctionCoefficient : public Coefficient
- {
-    const GridFunction & _electrolyte_concentration;
-    function<double(const double &)>  GFunction;
-
- public:
-    GridFuncFunctionCoefficient(const GridFunction & electrolyte_concentration, function<double(const double &)> foo);
-
-    virtual   double Eval(ElementTransformation &T, const IntegrationPoint &ip);
- };
-*/
-
- class VectorGridFuncFunctionCoefficient : public VectorCoefficient 
- {
-    const GridFunction & _electrolyte_concentration;
-    GradientGridFunctionCoefficient  & _grad_electrolyte_concentration;
-    ConstantCoefficient & _kappa_D;
-    function<real_t(const double &)>  GFunction;
-
- public:
-      VectorGridFuncFunctionCoefficient(
-      const GridFunction & electrolyte_concentration, 
-      GradientGridFunctionCoefficient  & grad_electrolyte_concentration,
-      ConstantCoefficient & kappa_D,
-      function<real_t(const double &)> foo);
-
-    virtual void Eval(Vector & V, ElementTransformation &T, const IntegrationPoint &ip);
- };
-
-
  

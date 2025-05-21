@@ -2,15 +2,10 @@
 #include "ElectrolytePotential.hpp"
 #include "utilis.hpp"
 
-double  InvCe(const double & ce)
-{ 
-   return 1.0/ce;
-}
-
-void ElectrolytePotential::update(const BlockVector &u, GridFunction &ce, Coefficient &j)
+void ElectrolytePotential::update(const BlockVector &u, Coefficient &j)
 {
    ParGridFunction u_gf(&fespace);
-   u_gf.SetFromTrueDofs(u);
+   u_gf.SetFromTrueDofs(u.GetBlock(block_id - 2));
 
    real_t a = 1;
 
@@ -18,8 +13,10 @@ void ElectrolytePotential::update(const BlockVector &u, GridFunction &ce, Coeffi
    ConstantCoefficient kappa(1.0);
    ConstantCoefficient kappa_D(1.0);
 
-   GradientGridFunctionCoefficient GradCeCoeff(&ce);
-   VectorGridFuncFunctionCoefficient VecCoeff(ce, GradCeCoeff, kappa_D, InvCe);
+   GridFunctionCoefficient EcCoeff(&u_gf);
+   RatioCoefficient KappaOverEcCoeff(kappa_D, EcCoeff);
+   GradientGridFunctionCoefficient GradEcCoeff(&u_gf);
+   ScalarVectorProductCoefficient VecCoeff(KappaOverEcCoeff, GradEcCoeff);
 
    ProductCoefficient source(a, j);
 

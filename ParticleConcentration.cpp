@@ -2,8 +2,8 @@
 
 const real_t D = 1.0;
 
-double  function1(const Vector & x){ return D * x(0) * x(0); }
-double  function2(const Vector & x){ return x(0) * x(0); }
+real_t  function1(const Vector & x){ return D * x(0) * x(0); }
+real_t  function2(const Vector & x){ return x(0) * x(0); }
 
 void ParticleConcentration::update(const BlockVector &u, Coefficient &j)
 {
