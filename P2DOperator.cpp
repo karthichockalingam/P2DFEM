@@ -84,6 +84,8 @@ void P2DOperator::update(const BlockVector &u)
    B = new BlockOperator(block_trueOffsets);
    B->owns_blocks = 1;
 
+   // call point for j computation here
+
    ep->update(u);
    ec->update(u);
    sp->update(u);
