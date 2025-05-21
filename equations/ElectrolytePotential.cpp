@@ -11,13 +11,14 @@ void ElectrolytePotential::update(const BlockVector &u, Coefficient &j)
 
    ConstantCoefficient kappa(1.0);
    ConstantCoefficient kappa_D(1.0);
+   FunctionCoefficient dummy([](const Vector & x){ return sin(2*M_PI*x(0)); });
 
    GridFunctionCoefficient EcCoeff(&u_gf);
    RatioCoefficient KappaOverEcCoeff(kappa_D, 1.0);
    GradientGridFunctionCoefficient GradEcCoeff(&u_gf);
    ScalarVectorProductCoefficient VecCoeff(KappaOverEcCoeff, GradEcCoeff);
 
-   ProductCoefficient source(a, j);
+   ProductCoefficient source(dummy, j);
 
    IntegrationRule ir = IntRules.Get(Geometry::SEGMENT, 6);
 

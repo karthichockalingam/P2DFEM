@@ -10,7 +10,8 @@ void SolidPotential::update(const BlockVector &u, Coefficient &j)
    real_t a = 1;
 
    ConstantCoefficient sigma(1.0);
-   ProductCoefficient source(a, j);
+   FunctionCoefficient dummy([](const Vector & x){ return sin(2*M_PI*x(0)); });
+   ProductCoefficient source(dummy, j);
 
    IntegrationRule ir = IntRules.Get(Geometry::SEGMENT, 6);
 
