@@ -10,7 +10,7 @@
 # CONTRIBUTING.md for details.
 
 # Use the MFEM install directory
-MFEM_INSTALL_DIR ?= ../mfem-debug
+MFEM_INSTALL_DIR=//home/sar-local/Documents/ExaProjects/MFEM_STUFF/mfem-4.7/build
 CONFIG_MK = $(MFEM_INSTALL_DIR)/share/mfem/config.mk
 
 MFEM_LIB_FILE = mfem_is_not_built
@@ -19,8 +19,8 @@ MFEM_LIB_FILE = mfem_is_not_built
 EXECUTABLES = p2d
 EQ_SRC_FILES = SolidConcentration.cpp ElectrolyteConcentration.cpp SolidPotential.cpp ElectrolytePotential.cpp
 EQ_INC_FILES = SolidConcentration.hpp ElectrolyteConcentration.hpp SolidPotential.hpp ElectrolytePotential.hpp Equation.hpp
-SRC_FILES = $(addprefix equations/, $(EQ_SRC_FILES)) P2DOperator.cpp utils.cpp
-INC_FILES = $(addprefix equations/, $(EQ_INC_FILES)) P2DOperator.hpp utils.hpp constants.hpp
+SRC_FILES = $(addprefix include/problemOperators/, $(EQ_SRC_FILES)) include/P2DOperator.cpp include/coefficients/utils.cpp
+INC_FILES = $(addprefix include/problemOperators/, $(EQ_INC_FILES)) include/P2DOperator.hpp include/coefficients/utils.hpp include/constants.hpp
 
 .PHONY: all clean
 

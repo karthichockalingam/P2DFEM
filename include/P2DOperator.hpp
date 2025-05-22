@@ -1,8 +1,8 @@
 #include "mfem.hpp"
-#include "equations/ElectrolytePotential.hpp"
-#include "equations/ElectrolyteConcentration.hpp"
-#include "equations/SolidPotential.hpp"
-#include "equations/SolidConcentration.hpp"
+#include "problemOperators/ElectrolytePotential.hpp"
+#include "problemOperators/ElectrolyteConcentration.hpp"
+#include "problemOperators/SolidPotential.hpp"
+#include "problemOperators/SolidConcentration.hpp"
 
 using namespace std;
 using namespace mfem;

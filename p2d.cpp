@@ -32,7 +32,7 @@
 #include "mfem.hpp"
 #include <fstream>
 #include <iostream>
-#include "P2DOperator.hpp"
+#include "include/P2DOperator.hpp"
 
 using namespace std;
 using namespace mfem;
