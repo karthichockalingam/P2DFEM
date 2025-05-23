@@ -21,20 +21,20 @@ namespace constants {
         P2D
     };
 
-    extern Method M;
+    extern const Method M;
 
-    extern unsigned NPE;
-    extern unsigned NSEP;
-    extern unsigned NNE;
-    extern unsigned NX;
-    extern unsigned NPEPAR;
-    extern unsigned NNEPAR;
-    extern unsigned NPAR;
-    extern unsigned NR;
+    extern const unsigned NPE;
+    extern const unsigned NSEP;
+    extern const unsigned NNE;
+    extern const unsigned NX;
+    extern const unsigned NPEPAR;
+    extern const unsigned NNEPAR;
+    extern const unsigned NPAR;
+    extern const unsigned NR;
 
-    extern real_t LPE;
-    extern real_t LSEP;
-    extern real_t LNE;
+    extern const real_t LPE;
+    extern const real_t LSEP;
+    extern const real_t LNE;
 
-    void init_params();
+    void init_params(Method m);
 }

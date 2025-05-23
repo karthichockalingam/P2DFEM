@@ -1,6 +1,13 @@
-#include "constants.hpp"
+#include "mfem.hpp"
+using namespace mfem;
 
 namespace constants {
+    enum Method : int {
+        SPM,
+        SPMe,
+        P2D
+    };
+
     Method M = SPM;
 
     unsigned NPE = 0;
@@ -16,7 +23,9 @@ namespace constants {
     real_t LSEP = 0.;
     real_t LNE  = 0.;
 
-    void init_params() {
+    void init_params(Method m) {
+        M = m;
+
         switch (M)
         {
             case SPM:
