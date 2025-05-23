@@ -15,8 +15,6 @@ protected:
    ParFiniteElementSpace * &x_fespace;
    Array<ParFiniteElementSpace *> &r_fespace;
 
-   size_t npar;
-
    ElectrolytePotential     * ep;
    ElectrolyteConcentration * ec;
    SolidPotential           * sp;

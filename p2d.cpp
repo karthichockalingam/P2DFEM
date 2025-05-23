@@ -120,22 +120,21 @@ int main(int argc, char *argv[])
    // 3. Read the serial mesh from the given mesh file on all processors. We can
    //    handle triangular, quadrilateral, tetrahedral and hexahedral meshes
    //    with the same code.
-   const unsigned dim = 1;
-   const unsigned np = 5, nn = 5, ns = 5, nr = 10;
-   const unsigned nx = np + nn + ns;
-   const unsigned npar = (np - 1) + (nn - 1);
-   Mesh x_smesh = Mesh::MakeCartesian1D(nx);
-   Mesh r_smesh[npar];
-   for (size_t p = 0; p < npar; p++)
-      r_smesh[p] = Mesh::MakeCartesian1D(nr);
+   Mesh x_smesh = Mesh::MakeCartesian1D(NX);
+   for (unsigned i = 0; i < NX; i++)
+      x_smesh.GetElement(i)->SetAttribute(i < NPE ? PE : i < NPE + NSEP ? SEP : NE);
+
+   Mesh r_smesh[NPAR];
+   for (size_t p = 0; p < NPAR; p++)
+      r_smesh[p] = Mesh::MakeCartesian1D(NR);
 
    // 6. Define a parallel mesh by a partitioning of the serial mesh. Refine
    //    this mesh further in parallel to increase the resolution. Once the
    //    parallel mesh is defined, the serial mesh can be deleted.
    ParMesh *x_pmesh = new ParMesh(MPI_COMM_WORLD, x_smesh);
    x_smesh.Clear(); // the serial mesh is no longer needed
-   ParMesh *r_pmesh[npar];
-   for (size_t p = 0; p < npar; p++)
+   ParMesh *r_pmesh[NPAR];
+   for (size_t p = 0; p < NPAR; p++)
    {
       r_pmesh[p] = new ParMesh(MPI_COMM_WORLD, r_smesh[p]);
       r_smesh[p].Clear(); // the serial mesh is no longer needed
@@ -143,14 +142,14 @@ int main(int argc, char *argv[])
 
    // 7. Define the vector finite element space representing the current and the
    //    initial temperature, u_ref.
-   H1_FECollection fe_coll(order, dim);
+   H1_FECollection fe_coll(order, /*dim*/ 1);
    ParFiniteElementSpace * x_fespace = new ParFiniteElementSpace(x_pmesh, &fe_coll);
-   Array<ParFiniteElementSpace *> r_fespace(npar);
-   for (size_t p = 0; p < npar; p++)
+   Array<ParFiniteElementSpace *> r_fespace(NPAR);
+   for (size_t p = 0; p < NPAR; p++)
       r_fespace[p] = new ParFiniteElementSpace(r_pmesh[p], &fe_coll);
 
    HYPRE_BigInt fe_size_global = SC * x_fespace->GlobalTrueVSize();
-   for (size_t p = 0; p < npar; p++)
+   for (size_t p = 0; p < NPAR; p++)
       fe_size_global += r_fespace[p]->GlobalTrueVSize();
 
    if (myid == 0)
@@ -216,7 +215,7 @@ int main(int argc, char *argv[])
    // 11. Free the used memory.
    delete ode_solver;
    delete x_pmesh;
-   for (size_t p = 0; p < npar; p++)
+   for (size_t p = 0; p < NPAR; p++)
       delete r_pmesh[p];
 
    return 0;

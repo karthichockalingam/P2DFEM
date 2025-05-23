@@ -2,7 +2,7 @@
 
 P2DOperator::P2DOperator(ParFiniteElementSpace * &x_fespace, Array<ParFiniteElementSpace *> &r_fespace,
                          const unsigned &ndofs, BlockVector &u)
-   : TimeDependentOperator(ndofs, (real_t) 0.0), x_fespace(x_fespace), r_fespace(r_fespace), npar(r_fespace.Size()),
+   : TimeDependentOperator(ndofs, (real_t) 0.0), x_fespace(x_fespace), r_fespace(r_fespace),
      B(NULL), current_dt(0.0), Solver(x_fespace->GetComm())
 {
    const real_t rel_tol = 1e-8;
@@ -14,7 +14,7 @@ P2DOperator::P2DOperator(ParFiniteElementSpace * &x_fespace, Array<ParFiniteElem
    Solver.SetPrintLevel(0);
    //Solver.SetPreconditioner(Prec);
 
-   const unsigned nb = SC + npar; // 3 macro eqs + 1 micro eq/particle
+   const unsigned nb = SC + NPAR; // 3 macro eqs + 1 micro eq/particle
 
    block_offsets.SetSize(nb + 1);
    block_trueOffsets.SetSize(nb + 1);
@@ -28,7 +28,7 @@ P2DOperator::P2DOperator(ParFiniteElementSpace * &x_fespace, Array<ParFiniteElem
    block_trueOffsets[EC + 1] = x_fespace->TrueVSize();
    block_trueOffsets[SP + 1] = x_fespace->TrueVSize();
 
-   for (size_t p = 0; p < npar; p++)
+   for (size_t p = 0; p < NPAR; p++)
    {
       block_offsets[SC + p + 1] = r_fespace[p]->GetVSize();
       block_trueOffsets[SC + p + 1] = r_fespace[p]->TrueVSize();
@@ -49,7 +49,7 @@ P2DOperator::P2DOperator(ParFiniteElementSpace * &x_fespace, Array<ParFiniteElem
    ep = new ElectrolytePotential(*x_fespace);
    ec = new ElectrolyteConcentration(*x_fespace);
    sp = new SolidPotential(*x_fespace);
-   for (size_t p = 0; p < npar; p++)
+   for (size_t p = 0; p < NPAR; p++)
       sc.Append(new SolidConcentration(*r_fespace[p], p));
 }
 
@@ -67,7 +67,7 @@ void P2DOperator::ImplicitSolve(const real_t dt,
    z.GetBlock(EP) = ep->getZ();
    z.GetBlock(EC) = ec->getZ();
    z.GetBlock(SP) = sp->getZ();
-   for (size_t p = 0; p < npar; p++)
+   for (size_t p = 0; p < NPAR; p++)
    {
       B->SetDiagonalBlock(SC + p, Add(1, sc[p]->getM(), dt, sc[p]->getK()));
       z.GetBlock(SC + p) = sc[p]->getZ();
@@ -89,6 +89,6 @@ void P2DOperator::update(const BlockVector &u)
    ep->update(u);
    ec->update(u);
    sp->update(u);
-   for (size_t p = 0; p < npar; p++)
+   for (size_t p = 0; p < NPAR; p++)
       sc[p]->update(u);
 }

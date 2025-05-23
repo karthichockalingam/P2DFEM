@@ -1,9 +1,10 @@
 #include "mfem.hpp"
+using namespace mfem;
+
 #include "../constants.hpp"
+using namespace constants;
 
 using namespace std;
-using namespace mfem;
-using namespace constants;
 
 #pragma once
 
