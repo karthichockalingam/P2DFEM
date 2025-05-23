@@ -26,6 +26,9 @@ namespace constants {
     real_t AP = 1.;
     real_t AN = 1.;
 
+    real_t DP = 1.;
+    real_t DN = 1.;
+
     real_t I = 1.;
 
     void init_params(Method m) {

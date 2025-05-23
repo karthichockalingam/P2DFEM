@@ -39,6 +39,9 @@ namespace constants {
     extern const real_t AP;
     extern const real_t AN;
 
+    extern const real_t DP;
+    extern const real_t DN;
+
     extern const real_t I;
 
     void init_params(Method m);
