@@ -36,5 +36,10 @@ namespace constants {
     extern const real_t LSEP;
     extern const real_t LNE;
 
+    extern const real_t AP;
+    extern const real_t AN;
+
+    extern const real_t I;
+
     void init_params(Method m);
 }
