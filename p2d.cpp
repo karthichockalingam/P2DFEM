@@ -90,7 +90,7 @@ int main(int argc, char *argv[])
    if (myid == 0)
       args.PrintOptions(cout);
 
-      
+
    // 4. Define the ODE solver used for time integration. Several implicit
    //    singly diagonal implicit Runge-Kutta (SDIRK) methods, as well as
    //    explicit Runge-Kutta methods are available.
@@ -155,7 +155,7 @@ int main(int argc, char *argv[])
 
    if (myid == 0)
       cout << "Unknowns (total): " << fe_size_global << endl;
-   
+
    // 9. Initialize the conduction operator and the VisIt visualization.
    BlockVector u;
    P2DOperator oper(x_fespace, r_fespace, fe_size_global, u);

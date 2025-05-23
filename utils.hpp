@@ -21,19 +21,18 @@ class FluxJGridFuncCoefficient : public Coefficient
     FuncT              TDGFunction;
  public:
     FluxJGridFuncCoefficient(
-    const GridFunction & electrolyte_potential, 
+    const GridFunction & electrolyte_potential,
     const GridFunction & electrode_potential,
     const GridFunction & electrolyte_concentration,
-    const real_t & _electrode_surface_concentration, 
+    const real_t & _electrode_surface_concentration,
     Func foo);
- 
+
     FluxJGridFuncCoefficient(
-    const GridFunction & electrolyte_potential, 
+    const GridFunction & electrolyte_potential,
     const GridFunction & electrode_potential,
-    const GridFunction & electrolyte_concentration, 
-    const real_t & _electrode_surface_concentration, 
+    const GridFunction & electrolyte_concentration,
+    const real_t & _electrode_surface_concentration,
     FuncT foo);
- 
+
     virtual   real_t Eval(ElementTransformation &T, const IntegrationPoint &ip);
  };
- 

@@ -35,7 +35,7 @@ void ElectrolytePotential::update(const BlockVector &u, Coefficient &j)
    Q->Assemble();
    Qvec = std::move(*(Q->ParallelAssemble()));
    Qvec.SetSubVector(ess_tdof_list, 0.0); // do we need this?
-   
+
    Kmat.Mult(u.GetBlock(EP), z);
    z.Neg();
    z += Qvec;

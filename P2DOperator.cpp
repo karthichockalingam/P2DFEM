@@ -76,7 +76,7 @@ void P2DOperator::ImplicitSolve(const real_t dt,
    Solver.SetOperator(*B);
    Solver.Mult(z, du_dt);
 }
-   
+
 void P2DOperator::update(const BlockVector &u)
 {
    // rebuild B
