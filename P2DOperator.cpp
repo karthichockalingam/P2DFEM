@@ -50,7 +50,7 @@ P2DOperator::P2DOperator(ParFiniteElementSpace * &x_fespace, Array<ParFiniteElem
    ec = new ElectrolyteConcentration(*x_fespace);
    sp = new SolidPotential(*x_fespace);
    for (size_t p = 0; p < NPAR; p++)
-      sc.Append(new SolidConcentration(*r_fespace[p], p));
+      sc.Append(new SolidConcentration(*r_fespace[p], p, p < NPEPAR ? PE : NE));
 }
 
 void P2DOperator::ImplicitSolve(const real_t dt,

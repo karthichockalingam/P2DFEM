@@ -18,7 +18,7 @@ namespace constants {
     enum Method : int {
         SPM,
         SPMe,
-        P2D 
+        P2D
     };
 
     extern Method M;
@@ -27,6 +27,8 @@ namespace constants {
     extern unsigned NSEP;
     extern unsigned NNE;
     extern unsigned NX;
+    extern unsigned NPEPAR;
+    extern unsigned NNEPAR;
     extern unsigned NPAR;
     extern unsigned NR;
 
