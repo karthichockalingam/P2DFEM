@@ -21,15 +21,18 @@ namespace constants {
             case SPMe:
                 NPE = NSEP = NNE = NX = 0;
                 NPAR = 2;
+                LPE  = .4;
+                LSEP = .2;
+                LNE  = .4;
                 break;
             case P2D:
                 NPE = NSEP = NNE = 5;
                 NX = NPE + NSEP + NNE;
                 NPAR = (NPE - 1) + (NNE - 1);
+                LPE  = 1. * NPE  / NX;
+                LSEP = 1. * NSEP / NX;
+                LNE  = 1. * NNE  / NX;
                 break;
         }
-        LPE  = 1. * NPE  / NX;
-        LSEP = 1. * NSEP / NX;
-        LNE  = 1. * NNE  / NX;
     }
 }

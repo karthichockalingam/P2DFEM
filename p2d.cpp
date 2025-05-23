@@ -120,7 +120,6 @@ int main(int argc, char *argv[])
    // Initialise electrochemical method-depedent grid properties
    init_params();
 
-   // TODO: tag elements to distinguish electrodes from separator
    // 3. Read the serial mesh from the given mesh file on all processors. We can
    //    handle triangular, quadrilateral, tetrahedral and hexahedral meshes
    //    with the same code.
