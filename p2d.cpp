@@ -195,6 +195,14 @@ int main(int argc, char *argv[])
          if (myid == 0)
             cout << "step " << ti << ", t = " << t << endl;
 
+         // Daniel: this is obviously a very rough, hacky way to do things,
+         // in the middle of ducking nowhere. Agreed. But it was just to see
+         // if we could get the cell voltage out before the bank holiday
+         // weekend. I'm happy for you to continue testing unit changes and
+         // open circuit potentials here, don't worry too much. Once we have
+         // the right physics, i.e. the plot looks similar enough to what you
+         // get from e.g. JuBat (see their paper), then we can move this
+         // somewhere, I'm currently thinking P2DOperator::postprocessing or sth.
          real_t csurf[2];
          for (size_t i = 0; i < 2; i++)
          {
