@@ -218,7 +218,7 @@ int main(int argc, char *argv[])
                       asinh(  I / AN / LNE / 2 / sqrt(csurf[1]*(10-csurf[1])))
                    << std::endl;
          
-
+         // TODO: Stop sim at cutoff voltage
          if (last_step || visualization)
          {
             pd.SetCycle(ti);
