@@ -1,25 +1,38 @@
+#include "mfem.hpp"
+using namespace mfem;
+
 namespace constants {
     enum Block : int {
-        EP = 0,
-        EC = 1,
-        SP = 2,
-        SC = 3
+        EP,
+        EC,
+        SP,
+        SC
     };
 
     enum Region : int {
-        PE  = 0,
-        SEP = 1,
-        NE  = 2
+        PE,
+        SEP,
+        NE
     };
 
-    constexpr unsigned NPE = 5;
-    constexpr unsigned NSEP = 5;
-    constexpr unsigned NNE = 5;
-    constexpr unsigned NX = NPE + NSEP + NNE;
-    constexpr unsigned NR = 10;
-    constexpr unsigned NPAR = (NPE - 1) + (NPE - 1);
+    enum Method : int {
+        SPM,
+        SPMe,
+        P2D 
+    };
 
-    constexpr real_t LPE  = 1. * NPE  / NX;
-    constexpr real_t LSEP = 1. * NSEP / NX;
-    constexpr real_t LNE  = 1. * NNE  / NX;
+    extern Method M;
+
+    extern unsigned NPE;
+    extern unsigned NSEP;
+    extern unsigned NNE;
+    extern unsigned NX;
+    extern unsigned NPAR;
+    extern unsigned NR;
+
+    extern real_t LPE;
+    extern real_t LSEP;
+    extern real_t LNE;
+
+    void init_params();
 }

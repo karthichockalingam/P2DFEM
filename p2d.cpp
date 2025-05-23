@@ -62,6 +62,8 @@ int main(int argc, char *argv[])
    cout.precision(precision);
 
    OptionsParser args(argc, argv);
+   args.AddOption(reinterpret_cast<int*>(&M), "-m", "--method",
+                  "Electrochemical method: 0) SPM, 1) SPMe, 2) P2D.");
    args.AddOption(&ser_ref_levels, "-rs", "--refine-serial",
                   "Number of times to refine the mesh uniformly in serial.");
    args.AddOption(&par_ref_levels, "-rp", "--refine-parallel",
@@ -90,7 +92,6 @@ int main(int argc, char *argv[])
    if (myid == 0)
       args.PrintOptions(cout);
 
-
    // 4. Define the ODE solver used for time integration. Several implicit
    //    singly diagonal implicit Runge-Kutta (SDIRK) methods, as well as
    //    explicit Runge-Kutta methods are available.
@@ -115,6 +116,9 @@ int main(int argc, char *argv[])
       cout << "Unknown ODE solver type: " << ode_solver_type << '\n';
       return 1;
    }
+
+   // Initialise electrochemical method-depedent grid properties
+   init_params();
 
    // TODO: tag elements to distinguish electrodes from separator
    // 3. Read the serial mesh from the given mesh file on all processors. We can

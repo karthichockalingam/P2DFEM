@@ -19,7 +19,7 @@ MFEM_LIB_FILE = mfem_is_not_built
 EXECUTABLES = p2d
 EQ_SRC_FILES = SolidConcentration.cpp ElectrolyteConcentration.cpp SolidPotential.cpp ElectrolytePotential.cpp
 EQ_INC_FILES = SolidConcentration.hpp ElectrolyteConcentration.hpp SolidPotential.hpp ElectrolytePotential.hpp Equation.hpp
-SRC_FILES = $(addprefix equations/, $(EQ_SRC_FILES)) P2DOperator.cpp utils.cpp
+SRC_FILES = $(addprefix equations/, $(EQ_SRC_FILES)) P2DOperator.cpp utils.cpp constants.cpp
 INC_FILES = $(addprefix equations/, $(EQ_INC_FILES)) P2DOperator.hpp utils.hpp constants.hpp
 
 .PHONY: all clean
