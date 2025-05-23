@@ -195,9 +195,12 @@ int main(int argc, char *argv[])
          if (myid == 0)
             cout << "step " << ti << ", t = " << t << endl;
 
+         real_t csurf[2];
          for (size_t i = 0; i < 2; i++)
          {
             u_gf.SetFromTrueDofs(u.GetBlock(SC + i));
+            csurf[i] = u_gf(NR);
+            std::cout << "Surface concentration (" << i << ") = " << csurf[i] << std::endl;
    
             LinearForm sum(r_fespace[i]);
             GridFunctionCoefficient u_gfc(&u_gf);
@@ -208,6 +211,12 @@ int main(int argc, char *argv[])
    
             std::cout << "Total flux accumulated (" << i << ") = " << sum.Sum() << std::endl;
          }
+
+         std::cout << "~Voltage =" <<
+                      10 - csurf[1]/10 + 
+                      asinh(- I / AP / LPE / 2 / sqrt((10+csurf[0])*-csurf[0])) -
+                      asinh(  I / AN / LNE / 2 / sqrt(csurf[1]*(10-csurf[1])))
+                   << std::endl;
          
 
          if (last_step || visualization)
