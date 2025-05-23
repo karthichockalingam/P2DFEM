@@ -195,16 +195,20 @@ int main(int argc, char *argv[])
          if (myid == 0)
             cout << "step " << ti << ", t = " << t << endl;
 
-         u_gf.SetFromTrueDofs(u.GetBlock(SC));
-
-         LinearForm sum(r_fespace[0]);
-         GridFunctionCoefficient u_gfc(&u_gf);
-         FunctionCoefficient r2([](const Vector & x){ return x(0) * x(0); });
-         ProductCoefficient ur2(u_gfc,r2);
-         sum.AddDomainIntegrator(new DomainLFIntegrator(ur2));
-         sum.Assemble();
-
-         std::cout << "Total flux accumulated = " << sum.Sum() << std::endl;
+         for (size_t i = 0; i < 2; i++)
+         {
+            u_gf.SetFromTrueDofs(u.GetBlock(SC + i));
+   
+            LinearForm sum(r_fespace[i]);
+            GridFunctionCoefficient u_gfc(&u_gf);
+            FunctionCoefficient r2([](const Vector & x){ return x(0) * x(0); });
+            ProductCoefficient ur2(u_gfc,r2);
+            sum.AddDomainIntegrator(new DomainLFIntegrator(ur2));
+            sum.Assemble();
+   
+            std::cout << "Total flux accumulated (" << i << ") = " << sum.Sum() << std::endl;
+         }
+         
 
          if (last_step || visualization)
          {

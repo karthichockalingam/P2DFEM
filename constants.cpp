@@ -29,6 +29,8 @@ namespace constants {
     real_t DP = 1.;
     real_t DN = 1.;
 
+    real_t CE0 = 1.;
+
     real_t I = 1.;
 
     void init_params(Method m) {
