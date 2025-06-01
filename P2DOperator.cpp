@@ -40,7 +40,7 @@ P2DOperator::P2DOperator(ParFiniteElementSpace * &x_fespace, Array<ParFiniteElem
    if (!Mpi::WorldRank())
    {
       std::cout << "Variables: " << nb << std::endl;
-      std::cout << "Unknowns (total): " << block_trueOffsets[nb] << std::endl;
+      std::cout << "Unknowns (rank 0): " << block_trueOffsets[nb] << std::endl;
    }
 
    u.Update(block_trueOffsets); u = 0.;
