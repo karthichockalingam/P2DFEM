@@ -33,7 +33,7 @@ namespace constants {
 
     real_t I = 1.;
 
-    void init_params(Method m) {
+    void init_params(Method m, int order) {
         M = m;
 
         switch (M)
@@ -58,8 +58,8 @@ namespace constants {
                 break;
             case SPMe:
             case P2D:
-                NPEPAR = NPE - 1;
-                NNEPAR = NNE - 1;
+                NPEPAR = NPE * order - 1;
+                NNEPAR = NNE * order - 1;
                 LPE  = 1. * NPE  / NX;
                 LSEP = 1. * NSEP / NX;
                 LNE  = 1. * NNE  / NX;

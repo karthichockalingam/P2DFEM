@@ -118,8 +118,8 @@ int main(int argc, char *argv[])
       return 1;
    }
 
-   // Initialise electrochemical method-depedent grid properties
-   init_params(method);
+   // Initialise grid and layout properties dependent on the EC method and FE order
+   init_params(method, order);
 
    // 3. Read the serial mesh from the given mesh file on all processors. We can
    //    handle triangular, quadrilateral, tetrahedral and hexahedral meshes

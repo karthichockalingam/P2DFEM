@@ -46,5 +46,5 @@ namespace constants {
 
     extern const real_t I;
 
-    void init_params(Method m);
+    void init_params(Method m, int order);
 }
