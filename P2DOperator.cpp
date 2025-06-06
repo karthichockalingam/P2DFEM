@@ -107,21 +107,31 @@ void P2DOperator::update(const BlockVector &u)
 
 void P2DOperator::GetParticleLocalTrueDofs(Array<int> & particle_dofs, unsigned & particle_offset)
 {
+   std::set<int> sep_global_dofs_set;
+   for (int e = 0; e < x_fespace->GetNE(); e++)
+      if (x_fespace->GetAttribute(e) == SEP)
+      {
+         Array<int> dofs;
+         x_fespace->GetElementDofs(e, dofs);
+         for (int d: dofs)
+            sep_global_dofs_set.insert(x_fespace->GetGlobalTDofNumber(d));
+      }
+
+   unsigned max_sep_global_dofs = NSEP * x_fespace->GetElementOrder(0) + 1;
+   Array<int> sep_global_dofs(max_sep_global_dofs); sep_global_dofs = -1;
+   std::copy(sep_global_dofs_set.begin(), sep_global_dofs_set.end(), sep_global_dofs.begin());
+
+   int all_sep_global_dofs[max_sep_global_dofs * Mpi::WorldSize()];
+   MPI_Allgather(sep_global_dofs.GetData(), max_sep_global_dofs, MPI_INT,
+                 all_sep_global_dofs, max_sep_global_dofs, MPI_INT, MPI_COMM_WORLD);
+
+   sep_global_dofs_set = std::set<int>(all_sep_global_dofs, all_sep_global_dofs + max_sep_global_dofs * Mpi::WorldSize());
+   
    std::set<int> particle_dofs_set;
 
    for (int d = 0; d < x_fespace->GetNDofs(); d++)
-      particle_dofs_set.insert(x_fespace->GetLocalTDofNumber(d));
-
-   for (int e = 0; e < x_fespace->GetNE(); e++)
-   {
-      if (x_fespace->GetAttribute(e) != SEP)
-         continue;
-
-      Array<int> dofs;
-      x_fespace->GetElementDofs(e, dofs);
-      for (int d: dofs)
-         particle_dofs_set.erase(x_fespace->GetLocalTDofNumber(d));
-   }
+      if (sep_global_dofs_set.find(x_fespace->GetGlobalTDofNumber(d)) == sep_global_dofs_set.end())
+         particle_dofs_set.insert(x_fespace->GetLocalTDofNumber(d));
 
    Array<int> boundary_dofs;
    x_fespace->GetBoundaryTrueDofs(boundary_dofs);
@@ -141,6 +151,5 @@ void P2DOperator::GetParticleLocalTrueDofs(Array<int> & particle_dofs, unsigned 
    all_particles.PartialSum();
    particle_offset = Mpi::WorldRank() > 0 ? all_particles[Mpi::WorldRank() - 1] : 0;
 
-   // FIX ME: Guarantees we crash in cases the partition boundary coincides with the electrode/separator boundary
    assert(all_particles[Mpi::WorldSize() - 1] == NPAR);
 }
