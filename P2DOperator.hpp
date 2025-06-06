@@ -48,7 +48,7 @@ public:
 
    virtual void update(const BlockVector &u);
 
-   virtual void GetParticleLocalTrueDofs(Array<int> & particle_dofs, size_t & particle_offset);
+   virtual void GetParticleLocalTrueDofs(Array<int> & particle_dofs, unsigned & particle_offset);
 
    virtual ~P2DOperator() {}
 };

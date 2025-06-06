@@ -28,7 +28,7 @@ P2DOperator::P2DOperator(ParFiniteElementSpace * &x_fespace, Array<ParFiniteElem
    block_trueOffsets[EC + 1] = x_fespace->GetTrueVSize();
    block_trueOffsets[SP + 1] = x_fespace->GetTrueVSize();
 
-   for (size_t p = 0; p < NPAR; p++)
+   for (unsigned p = 0; p < NPAR; p++)
    {
       block_offsets[SC + p + 1] = r_fespace[p]->GetVSize();
       block_trueOffsets[SC + p + 1] = r_fespace[p]->GetTrueVSize();
@@ -51,15 +51,13 @@ P2DOperator::P2DOperator(ParFiniteElementSpace * &x_fespace, Array<ParFiniteElem
    sp = new SolidPotential(*x_fespace);
 
    if (M == SPM)
-   {
-      for (size_t p = 0; p < NPAR; p++)
+      for (unsigned p = 0; p < NPAR; p++)
          sc.Append(new SolidConcentration(*r_fespace[p], p));
-   }
    else
    {
-      Array<int> particle_dofs; size_t particle_offset;
+      Array<int> particle_dofs; unsigned particle_offset;
       GetParticleLocalTrueDofs(particle_dofs, particle_offset);
-      for (size_t p = 0; p < NPAR; p++)
+      for (unsigned p = 0; p < NPAR; p++)
       {
          bool my_particle = p >= particle_offset && p < particle_offset + particle_dofs.Size();
          sc.Append(new SolidConcentration(*r_fespace[p], p, my_particle ? particle_dofs[p - particle_offset] : -1));
@@ -81,7 +79,7 @@ void P2DOperator::ImplicitSolve(const real_t dt,
    z.GetBlock(EP) = ep->getZ();
    z.GetBlock(EC) = ec->getZ();
    z.GetBlock(SP) = sp->getZ();
-   for (size_t p = 0; p < NPAR; p++)
+   for (unsigned p = 0; p < NPAR; p++)
    {
       B->SetDiagonalBlock(SC + p, Add(1, sc[p]->getM(), dt, sc[p]->getK()));
       z.GetBlock(SC + p) = sc[p]->getZ();
@@ -103,11 +101,11 @@ void P2DOperator::update(const BlockVector &u)
    ep->update(u);
    ec->update(u);
    sp->update(u);
-   for (size_t p = 0; p < NPAR; p++)
+   for (unsigned p = 0; p < NPAR; p++)
       sc[p]->update(u);
 }
 
-void P2DOperator::GetParticleLocalTrueDofs(Array<int> & particle_dofs, size_t & particle_offset)
+void P2DOperator::GetParticleLocalTrueDofs(Array<int> & particle_dofs, unsigned & particle_offset)
 {
    std::set<int> particle_dofs_set;
 

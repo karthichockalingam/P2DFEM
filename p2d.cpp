@@ -129,7 +129,7 @@ int main(int argc, char *argv[])
       x_smesh.SetAttribute(i, i < NPE ? PE : i < NPE + NSEP ? SEP : NE);
 
    Mesh r_smesh[NPAR];
-   for (size_t p = 0; p < NPAR; p++)
+   for (unsigned p = 0; p < NPAR; p++)
       r_smesh[p] = Mesh::MakeCartesian1D(NR);
 
    // 6. Define a parallel mesh by a partitioning of the serial mesh. Refine
@@ -138,7 +138,7 @@ int main(int argc, char *argv[])
    ParMesh *x_pmesh = new ParMesh(MPI_COMM_WORLD, x_smesh);
    x_smesh.Clear(); // the serial mesh is no longer needed
    ParMesh *r_pmesh[NPAR];
-   for (size_t p = 0; p < NPAR; p++)
+   for (unsigned p = 0; p < NPAR; p++)
    {
       r_pmesh[p] = new ParMesh(MPI_COMM_WORLD, r_smesh[p]);
       r_smesh[p].Clear(); // the serial mesh is no longer needed
@@ -149,11 +149,11 @@ int main(int argc, char *argv[])
    H1_FECollection fe_coll(order, /*dim*/ 1);
    ParFiniteElementSpace * x_fespace = new ParFiniteElementSpace(x_pmesh, &fe_coll);
    Array<ParFiniteElementSpace *> r_fespace(NPAR);
-   for (size_t p = 0; p < NPAR; p++)
+   for (unsigned p = 0; p < NPAR; p++)
       r_fespace[p] = new ParFiniteElementSpace(r_pmesh[p], &fe_coll);
 
    HYPRE_BigInt fe_size_global = SC * x_fespace->GlobalTrueVSize();
-   for (size_t p = 0; p < NPAR; p++)
+   for (unsigned p = 0; p < NPAR; p++)
       fe_size_global += r_fespace[p]->GlobalTrueVSize();
 
    if (myid == 0)
@@ -204,7 +204,7 @@ int main(int argc, char *argv[])
          // get from e.g. JuBat (see their paper), then we can move this
          // somewhere, I'm currently thinking P2DOperator::postprocessing or sth.
          real_t csurf[2];
-         for (size_t i = 0; i < 2; i++)
+         for (int i = 0; i < 2; i++)
          {
             u_gf.SetFromTrueDofs(u.GetBlock(SC + i));
             csurf[i] = u_gf(NR);
@@ -240,7 +240,7 @@ int main(int argc, char *argv[])
    // 11. Free the used memory.
    delete ode_solver;
    delete x_pmesh;
-   for (size_t p = 0; p < NPAR; p++)
+   for (unsigned p = 0; p < NPAR; p++)
       delete r_pmesh[p];
 
    return 0;
