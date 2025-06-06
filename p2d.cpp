@@ -126,7 +126,7 @@ int main(int argc, char *argv[])
    //    with the same code.
    Mesh x_smesh = Mesh::MakeCartesian1D(NX);
    for (unsigned i = 0; i < NX; i++)
-      x_smesh.GetElement(i)->SetAttribute(i < NPE ? PE : i < NPE + NSEP ? SEP : NE);
+      x_smesh.SetAttribute(i, i < NPE ? PE : i < NPE + NSEP ? SEP : NE);
 
    Mesh r_smesh[NPAR];
    for (size_t p = 0; p < NPAR; p++)
