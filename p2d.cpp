@@ -49,7 +49,7 @@ int main(int argc, char *argv[])
    Hypre::Init();
 
    // 2. Parse command-line options.
-   Method m = SPM;
+   Method method = SPM;
    int ser_ref_levels = 0;
    int par_ref_levels = 0;
    int order = 1;
@@ -63,7 +63,7 @@ int main(int argc, char *argv[])
    cout.precision(precision);
 
    OptionsParser args(argc, argv);
-   args.AddOption(reinterpret_cast<int*>(&m), "-m", "--method",
+   args.AddOption(reinterpret_cast<int*>(&method), "-m", "--method",
                   "Electrochemical method: 0) SPM, 1) SPMe, 2) P2D.");
    args.AddOption(&ser_ref_levels, "-rs", "--refine-serial",
                   "Number of times to refine the mesh uniformly in serial.");
@@ -119,7 +119,7 @@ int main(int argc, char *argv[])
    }
 
    // Initialise electrochemical method-depedent grid properties
-   init_params(m);
+   init_params(method);
 
    // 3. Read the serial mesh from the given mesh file on all processors. We can
    //    handle triangular, quadrilateral, tetrahedral and hexahedral meshes
