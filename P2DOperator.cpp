@@ -24,14 +24,14 @@ P2DOperator::P2DOperator(ParFiniteElementSpace * &x_fespace, Array<ParFiniteElem
    block_offsets[EC + 1] = x_fespace->GetVSize();
    block_offsets[SP + 1] = x_fespace->GetVSize();
    block_trueOffsets[0] = 0;
-   block_trueOffsets[EP + 1] = x_fespace->TrueVSize();
-   block_trueOffsets[EC + 1] = x_fespace->TrueVSize();
-   block_trueOffsets[SP + 1] = x_fespace->TrueVSize();
+   block_trueOffsets[EP + 1] = x_fespace->GetTrueVSize();
+   block_trueOffsets[EC + 1] = x_fespace->GetTrueVSize();
+   block_trueOffsets[SP + 1] = x_fespace->GetTrueVSize();
 
    for (size_t p = 0; p < NPAR; p++)
    {
       block_offsets[SC + p + 1] = r_fespace[p]->GetVSize();
-      block_trueOffsets[SC + p + 1] = r_fespace[p]->TrueVSize();
+      block_trueOffsets[SC + p + 1] = r_fespace[p]->GetTrueVSize();
    }
 
    block_offsets.PartialSum();

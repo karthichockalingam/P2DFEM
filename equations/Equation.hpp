@@ -31,7 +31,7 @@ protected:
    mutable Vector z; // auxiliary vector
 
 public:
-   Equation(ParFiniteElementSpace &f) : fespace(f), nbc_bdr(2), z(f.TrueVSize()) {};
+   Equation(ParFiniteElementSpace &f) : fespace(f), nbc_bdr(2), z(f.GetTrueVSize()) {};
 
    const HypreParMatrix & getM() const { return Mmat; };
    const HypreParMatrix & getK() const { return Kmat; };
