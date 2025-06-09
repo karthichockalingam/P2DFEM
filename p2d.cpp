@@ -183,6 +183,9 @@ int main(int argc, char *argv[])
 
    oper.update(u);
 
+   // Filename for writing temporary data to file.
+   std::ofstream dataFile("voltage.txt");
+
    bool last_step = false;
    for (int ti = 1; !last_step; ti++)
    {
@@ -220,11 +223,14 @@ int main(int argc, char *argv[])
             std::cout << "Total flux accumulated (" << i << ") = " << sum.Sum() << std::endl;
          }
 
-         std::cout << "~Voltage =" <<
-                      10 - csurf[1]/10 + 
+         real_t voltage = 10 - csurf[1]/10 + 
                       asinh(- I / AP / LPE / 2 / sqrt((10+csurf[0])*-csurf[0])) -
-                      asinh(  I / AN / LNE / 2 / sqrt(csurf[1]*(10-csurf[1])))
-                   << std::endl;
+                      asinh(  I / AN / LNE / 2 / sqrt(csurf[1]*(10-csurf[1])));
+
+         std::cout << "~Voltage =" << voltage << std::endl;    
+
+         // Print data to file.
+         dataFile << t << ", " << "\t" << voltage << ";" << std::endl;
          
          // TODO: Stop sim at cutoff voltage
          if (last_step || visualization)
@@ -236,6 +242,9 @@ int main(int argc, char *argv[])
       }
       oper.update(u);
    }
+
+   // Close data file.
+   dataFile.close();
 
    // 11. Free the used memory.
    delete ode_solver;
