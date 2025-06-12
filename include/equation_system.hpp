@@ -12,9 +12,11 @@ using namespace mfem;
 class P2DOperator : public TimeDependentOperator
 {
 protected:
-   ParFiniteElementSpace * &x_fespace;
    Array<ParFiniteElementSpace *> &r_fespace;
+   ParFiniteElementSpace * &x_fespace;
 
+//   Array<ParFiniteElementSpace *> &fespaces;
+//   vector<int> FEspaceChoice;
    size_t npar;
 
    ElectrolytePotential     * ep;
@@ -39,7 +41,7 @@ protected:
    mutable BlockVector z; // auxiliary vector
 
 public:
-   P2DOperator(ParFiniteElementSpace * &x_fespace, Array<ParFiniteElementSpace *> &r_fespace,
+   P2DOperator(ParFiniteElementSpace * &x_fespace_, Array<ParFiniteElementSpace *> &r_fespace_,
                const unsigned &ndofs, BlockVector &u);
 
    virtual void Mult(const Vector &u, Vector &du_dt) const override {};

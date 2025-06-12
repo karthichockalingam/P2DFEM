@@ -1,9 +1,9 @@
-#include "P2DOperator.hpp"
+#include "equation_system.hpp"
 
-P2DOperator::P2DOperator(ParFiniteElementSpace * &x_fespace, Array<ParFiniteElementSpace *> &r_fespace,
+P2DOperator::P2DOperator(ParFiniteElementSpace * &x_fespace_, Array<ParFiniteElementSpace *> &r_fespace_,
                          const unsigned &ndofs, BlockVector &u)
-   : TimeDependentOperator(ndofs, (real_t) 0.0), x_fespace(x_fespace), r_fespace(r_fespace), npar(r_fespace.Size()),
-     B(NULL), current_dt(0.0), Solver(x_fespace->GetComm())
+   : TimeDependentOperator(ndofs, (real_t) 0.0), x_fespace(x_fespace_), r_fespace(r_fespace_)
+    , npar(r_fespace.Size()), B(NULL), current_dt(0.0), Solver(x_fespace->GetComm())
 {
    const real_t rel_tol = 1e-8;
 

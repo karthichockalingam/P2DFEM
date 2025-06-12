@@ -36,4 +36,3 @@ class FluxJGridFuncCoefficient : public Coefficient
  
     virtual   real_t Eval(ElementTransformation &T, const IntegrationPoint &ip);
  };
- 

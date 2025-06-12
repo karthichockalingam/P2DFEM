@@ -32,7 +32,7 @@
 #include "mfem.hpp"
 #include <fstream>
 #include <iostream>
-#include "include/P2DOperator.hpp"
+#include "include/equation_system.hpp"
 
 using namespace std;
 using namespace mfem;

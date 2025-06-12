@@ -8,12 +8,9 @@ void ElectrolyteConcentration::update(const BlockVector &u, Coefficient &j)
 
    real_t a = 1, tplus = 0;
    ProductCoefficient source((1 - tplus) * a, j);
+   ConstantCoefficient one(1.0);
 
    IntegrationRule ir = IntRules.Get(Geometry::SEGMENT, 6);
-
-   //std::cout << "Number of points " << ir.GetNPoints() << std::endl;
-
-   ConstantCoefficient one(1.0);
 
    delete M;
    M = new ParBilinearForm(&fespace);

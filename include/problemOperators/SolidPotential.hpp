@@ -1,12 +1,8 @@
-
-
 #include "mfem.hpp"
 #include "Equation.hpp"
 
 using namespace std;
 using namespace mfem;
-
-
 #pragma once
 
 class SolidPotential : public Equation
@@ -15,5 +11,3 @@ class SolidPotential : public Equation
       using Equation::Equation;
       virtual void update(const BlockVector &u, Coefficient &j = cc);
 };
-
-
