@@ -49,6 +49,7 @@ int main(int argc, char *argv[])
    Hypre::Init();
 
    // 2. Parse command-line options.
+   Method method = SPM;
    int ser_ref_levels = 0;
    int par_ref_levels = 0;
    int order = 1;
@@ -62,6 +63,8 @@ int main(int argc, char *argv[])
    cout.precision(precision);
 
    OptionsParser args(argc, argv);
+   args.AddOption(reinterpret_cast<int*>(&method), "-m", "--method",
+                  "Electrochemical method: 0) SPM, 1) SPMe, 2) P2D.");
    args.AddOption(&ser_ref_levels, "-rs", "--refine-serial",
                   "Number of times to refine the mesh uniformly in serial.");
    args.AddOption(&par_ref_levels, "-rp", "--refine-parallel",
@@ -90,7 +93,6 @@ int main(int argc, char *argv[])
    if (myid == 0)
       args.PrintOptions(cout);
 
-      
    // 4. Define the ODE solver used for time integration. Several implicit
    //    singly diagonal implicit Runge-Kutta (SDIRK) methods, as well as
    //    explicit Runge-Kutta methods are available.
@@ -116,26 +118,27 @@ int main(int argc, char *argv[])
       return 1;
    }
 
-   // TODO: tag elements to distinguish electrodes from separator
+   // Initialise grid and layout properties dependent on the EC method and FE order
+   init_params(method, order);
+
    // 3. Read the serial mesh from the given mesh file on all processors. We can
    //    handle triangular, quadrilateral, tetrahedral and hexahedral meshes
    //    with the same code.
-   const unsigned dim = 1;
-   const unsigned np = 5, nn = 5, ns = 5, nr = 10;
-   const unsigned nx = np + nn + ns;
-   const unsigned npar = (np - 1) + (nn - 1);
-   Mesh x_smesh = Mesh::MakeCartesian1D(nx);
-   Mesh r_smesh[npar];
-   for (size_t p = 0; p < npar; p++)
-      r_smesh[p] = Mesh::MakeCartesian1D(nr);
+   Mesh x_smesh = Mesh::MakeCartesian1D(NX);
+   for (unsigned i = 0; i < NX; i++)
+      x_smesh.SetAttribute(i, i < NPE ? PE : i < NPE + NSEP ? SEP : NE);
+
+   Mesh r_smesh[NPAR];
+   for (unsigned p = 0; p < NPAR; p++)
+      r_smesh[p] = Mesh::MakeCartesian1D(NR);
 
    // 6. Define a parallel mesh by a partitioning of the serial mesh. Refine
    //    this mesh further in parallel to increase the resolution. Once the
    //    parallel mesh is defined, the serial mesh can be deleted.
    ParMesh *x_pmesh = new ParMesh(MPI_COMM_WORLD, x_smesh);
    x_smesh.Clear(); // the serial mesh is no longer needed
-   ParMesh *r_pmesh[npar];
-   for (size_t p = 0; p < npar; p++)
+   ParMesh *r_pmesh[NPAR];
+   for (unsigned p = 0; p < NPAR; p++)
    {
       r_pmesh[p] = new ParMesh(MPI_COMM_WORLD, r_smesh[p]);
       r_smesh[p].Clear(); // the serial mesh is no longer needed
@@ -143,19 +146,19 @@ int main(int argc, char *argv[])
 
    // 7. Define the vector finite element space representing the current and the
    //    initial temperature, u_ref.
-   H1_FECollection fe_coll(order, dim);
+   H1_FECollection fe_coll(order, /*dim*/ 1);
    ParFiniteElementSpace * x_fespace = new ParFiniteElementSpace(x_pmesh, &fe_coll);
-   Array<ParFiniteElementSpace *> r_fespace(npar);
-   for (size_t p = 0; p < npar; p++)
+   Array<ParFiniteElementSpace *> r_fespace(NPAR);
+   for (unsigned p = 0; p < NPAR; p++)
       r_fespace[p] = new ParFiniteElementSpace(r_pmesh[p], &fe_coll);
 
    HYPRE_BigInt fe_size_global = SC * x_fespace->GlobalTrueVSize();
-   for (size_t p = 0; p < npar; p++)
+   for (unsigned p = 0; p < NPAR; p++)
       fe_size_global += r_fespace[p]->GlobalTrueVSize();
 
    if (myid == 0)
       cout << "Unknowns (total): " << fe_size_global << endl;
-   
+
    // 9. Initialize the conduction operator and the VisIt visualization.
    BlockVector u;
    P2DOperator oper(x_fespace, r_fespace, fe_size_global, u);
@@ -180,6 +183,9 @@ int main(int argc, char *argv[])
 
    oper.update(u);
 
+   // Filename for writing temporary data to file.
+   std::ofstream dataFile("voltage.txt");
+
    bool last_step = false;
    for (int ti = 1; !last_step; ti++)
    {
@@ -192,17 +198,41 @@ int main(int argc, char *argv[])
          if (myid == 0)
             cout << "step " << ti << ", t = " << t << endl;
 
-         u_gf.SetFromTrueDofs(u.GetBlock(SC));
+         // Daniel: this is obviously a very rough, hacky way to do things,
+         // in the middle of ducking nowhere. Agreed. But it was just to see
+         // if we could get the cell voltage out before the bank holiday
+         // weekend. I'm happy for you to continue testing unit changes and
+         // open circuit potentials here, don't worry too much. Once we have
+         // the right physics, i.e. the plot looks similar enough to what you
+         // get from e.g. JuBat (see their paper), then we can move this
+         // somewhere, I'm currently thinking P2DOperator::postprocessing or sth.
+         real_t csurf[2];
+         for (int i = 0; i < 2; i++)
+         {
+            u_gf.SetFromTrueDofs(u.GetBlock(SC + i));
+            csurf[i] = u_gf(NR);
+            std::cout << "Surface concentration (" << i << ") = " << csurf[i] << std::endl;
+   
+            LinearForm sum(r_fespace[i]);
+            GridFunctionCoefficient u_gfc(&u_gf);
+            FunctionCoefficient r2([](const Vector & x){ return x(0) * x(0); });
+            ProductCoefficient ur2(u_gfc,r2);
+            sum.AddDomainIntegrator(new DomainLFIntegrator(ur2));
+            sum.Assemble();
+   
+            std::cout << "Total flux accumulated (" << i << ") = " << sum.Sum() << std::endl;
+         }
 
-         LinearForm sum(r_fespace[0]);
-         GridFunctionCoefficient u_gfc(&u_gf);
-         FunctionCoefficient r2([](const Vector & x){ return x(0) * x(0); });
-         ProductCoefficient ur2(u_gfc,r2);
-         sum.AddDomainIntegrator(new DomainLFIntegrator(ur2));
-         sum.Assemble();
+         real_t voltage = 10 - csurf[1]/10 + 
+                      asinh(- I / AP / LPE / 2 / sqrt((10+csurf[0])*-csurf[0])) -
+                      asinh(  I / AN / LNE / 2 / sqrt(csurf[1]*(10-csurf[1])));
 
-         std::cout << "Total flux accumulated = " << sum.Sum() << std::endl;
+         std::cout << "~Voltage =" << voltage << std::endl;    
 
+         // Print data to file.
+         dataFile << t << ", " << "\t" << voltage << ";" << std::endl;
+         
+         // TODO: Stop sim at cutoff voltage
          if (last_step || visualization)
          {
             pd.SetCycle(ti);
@@ -213,12 +243,14 @@ int main(int argc, char *argv[])
       oper.update(u);
    }
 
+   // Close data file.
+   dataFile.close();
+
    // 11. Free the used memory.
    delete ode_solver;
    delete x_pmesh;
-   for (size_t p = 0; p < npar; p++)
+   for (unsigned p = 0; p < NPAR; p++)
       delete r_pmesh[p];
 
    return 0;
 }
-
