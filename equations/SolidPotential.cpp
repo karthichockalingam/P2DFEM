@@ -5,7 +5,7 @@
 void SolidPotential::Update(const BlockVector &x, Coefficient &j)
 {
    ParGridFunction u_gf(&fespace);
-   u_gf.SetFromTrueDofs(x);
+   u_gf.SetFromTrueDofs(x.GetBlock(SP));
 
    real_t a = 1;
 
