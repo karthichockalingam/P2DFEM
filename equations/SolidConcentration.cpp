@@ -2,9 +2,6 @@
 
 void SolidConcentration::Update(const BlockVector &x, Coefficient &j)
 {
-   ParGridFunction u_gf(&fespace);
-   u_gf.SetFromTrueDofs(x);
-
    IntegrationRule ir = IntRules.Get(Geometry::SEGMENT, 6);
 
    //std::cout << "Number of points " << ir.GetNPoints() << std::endl;
@@ -40,4 +37,16 @@ void SolidConcentration::Update(const BlockVector &x, Coefficient &j)
    Kmat.Mult(x.GetBlock(SC + particle_id), b);
    b.Neg();
    b += Qvec;
+}
+
+real_t SolidConcentration::SurfaceConcentration(const BlockVector &x)
+{
+   Array<int> ess_ldofs;
+   fespace.GetEssentialVDofs(nbc_bdr, ess_ldofs);
+   assert(ess_ldofs.Sum() == -1 || ess_ldofs.Sum() == 0);
+   int surface_ldof = ess_ldofs.Find(-1);
+
+   ParGridFunction r_gf(&fespace);
+   r_gf.SetFromTrueDofs(x.GetBlock(SC + particle_id));
+   return (surface_ldof != -1) ? r_gf[surface_ldof] : -1;
 }
