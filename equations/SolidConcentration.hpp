@@ -16,5 +16,5 @@ class SolidConcentration : public Equation
 
    public:
       SolidConcentration(ParFiniteElementSpace &f, unsigned id, int ltdof = -1) : Equation(f), particle_id(id), particle_region(id < NPEPAR ? PE : NE), particle_ltdof(ltdof) { nbc_bdr = 0; nbc_bdr[1] = 1; };
-      virtual void update(const BlockVector &u, Coefficient &j = cc);
+      virtual void Update(const BlockVector &x, Coefficient &j = cc);
 };

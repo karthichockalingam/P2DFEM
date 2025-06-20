@@ -2,10 +2,10 @@
 #include "ElectrolytePotential.hpp"
 #include "../utils.hpp"
 
-void ElectrolytePotential::update(const BlockVector &u, Coefficient &j)
+void ElectrolytePotential::Update(const BlockVector &x, Coefficient &j)
 {
    ParGridFunction u_gf(&fespace);
-   u_gf.SetFromTrueDofs(u.GetBlock(EC));
+   u_gf.SetFromTrueDofs(x.GetBlock(EC));
 
    real_t a = 1;
 
@@ -36,7 +36,7 @@ void ElectrolytePotential::update(const BlockVector &u, Coefficient &j)
    Qvec = std::move(*(Q->ParallelAssemble()));
    Qvec.SetSubVector(ess_tdof_list, 0.0); // do we need this?
 
-   Kmat.Mult(u.GetBlock(EP), z);
-   z.Neg();
-   z += Qvec;
+   Kmat.Mult(x.GetBlock(EP), b);
+   b.Neg();
+   b += Qvec;
 }

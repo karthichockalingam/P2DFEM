@@ -17,11 +17,11 @@
 //               mpirun -np 4 ex16p -m ../data/amr-hex.mesh -o 2 -rs 0 -rp 0
 //
 // Description:  This example solves a time dependent nonlinear heat equation
-//               problem of the form du/dt = C(u), with a non-linear diffusion
-//               operator C(u) = \nabla \cdot (\kappa + \alpha u) \nabla u.
+//               problem of the form du/dt = C(x), with a non-linear diffusion
+//               operator C(x) = \nabla \cdot (\kappa + \alpha x) \nabla x.
 //
 //               The example demonstrates the use of nonlinear operators (the
-//               class EquationOperator defining C(u)), as well as their
+//               class EquationOperator defining C(x)), as well as their
 //               implicit time integration. Note that implementing the method
 //               EquationOperator::ImplicitSolve is the only requirement for
 //               high-order implicit (SDIRK) time integration. In this example,
@@ -160,8 +160,8 @@ int main(int argc, char *argv[])
       cout << "Unknowns (total): " << fe_size_global << endl;
 
    // 9. Initialize the conduction operator and the VisIt visualization.
-   BlockVector u;
-   P2DOperator oper(x_fespace, r_fespace, fe_size_global, u);
+   BlockVector x;
+   P2DOperator oper(x_fespace, r_fespace, fe_size_global, x);
 
    // X. Viz
    ParGridFunction u_gf(r_fespace[0]);
@@ -171,7 +171,7 @@ int main(int argc, char *argv[])
    pd.SetLevelsOfDetail(order);
    pd.SetHighOrderOutput(true);
    pd.SetDataFormat(VTKFormat::BINARY);
-   pd.RegisterField("u", &u_gf);
+   pd.RegisterField("x", &u_gf);
    pd.SetCycle(0);
    pd.SetTime(0.0);
    pd.Save();
@@ -181,7 +181,7 @@ int main(int argc, char *argv[])
    ode_solver->Init(oper);
    real_t t = 0.0;
 
-   oper.update(u);
+   oper.Update(x);
 
    // Filename for writing temporary data to file.
    std::ofstream dataFile("voltage.txt");
@@ -191,7 +191,7 @@ int main(int argc, char *argv[])
    {
       last_step = t + dt >= t_final - dt/2;
 
-      ode_solver->Step(u, t, dt);
+      ode_solver->Step(x, t, dt);
 
       if (last_step || (ti % vis_steps) == 0)
       {
@@ -209,7 +209,7 @@ int main(int argc, char *argv[])
          real_t csurf[2];
          for (int i = 0; i < 2; i++)
          {
-            u_gf.SetFromTrueDofs(u.GetBlock(SC + i));
+            u_gf.SetFromTrueDofs(x.GetBlock(SC + i));
             csurf[i] = u_gf(NR);
             std::cout << "Surface concentration (" << i << ") = " << csurf[i] << std::endl;
    
@@ -240,7 +240,7 @@ int main(int argc, char *argv[])
             pd.Save();
          }
       }
-      oper.update(u);
+      oper.Update(x);
    }
 
    // Close data file.

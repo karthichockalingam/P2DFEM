@@ -26,7 +26,7 @@ protected:
    Array<int> block_offsets;
    Array<int> block_trueOffsets;
 
-   BlockOperator * B;
+   BlockOperator * A;
 
    HypreParMatrix *C; // C = M + dt K
    real_t current_dt;
@@ -34,19 +34,19 @@ protected:
    CGSolver Solver;    // Implicit solver for T = M + dt K
    HypreSmoother Prec; // Preconditioner for the implicit solver
 
-   mutable BlockVector z; // auxiliary vector
+   mutable BlockVector b; // auxiliary vector
 
 public:
    P2DOperator(ParFiniteElementSpace * &x_fespace, Array<ParFiniteElementSpace *> &r_fespace,
-               const unsigned &ndofs, BlockVector &u);
+               const unsigned &ndofs, BlockVector &x);
 
-   virtual void Mult(const Vector &u, Vector &du_dt) const override {};
+   virtual void Mult(const Vector &x, Vector &dx_dt) const override {};
 
-   /** Solve the Backward-Euler equation: k = f(u + dt*k, t), for the unknown k.
+   /** Solve the Backward-Euler equation: k = f(x + dt*k, t), for the unknown k.
        This is the only requirement for high-order SDIRK implicit integration.*/
-   virtual void ImplicitSolve(const real_t dt, const Vector &u, Vector &k) override;
+   virtual void ImplicitSolve(const real_t dt, const Vector &x, Vector &k) override;
 
-   virtual void update(const BlockVector &u);
+   virtual void Update(const BlockVector &x);
 
    virtual void GetParticleLocalTrueDofs(Array<int> & particle_dofs, unsigned & particle_offset);
 

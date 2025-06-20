@@ -1,9 +1,9 @@
 #include "P2DOperator.hpp"
 
 P2DOperator::P2DOperator(ParFiniteElementSpace * &x_fespace, Array<ParFiniteElementSpace *> &r_fespace,
-                         const unsigned &ndofs, BlockVector &u)
+                         const unsigned &ndofs, BlockVector &x)
    : TimeDependentOperator(ndofs, (real_t) 0.0), x_fespace(x_fespace), r_fespace(r_fespace),
-     B(NULL), current_dt(0.0), Solver(x_fespace->GetComm())
+     A(NULL), current_dt(0.0), Solver(x_fespace->GetComm())
 {
    const real_t rel_tol = 1e-8;
 
@@ -43,8 +43,8 @@ P2DOperator::P2DOperator(ParFiniteElementSpace * &x_fespace, Array<ParFiniteElem
       std::cout << "Unknowns (rank 0): " << block_trueOffsets[nb] << std::endl;
    }
 
-   u.Update(block_trueOffsets); u = 0.;
-   z.Update(block_trueOffsets);
+   x.Update(block_trueOffsets); x = 0.;
+   b.Update(block_trueOffsets);
 
    ep = new ElectrolytePotential(*x_fespace);
    ec = new ElectrolyteConcentration(*x_fespace);
@@ -66,43 +66,43 @@ P2DOperator::P2DOperator(ParFiniteElementSpace * &x_fespace, Array<ParFiniteElem
 }
 
 void P2DOperator::ImplicitSolve(const real_t dt,
-                                const Vector &u, Vector &du_dt)
+                                const Vector &x, Vector &dx_dt)
 {
    // Solve the equation:
-   //   M du_dt = -K(u + dt*du_dt) <=> (M + dt K) du_dt = -Ku
-   // for du_dt, where K is linearized by using u from the previous timestep
+   //   M dx_dt = -K(x + dt*dx_dt) <=> (M + dt K) dx_dt = -Kx
+   // for dx_dt, where K is linearized by using x from the previous timestep
 
-   // assemble B
-   B->SetDiagonalBlock(EP, new HypreParMatrix(ep->getK()));
-   B->SetDiagonalBlock(EC, Add(1, ec->getM(), dt, ec->getK()));
-   B->SetDiagonalBlock(SP, new HypreParMatrix(sp->getK()));
-   z.GetBlock(EP) = ep->getZ();
-   z.GetBlock(EC) = ec->getZ();
-   z.GetBlock(SP) = sp->getZ();
+   // assemble A
+   A->SetDiagonalBlock(EP, new HypreParMatrix(ep->GetK()));
+   A->SetDiagonalBlock(EC, Add(1, ec->GetM(), dt, ec->GetK()));
+   A->SetDiagonalBlock(SP, new HypreParMatrix(sp->GetK()));
+   b.GetBlock(EP) = ep->GetZ();
+   b.GetBlock(EC) = ec->GetZ();
+   b.GetBlock(SP) = sp->GetZ();
    for (unsigned p = 0; p < NPAR; p++)
    {
-      B->SetDiagonalBlock(SC + p, Add(1, sc[p]->getM(), dt, sc[p]->getK()));
-      z.GetBlock(SC + p) = sc[p]->getZ();
+      A->SetDiagonalBlock(SC + p, Add(1, sc[p]->GetM(), dt, sc[p]->GetK()));
+      b.GetBlock(SC + p) = sc[p]->GetZ();
    }
 
-   Solver.SetOperator(*B);
-   Solver.Mult(z, du_dt);
+   Solver.SetOperator(*A);
+   Solver.Mult(b, dx_dt);
 }
 
-void P2DOperator::update(const BlockVector &u)
+void P2DOperator::Update(const BlockVector &x)
 {
-   // rebuild B
-   delete B;
-   B = new BlockOperator(block_trueOffsets);
-   B->owns_blocks = 1;
+   // rebuild A
+   delete A;
+   A = new BlockOperator(block_trueOffsets);
+   A->owns_blocks = 1;
 
    // call point for j computation here
 
-   ep->update(u);
-   ec->update(u);
-   sp->update(u);
+   ep->Update(x);
+   ec->Update(x);
+   sp->Update(x);
    for (unsigned p = 0; p < NPAR; p++)
-      sc[p]->update(u);
+      sc[p]->Update(x);
 }
 
 void P2DOperator::GetParticleLocalTrueDofs(Array<int> & particle_dofs, unsigned & particle_offset)

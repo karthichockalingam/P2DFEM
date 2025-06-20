@@ -1,9 +1,9 @@
 #include "SolidConcentration.hpp"
 
-void SolidConcentration::update(const BlockVector &u, Coefficient &j)
+void SolidConcentration::Update(const BlockVector &x, Coefficient &j)
 {
    ParGridFunction u_gf(&fespace);
-   u_gf.SetFromTrueDofs(u);
+   u_gf.SetFromTrueDofs(x);
 
    IntegrationRule ir = IntRules.Get(Geometry::SEGMENT, 6);
 
@@ -37,7 +37,7 @@ void SolidConcentration::update(const BlockVector &u, Coefficient &j)
    Qvec = std::move(*(Q->ParallelAssemble()));
    Qvec.SetSubVector(ess_tdof_list, 0.0); // do we need this?
 
-   Kmat.Mult(u.GetBlock(SC + particle_id), z);
-   z.Neg();
-   z += Qvec;
+   Kmat.Mult(x.GetBlock(SC + particle_id), b);
+   b.Neg();
+   b += Qvec;
 }

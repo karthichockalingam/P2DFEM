@@ -2,10 +2,10 @@
 #include "SolidPotential.hpp"
 #include "../utils.hpp"
 
-void SolidPotential::update(const BlockVector &u, Coefficient &j)
+void SolidPotential::Update(const BlockVector &x, Coefficient &j)
 {
    ParGridFunction u_gf(&fespace);
-   u_gf.SetFromTrueDofs(u);
+   u_gf.SetFromTrueDofs(x);
 
    real_t a = 1;
 
@@ -28,7 +28,7 @@ void SolidPotential::update(const BlockVector &u, Coefficient &j)
    Qvec = std::move(*(Q->ParallelAssemble()));
    Qvec.SetSubVector(ess_tdof_list, 0.0); // do we need this?
 
-   Kmat.Mult(u.GetBlock(SP), z);
-   z.Neg();
-   z += Qvec;
+   Kmat.Mult(x.GetBlock(SP), b);
+   b.Neg();
+   b += Qvec;
 }
