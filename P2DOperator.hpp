@@ -31,7 +31,7 @@ protected:
    HypreParMatrix *C; // C = M + dt K
    real_t current_dt;
 
-   CGSolver Solver;    // Implicit solver for T = M + dt K
+   GMRESSolver Solver;    // Implicit solver for T = M + dt K
    HypreSmoother Prec; // Preconditioner for the implicit solver
 
    mutable BlockVector b; // auxiliary vector
