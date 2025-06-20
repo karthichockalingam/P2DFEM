@@ -152,16 +152,24 @@ int main(int argc, char *argv[])
    for (unsigned p = 0; p < NPAR; p++)
       r_fespace[p] = new ParFiniteElementSpace(r_pmesh[p], &fe_coll);
 
-   HYPRE_BigInt fe_size_global = SC * x_fespace->GlobalTrueVSize();
-   for (unsigned p = 0; p < NPAR; p++)
-      fe_size_global += r_fespace[p]->GlobalTrueVSize();
+   // 8. Get the total number of dofs in the system (including boundaries)
+   {
+      HYPRE_BigInt fe_size_global = SC * x_fespace->GlobalTrueVSize();
+      for (unsigned p = 0; p < NPAR; p++)
+         fe_size_global += r_fespace[p]->GlobalTrueVSize();
 
-   if (myid == 0)
-      cout << "Unknowns (total): " << fe_size_global << endl;
+      if (myid == 0)
+         cout << "Unknowns (total): " << fe_size_global << endl;
+   }
+
+   // 8.5 Get the total number of dofs _owned_ by this processor
+   HYPRE_BigInt fe_size_owned = SC * x_fespace->GetTrueVSize();
+   for (unsigned p = 0; p < NPAR; p++)
+      fe_size_owned += r_fespace[p]->GetTrueVSize();
 
    // 9. Initialize the conduction operator and the VisIt visualization.
    BlockVector x;
-   P2DOperator oper(x_fespace, r_fespace, fe_size_global, x);
+   P2DOperator oper(x_fespace, r_fespace, fe_size_owned, x);
 
    // X. Viz
    ParGridFunction u_gf(r_fespace[0]);
