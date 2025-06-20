@@ -214,11 +214,11 @@ int main(int argc, char *argv[])
          // the right physics, i.e. the plot looks similar enough to what you
          // get from e.g. JuBat (see their paper), then we can move this
          // somewhere, I'm currently thinking P2DOperator::postprocessing or sth.
-         real_t csurf[2];
-         for (int i = 0; i < 2; i++)
+         real_t csurf[NPAR];
+         for (int i = 0; i < NPAR; i++)
          {
             u_gf.SetFromTrueDofs(x.GetBlock(SC + i));
-            csurf[i] = u_gf(NR);
+            csurf[i] = u_gf(r_fespace[i]->GetVSize()-1);
             std::cout << "Surface concentration (" << i << ") = " << csurf[i] << std::endl;
    
             LinearForm sum(r_fespace[i]);
