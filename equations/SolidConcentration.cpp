@@ -43,10 +43,12 @@ real_t SolidConcentration::SurfaceConcentration(const BlockVector &x)
 {
    Array<int> ess_ldofs;
    fespace.GetEssentialVDofs(nbc_bdr, ess_ldofs);
+
    assert(ess_ldofs.Sum() == -1 || ess_ldofs.Sum() == 0);
+
    int surface_ldof = ess_ldofs.Find(-1);
 
    ParGridFunction r_gf(&fespace);
    r_gf.SetFromTrueDofs(x.GetBlock(SC + particle_id));
-   return (surface_ldof != -1) ? r_gf[surface_ldof] : -1;
+   return (surface_ldof != -1) ? r_gf[surface_ldof] : numeric_limits<real_t>::quiet_NaN();
 }
