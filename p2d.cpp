@@ -219,7 +219,8 @@ int main(int argc, char *argv[])
          {
             u_gf.SetFromTrueDofs(x.GetBlock(SC + i));
             csurf[i] = u_gf(r_fespace[i]->GetVSize()-1);
-            std::cout << "Surface concentration (" << i << ") = " << csurf[i] << std::endl;
+            if (myid == 0)
+               std::cout << "Surface concentration (" << i << ") = " << csurf[i] << std::endl;
    
             LinearForm sum(r_fespace[i]);
             GridFunctionCoefficient u_gfc(&u_gf);
@@ -227,18 +228,21 @@ int main(int argc, char *argv[])
             ProductCoefficient ur2(u_gfc,r2);
             sum.AddDomainIntegrator(new DomainLFIntegrator(ur2));
             sum.Assemble();
-   
+
             std::cout << "Total flux accumulated (" << i << ") = " << sum.Sum() << std::endl;
          }
 
-         real_t voltage = 10 - csurf[1]/10 + 
-                      asinh(- I / AP / LPE / 2 / sqrt((10+csurf[0])*-csurf[0])) -
-                      asinh(  I / AN / LNE / 2 / sqrt(csurf[1]*(10-csurf[1])));
+         if (myid == 0)
+         {
+            real_t voltage = 10 - csurf[1]/10 +
+                        asinh(- I / AP / LPE / 2 / sqrt((10+csurf[0])*-csurf[0])) -
+                        asinh(  I / AN / LNE / 2 / sqrt(csurf[1]*(10-csurf[1])));
 
-         std::cout << "~Voltage =" << voltage << std::endl;    
+            std::cout << "~Voltage =" << voltage << std::endl;
 
-         // Print data to file.
-         dataFile << t << ", " << "\t" << voltage << ";" << std::endl;
+            // Print data to file.
+            dataFile << t << ", " << "\t" << voltage << ";" << std::endl;
+         }
          
          // TODO: Stop sim at cutoff voltage
          if (last_step || visualization)
