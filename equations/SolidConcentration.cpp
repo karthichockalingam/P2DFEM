@@ -11,25 +11,25 @@ void SolidConcentration::Update(const BlockVector &x, Coefficient &j)
    const real_t L = particle_region == PE ? LPE : LNE;
    const real_t S = particle_region == PE ? -1 : 1;
 
-   FunctionCoefficient x2([](const Vector & x){ return x(0) * x(0); });
-   FunctionCoefficient dx2([&](const Vector & x){ return D * x(0) * x(0); });
-   FunctionCoefficient cx2([&](const Vector & x){ return S * I / A / L * x(0) * x(0); });
+   FunctionCoefficient r2([](const Vector & r){ return r(0) * r(0); });
+   FunctionCoefficient dr2([&](const Vector & r){ return D * r(0) * r(0); });
+   FunctionCoefficient cr2([&](const Vector & r){ return S * I / A / L * r(0) * r(0); });
 
    delete M;
    M = new ParBilinearForm(&fespace);
-   M->AddDomainIntegrator(new MassIntegrator(x2, &ir));
+   M->AddDomainIntegrator(new MassIntegrator(r2, &ir));
    M->Assemble(0); // keep sparsity pattern of M and K the same
    M->FormSystemMatrix(ess_tdof_list, Mmat);
 
    delete K;
    K = new ParBilinearForm(&fespace);
-   K->AddDomainIntegrator(new DiffusionIntegrator(dx2, &ir));
+   K->AddDomainIntegrator(new DiffusionIntegrator(dr2, &ir));
    K->Assemble(0); // keep sparsity pattern of M and K the same
    K->FormSystemMatrix(ess_tdof_list, Kmat);
 
    delete Q;
    Q = new ParLinearForm(&fespace);
-   Q->AddBoundaryIntegrator(new BoundaryLFIntegrator(cx2), nbc_bdr);
+   Q->AddBoundaryIntegrator(new BoundaryLFIntegrator(cr2), nbc_bdr);
    Q->Assemble();
    Qvec = std::move(*(Q->ParallelAssemble()));
    Qvec.SetSubVector(ess_tdof_list, 0.0); // do we need this?
