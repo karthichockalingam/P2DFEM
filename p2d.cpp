@@ -33,6 +33,7 @@
 #include <fstream>
 #include <iostream>
 #include "P2DOperator.hpp"
+#include <cmath>
 
 using namespace std;
 using namespace mfem;
@@ -192,7 +193,14 @@ int main(int argc, char *argv[])
    oper.Update(x);
 
    // Filename for writing temporary data to file.
-   std::ofstream dataFile("voltage.txt");
+   std::ofstream dataFile("data.txt");
+   dataFile << "t" << ", " 
+         << "\t" << "voltage" << ", " 
+         << "\t" << "theta_p" << ", " 
+         << "\t" << "theta_n" << ", " 
+         << "\t" << "Up" << ", " 
+         << "\t" << "Un" 
+         << std::endl;
 
    bool last_step = false;
    for (int ti = 1; !last_step; ti++)
@@ -232,16 +240,82 @@ int main(int argc, char *argv[])
             std::cout << "Total flux accumulated (" << i << ") = " << sum.Sum() << std::endl;
          }
 
+         //real_t voltage = 10 - csurf[1]/10 + 
+         //             asinh(- I / AP / LPE / 2 / sqrt((10+csurf[0])*-csurf[0])) -
+         //             asinh(  I / AN / LNE / 2 / sqrt(csurf[1]*(10-csurf[1])));
+
+         //real_t R = 1.;//8.314;
+         //real_t F = 1.;//96485;
+         real_t T = 1.;//300.;
+         //real_t Kp = 1.;
+         //real_t Kn = 1.;
+         real_t ce = 1.;//000.;
+         //real_t ce0 = 1.;//000.;
+         real_t cpmax = 1.;//30555;
+         real_t cnmax = 1.;//51554;
+         real_t Lp = 1./3.;
+         real_t Ln = 1./3.;
+         real_t Ap = 1.;
+         real_t An = 1.;
+         real_t I = 1.;
+         real_t mp = 1.;
+         real_t mn = 1.;
+
+         real_t cp = csurf[0];   // Particle surface concentration at the positive electrode.
+         real_t cn = csurf[1];   // Particle surface concentration at the negative electrode.
+
+         //real_t jp0 = F * Kp * pow((ce/ce0) * (cp/cpmax) * (1 - (cp/cpmax)),0.5);
+         //real_t jn0 = F * Kn * pow((ce/ce0) * (cn/cnmax) * (1 - (cn/cnmax)),0.5);
+
+         // Definition from LIONSIMBA: https://doi.org/10.1149/2.0291607jes
+         real_t theta_p = cp / cpmax;
+         real_t theta_n = cn / cnmax;
+
+         // Open Circuit Potential (no temperature dependence).
+         // Definition from LIONSIMBA: https://doi.org/10.1149/2.0291607jes
+         real_t Up_num = -4.656 + 88.669 * pow(theta_p,2) - 401.119 * pow(theta_p,4) +
+                             342.909 * pow(theta_p,6) - 462.471 * pow(theta_p,8) + 433.434 * pow(theta_p,10);
+         real_t Up_den = -1 + 18.933 * pow(theta_p,2) - 79.532 * pow(theta_p,4) +
+                             37.311 * pow(theta_p,6) - 73.083 * pow(theta_p,8) + 95.96 * pow(theta_p,10);
+         real_t Up = Up_num / Up_den;
+
+         real_t Un = 0.7222 + 0.1387 * theta_n + 0.029 * pow(theta_n,0.5) - 0.0172 / theta_n +
+                         0.0019 * pow(theta_n,-1.5) + 0.2808 * exp(0.9 - 15*theta_n) - 0.7984 * exp(0.4465 * theta_n - 0.4108);
+         
+         // Definition from JuBat: https://doi.org/10.1016/j.est.2023.107512
+         real_t jp_ex = mp * pow(( (cp - cpmax) / (cp * ce)),0.5);
+         real_t jn_ex = mn * pow(( (cn - cpmax) / (cn * ce)),0.5);
+
+         // Definition from JuBat: https://doi.org/10.1016/j.est.2023.107512
+         real_t voltage = Up - Un  + 2 * T * ( 
+                           asinh( I / (2 * Ap * Lp * jp_ex )) - 
+                           asinh( -I / (2 * An * Ln * jn_ex ) ) );
+
+         // Temporary printing.
          if (myid == 0)
          {
-            real_t voltage = 10 - csurf[1]/10 +
-                        asinh(- I / AP / LPE / 2 / sqrt((10+csurf[0])*-csurf[0])) -
-                        asinh(  I / AN / LNE / 2 / sqrt(csurf[1]*(10-csurf[1])));
+            std::cout << "Up = " << Up << std::endl;
+            std::cout << "Un = " << Un << std::endl;
 
-            std::cout << "~Voltage =" << voltage << std::endl;
+            std::cout << "T = " << T << std::endl;
+            std::cout << "I = " << I << std::endl;
+            std::cout << "Ap = " << Ap << std::endl;
+            std::cout << "An = " << An << std::endl;
+            std::cout << "Lp = " << Lp << std::endl;
+            std::cout << "Ln = " << Ln << std::endl;
+            std::cout << "jp_ex = " << jp_ex << std::endl;
+            std::cout << "jn_ex = " << jn_ex << std::endl;
+
+            std::cout << "Voltage = " << voltage << std::endl;
 
             // Print data to file.
-            dataFile << t << ", " << "\t" << voltage << ";" << std::endl;
+            dataFile << t << ", " 
+            << "\t" << voltage << ", " 
+            << "\t" << theta_p << ", " 
+            << "\t" << theta_n << ", " 
+            << "\t" << Up << ", " 
+            << "\t" << Un 
+            << std::endl;
          }
          
          // TODO: Stop sim at cutoff voltage
