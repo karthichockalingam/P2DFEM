@@ -17,11 +17,11 @@
 //               mpirun -np 4 ex16p -m ../data/amr-hex.mesh -o 2 -rs 0 -rp 0
 //
 // Description:  This example solves a time dependent nonlinear heat equation
-//               problem of the form du/dt = C(u), with a non-linear diffusion
-//               operator C(u) = \nabla \cdot (\kappa + \alpha u) \nabla u.
+//               problem of the form du/dt = C(x), with a non-linear diffusion
+//               operator C(x) = \nabla \cdot (\kappa + \alpha x) \nabla x.
 //
 //               The example demonstrates the use of nonlinear operators (the
-//               class EquationOperator defining C(u)), as well as their
+//               class EquationOperator defining C(x)), as well as their
 //               implicit time integration. Note that implementing the method
 //               EquationOperator::ImplicitSolve is the only requirement for
 //               high-order implicit (SDIRK) time integration. In this example,
@@ -153,16 +153,24 @@ int main(int argc, char *argv[])
    for (unsigned p = 0; p < NPAR; p++)
       r_fespace[p] = new ParFiniteElementSpace(r_pmesh[p], &fe_coll);
 
-   HYPRE_BigInt fe_size_global = SC * x_fespace->GlobalTrueVSize();
-   for (unsigned p = 0; p < NPAR; p++)
-      fe_size_global += r_fespace[p]->GlobalTrueVSize();
+   // 8. Get the total number of dofs in the system (including boundaries)
+   {
+      HYPRE_BigInt fe_size_global = SC * x_fespace->GlobalTrueVSize();
+      for (unsigned p = 0; p < NPAR; p++)
+         fe_size_global += r_fespace[p]->GlobalTrueVSize();
 
-   if (myid == 0)
-      cout << "Unknowns (total): " << fe_size_global << endl;
+      if (myid == 0)
+         cout << "Unknowns (total): " << fe_size_global << endl;
+   }
+
+   // 8.5 Get the total number of dofs _owned_ by this processor
+   HYPRE_BigInt fe_size_owned = SC * x_fespace->GetTrueVSize();
+   for (unsigned p = 0; p < NPAR; p++)
+      fe_size_owned += r_fespace[p]->GetTrueVSize();
 
    // 9. Initialize the conduction operator and the VisIt visualization.
-   BlockVector u;
-   P2DOperator oper(x_fespace, r_fespace, fe_size_global, u);
+   BlockVector x;
+   P2DOperator oper(x_fespace, r_fespace, fe_size_owned, x);
 
    // X. Viz
    ParGridFunction u_gf(r_fespace[0]);
@@ -172,7 +180,7 @@ int main(int argc, char *argv[])
    pd.SetLevelsOfDetail(order);
    pd.SetHighOrderOutput(true);
    pd.SetDataFormat(VTKFormat::BINARY);
-   pd.RegisterField("u", &u_gf);
+   pd.RegisterField("x", &u_gf);
    pd.SetCycle(0);
    pd.SetTime(0.0);
    pd.Save();
@@ -182,7 +190,10 @@ int main(int argc, char *argv[])
    ode_solver->Init(oper);
    real_t t = 0.0;
 
-   oper.update(u);
+   oper.Update(x);
+
+   // Filename for writing temporary data to file.
+   std::ofstream dataFile("voltage.txt");
 
    // Filename for writing temporary data to file.
    std::ofstream dataFile("data.txt");
@@ -199,7 +210,7 @@ int main(int argc, char *argv[])
    {
       last_step = t + dt >= t_final - dt/2;
 
-      ode_solver->Step(u, t, dt);
+      ode_solver->Step(x, t, dt);
 
       if (last_step || (ti % vis_steps) == 0)
       {
@@ -214,12 +225,13 @@ int main(int argc, char *argv[])
          // the right physics, i.e. the plot looks similar enough to what you
          // get from e.g. JuBat (see their paper), then we can move this
          // somewhere, I'm currently thinking P2DOperator::postprocessing or sth.
-         real_t csurf[2];
-         for (int i = 0; i < 2; i++)
+         real_t csurf[NPAR];
+         for (int i = 0; i < NPAR; i++)
          {
-            u_gf.SetFromTrueDofs(u.GetBlock(SC + i));
-            csurf[i] = u_gf(NR);
-            std::cout << "Surface concentration (" << i << ") = " << csurf[i] << std::endl;
+            u_gf.SetFromTrueDofs(x.GetBlock(SC + i));
+            csurf[i] = u_gf(r_fespace[i]->GetVSize()-1);
+            if (myid == 0)
+               std::cout << "Surface concentration (" << i << ") = " << csurf[i] << std::endl;
    
             LinearForm sum(r_fespace[i]);
             GridFunctionCoefficient u_gfc(&u_gf);
@@ -227,7 +239,7 @@ int main(int argc, char *argv[])
             ProductCoefficient ur2(u_gfc,r2);
             sum.AddDomainIntegrator(new DomainLFIntegrator(ur2));
             sum.Assemble();
-   
+
             std::cout << "Total flux accumulated (" << i << ") = " << sum.Sum() << std::endl;
          }
 
@@ -283,28 +295,31 @@ int main(int argc, char *argv[])
                            asinh( -I / (2 * An * Ln * jn_ex ) ) );
 
          // Temporary printing.
-         std::cout << "Up = " << Up << std::endl;
-         std::cout << "Un = " << Un << std::endl;
+         if (myid == 0)
+         {
+            std::cout << "Up = " << Up << std::endl;
+            std::cout << "Un = " << Un << std::endl;
 
-         std::cout << "T = " << T << std::endl;
-         std::cout << "I = " << I << std::endl;
-         std::cout << "Ap = " << Ap << std::endl;
-         std::cout << "An = " << An << std::endl;
-         std::cout << "Lp = " << Lp << std::endl;
-         std::cout << "Ln = " << Ln << std::endl;
-         std::cout << "jp_ex = " << jp_ex << std::endl;
-         std::cout << "jn_ex = " << jn_ex << std::endl;
+            std::cout << "T = " << T << std::endl;
+            std::cout << "I = " << I << std::endl;
+            std::cout << "Ap = " << Ap << std::endl;
+            std::cout << "An = " << An << std::endl;
+            std::cout << "Lp = " << Lp << std::endl;
+            std::cout << "Ln = " << Ln << std::endl;
+            std::cout << "jp_ex = " << jp_ex << std::endl;
+            std::cout << "jn_ex = " << jn_ex << std::endl;
 
-         std::cout << "Voltage = " << voltage << std::endl;
+            std::cout << "Voltage = " << voltage << std::endl;
 
-         // Print data to file.
-         dataFile << t << ", " 
-         << "\t" << voltage << ", " 
-         << "\t" << theta_p << ", " 
-         << "\t" << theta_n << ", " 
-         << "\t" << Up << ", " 
-         << "\t" << Un 
-         << std::endl;
+            // Print data to file.
+            dataFile << t << ", " 
+            << "\t" << voltage << ", " 
+            << "\t" << theta_p << ", " 
+            << "\t" << theta_n << ", " 
+            << "\t" << Up << ", " 
+            << "\t" << Un 
+            << std::endl;
+         }
          
          // TODO: Stop sim at cutoff voltage
          if (last_step || visualization)
@@ -314,7 +329,7 @@ int main(int argc, char *argv[])
             pd.Save();
          }
       }
-      oper.update(u);
+      oper.Update(x);
    }
 
    // Close data file.
