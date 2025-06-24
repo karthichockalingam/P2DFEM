@@ -55,10 +55,10 @@ int main(int argc, char *argv[])
    int par_ref_levels = 0;
    int order = 1;
    int ode_solver_type = 3;
-   real_t t_final = 1.0;
-   real_t dt = 1.0e-2;
+   real_t t_final = 0.4;
+   real_t dt = 1.0e-6;
    bool visualization = true;
-   int vis_steps = 5;
+   int vis_steps = 500;
 
    int precision = 8;
    cout.precision(precision);
@@ -193,12 +193,11 @@ int main(int argc, char *argv[])
    oper.Update(x);
 
    // Filename for writing temporary data to file.
-   std::ofstream dataFile("voltage.txt");
-
-   // Filename for writing temporary data to file.
    std::ofstream dataFile("data.txt");
    dataFile << "t" << ", " 
          << "\t" << "voltage" << ", " 
+         << "\t" << "cp" << ", " 
+         << "\t" << "cn" << ", "          
          << "\t" << "theta_p" << ", " 
          << "\t" << "theta_n" << ", " 
          << "\t" << "Up" << ", " 
@@ -247,23 +246,107 @@ int main(int argc, char *argv[])
          //             asinh(- I / AP / LPE / 2 / sqrt((10+csurf[0])*-csurf[0])) -
          //             asinh(  I / AN / LNE / 2 / sqrt(csurf[1]*(10-csurf[1])));
 
-         //real_t R = 1.;//8.314;
-         //real_t F = 1.;//96485;
+         // All parameters and scales below taken directly from JuBat code in an attempt to 
+         // reproduce their results.  Some very dodgy coding (e.g. hard-coded some values twice,
+         // here and in constants.cpp).  Sorry about that!
+
+         // TODO: Still need to fix jp_ex/jn_ex values in here and in SolidConcentration.cpp.  Are
+         // -1 and 1 the correct values to use here?  I also still need to set cp0 and cn0 to actually
+         // take effect in the solver. 
+
+         // Dimensional parameters.
+         real_t T = 298.; // Temperature (K).
+         real_t Lp = 80e-6; // Positive electrode thickness (m).
+         real_t Ln = 80e-6; // Negative electrode thickness (m).
+
+         real_t eps_p = 0.385; // Porosity???
+         real_t eps_p_fi = 0.025;
+         real_t eps_p_s = 1 - eps_p - eps_p_fi;
+         real_t rs_p = 2e-6; // Particle radius (m).
+         real_t Ap = 3 * eps_p_s / rs_p; // Positive electrode area (m^2).
+
+         real_t eps_n = 0.385; // Porosity???
+         real_t eps_n_fi = 0.025;
+         real_t eps_n_s = 1 - eps_n - eps_n_fi;
+         real_t rs_n = 2e-6; // Particle radius (m).
+         real_t An = 3 * eps_n_s / rs_n; // Negative electrode area (m^2).
+
+         //real_t kp = 2.334e-11 * 96485.33289;
+         //real_t kn = 5.031e-11 * 96485.33289;
+
+         real_t cp0 = 29252.; // Initial positive electrode concentration (mol/m^3).
+         real_t cn0 = 22405.; // Initial negative electrode concentration (mol/m^3).
+
+         real_t cpmax = 30555.;
+         real_t cnmax = 51554.;
+
+         real_t cell_area =  2.0527;
+
+         // Scales.
+         real_t T0 = 298.; // Reference temperature (K).
+         real_t r0 = 1e-6; // Reference length scale (m). Another one?  This one is used in scaling the diffusion coefficient.
+         real_t L = Lp + Ln + 80e-6; // Length scale (m).  Extra 80e-6 is the separator thickness.
+         real_t I_typ = 60.; // Current scale? (A).
+         real_t a0 = 1/L;  // WHY IS THIS ONLY 1/L? UNITS OF m RATHER THAN m^2?
+
+         //real_t R = 8.314; // Universal gas constant (J/(mol*K)).
+         real_t F = 96485.33289; // Faraday constant (C/mol).
+
+         real_t ts_p = F * cpmax * cell_area * L / I_typ; // Time scale for positive electrode (s).
+         real_t ts_n = F * cnmax * cell_area * L / I_typ; // Time scale for negative electrode (s).
+
+
+         //real_t j = I_typ / a0 / L / cell_area; // Flux scale?
+
+         real_t Dp_scale = pow(r0,2) / ts_p; // Diffusion coefficient scale for positive electrode (m^2/s).
+         real_t Dn_scale = pow(r0,2) / ts_n; // Diffusion coefficient scale for negative electrode (m^2/s).
+
+
+         // Non-dimensional parameters.
+         T = T / T0; // Non-dimensional temperature.
+         Lp = Lp / L; // Non-dimensional positive electrode thickness.
+         Ln = Ln / L; // Non-dimensional negative electrode thickness.
+
+         cp0 = cp0 / cpmax; // Non-dimensional initial positive electrode concentration.
+         cn0 = cn0 / cnmax; // Non-dimensional initial negative electrode concentration.
+
+         Ap = Ap / a0;
+         An = An / a0;
+
+         real_t I = 1.;
+
+         real_t Dp = Dp / Dp_scale; // Non-dimensional diffusion coefficient for positive electrode.
+         real_t Dn = Dn / Dn_scale; // Non-dimensional diffusion coefficient for negative electrode.
+
+         
+
+         /*
          real_t T = 1.;//300.;
          //real_t Kp = 1.;
          //real_t Kn = 1.;
          real_t ce = 1.;//000.;
-         //real_t ce0 = 1.;//000.;
-         real_t cpmax = 1.;//30555;
-         real_t cnmax = 1.;//51554;
+         real_t ce0 = 1.;//000.;
+         // Note: plotting Up for [0 1] (Open Circuit Potential for positive electrode) has asymptotes at 
+         // theta_p ~= 0.277 and theta_p ~= 0.423.  Needs to be considered when setting cpmax as this 
+         // results in theta_p. 
+         real_t cpmax = 50.;//30555.;
+         real_t cnmax = 50.;//51554.;
          real_t Lp = 1./3.;
          real_t Ln = 1./3.;
          real_t Ap = 1.;
          real_t An = 1.;
          real_t I = 1.;
          real_t mp = 1.;
-         real_t mn = 1.;
+         real_t mn = 1.;*/
 
+         //real_t kp = 2.334e-11 * 96485.33289;
+         //real_t kn = 5.031e-11 * 96485.33289;
+
+         // 3 * eps / rs
+         //Ap = 3 * 0.385 / 2e-6;
+         //An = 3 * 0.485 / 2e-6;
+
+         //real_t cp = 10 + csurf[0];   // Particle surface concentration at the positive electrode.
          real_t cp = csurf[0];   // Particle surface concentration at the positive electrode.
          real_t cn = csurf[1];   // Particle surface concentration at the negative electrode.
 
@@ -271,11 +354,12 @@ int main(int argc, char *argv[])
          //real_t jn0 = F * Kn * pow((ce/ce0) * (cn/cnmax) * (1 - (cn/cnmax)),0.5);
 
          // Definition from LIONSIMBA: https://doi.org/10.1149/2.0291607jes
-         real_t theta_p = cp / cpmax;
-         real_t theta_n = cn / cnmax;
+         real_t theta_p = cp;// / cpmax;
+         real_t theta_n = cn;// / cnmax;
 
          // Open Circuit Potential (no temperature dependence).
          // Definition from LIONSIMBA: https://doi.org/10.1149/2.0291607jes
+         // Same as from JuBat codebase. File: Northrop.ji
          real_t Up_num = -4.656 + 88.669 * pow(theta_p,2) - 401.119 * pow(theta_p,4) +
                              342.909 * pow(theta_p,6) - 462.471 * pow(theta_p,8) + 433.434 * pow(theta_p,10);
          real_t Up_den = -1 + 18.933 * pow(theta_p,2) - 79.532 * pow(theta_p,4) +
@@ -284,28 +368,39 @@ int main(int argc, char *argv[])
 
          real_t Un = 0.7222 + 0.1387 * theta_n + 0.029 * pow(theta_n,0.5) - 0.0172 / theta_n +
                          0.0019 * pow(theta_n,-1.5) + 0.2808 * exp(0.9 - 15*theta_n) - 0.7984 * exp(0.4465 * theta_n - 0.4108);
-         
+
+         // Exchange current density.
          // Definition from JuBat: https://doi.org/10.1016/j.est.2023.107512
-         real_t jp_ex = mp * pow(( (cp - cpmax) / (cp * ce)),0.5);
-         real_t jn_ex = mn * pow(( (cn - cpmax) / (cn * ce)),0.5);
+         //real_t jp_ex = kp * pow(( (cp - cpmax) / (cp * ce)),0.5);
+         //real_t jn_ex = kn * pow(( (cn - cnmax) / (cn * ce)),0.5);
+
+         // Definition from Planella (need to think about non-dimensionalisation).
+         real_t jp_ex = -1.;//kp * pow(( (cp/cpmax) * (1 - cp/cpmax) ),0.5);
+         real_t jn_ex = 1.;//kn * pow(( (cn/cnmax) * (1 - cn/cnmax) ),0.5);
+
+         // Definition from JuBat codebase. File: SPM.ji.
+         //real_t kp = 2.334e-11 * 96485.33289;
+         //real_t kn = 5.031e-11 * 96485.33289;
+         //real_t jp_ex =  kp * sqrt(cp * ce0 * abs(1.0 - cp));
+         //real_t jn_ex =  kn * sqrt(cn * ce0 * abs(1.0 - cn));
+
+         // Check sign, negative for positive electrode in JuBat code, 
+         // but vice-versa in paper.
+         real_t eta_p = 2 * T * asinh( -I / (2 * Ap * Lp * jp_ex) );
+         real_t eta_n = 2 * T * asinh( I / (2 * An * Ln * jn_ex) );
 
          // Definition from JuBat: https://doi.org/10.1016/j.est.2023.107512
-         real_t voltage = Up - Un  + 2 * T * ( 
-                           asinh( I / (2 * Ap * Lp * jp_ex )) - 
-                           asinh( -I / (2 * An * Ln * jn_ex ) ) );
+         real_t voltage = Up - Un  + eta_p - eta_n;
 
          // Temporary printing.
          if (myid == 0)
          {
+            std::cout << "cp = " << cp << std::endl;
+            std::cout << "cn = " << cn << std::endl;
+
             std::cout << "Up = " << Up << std::endl;
             std::cout << "Un = " << Un << std::endl;
 
-            std::cout << "T = " << T << std::endl;
-            std::cout << "I = " << I << std::endl;
-            std::cout << "Ap = " << Ap << std::endl;
-            std::cout << "An = " << An << std::endl;
-            std::cout << "Lp = " << Lp << std::endl;
-            std::cout << "Ln = " << Ln << std::endl;
             std::cout << "jp_ex = " << jp_ex << std::endl;
             std::cout << "jn_ex = " << jn_ex << std::endl;
 
@@ -314,6 +409,8 @@ int main(int argc, char *argv[])
             // Print data to file.
             dataFile << t << ", " 
             << "\t" << voltage << ", " 
+            << "\t" << cp << ", " 
+            << "\t" << cn << ", " 
             << "\t" << theta_p << ", " 
             << "\t" << theta_n << ", " 
             << "\t" << Up << ", " 

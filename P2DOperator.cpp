@@ -104,12 +104,12 @@ void P2DOperator::Update(const BlockVector &x)
    for (unsigned p = 0; p < NPAR; p++)
       sc[p]->Update(x);
 
-   for (unsigned p = 0; p < NPAR; p++)
+   /*for (unsigned p = 0; p < NPAR; p++)
    {
       real_t csurf = sc[p]->SurfaceConcentration(x);
       if (!isnan(csurf))
          std::cout << Mpi::WorldRank() << " " <<  p << " " << csurf << std::endl;
-   }
+   }*/
 }
 
 void P2DOperator::GetParticleLocalTrueDofs(Array<int> & particle_dofs, unsigned & particle_offset)
