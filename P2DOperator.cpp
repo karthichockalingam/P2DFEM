@@ -52,15 +52,19 @@ P2DOperator::P2DOperator(ParFiniteElementSpace * &x_fespace, Array<ParFiniteElem
 
    if (M == SPM)
       for (unsigned p = 0; p < NPAR; p++)
-         sc.Append(new SolidConcentration(*r_fespace[p], p));
+         sc.Append(new SolidConcentration(*r_fespace[p], p, 0));
    else
    {
-      Array<int> particle_dofs; unsigned particle_offset;
-      GetParticleLocalTrueDofs(particle_dofs, particle_offset);
+      Array<int> particle_dofs, particle_offsets;
+      GetParticleLocalTrueDofs(particle_dofs, particle_offsets);
       for (unsigned p = 0; p < NPAR; p++)
       {
-         bool my_particle = p >= particle_offset && p < particle_offset + particle_dofs.Size();
-         sc.Append(new SolidConcentration(*r_fespace[p], p, my_particle ? particle_dofs[p - particle_offset] : -1));
+         unsigned rank = std::distance(particle_offsets.begin(),
+            std::find_if(particle_offsets.begin(), particle_offsets.end(), [&](int i){ return p < i; }));
+         unsigned offset = Mpi::WorldRank() > 0 ? particle_offsets[Mpi::WorldRank() - 1] : 0;
+         bool mine = p >= offset && p < offset + particle_dofs.Size();
+         int ltdof = mine ? particle_dofs[p - offset] : -1;
+         sc.Append(new SolidConcentration(*r_fespace[p], p, rank, ltdof));
       }
    }
 }
@@ -112,7 +116,7 @@ void P2DOperator::Update(const BlockVector &x)
    }
 }
 
-void P2DOperator::GetParticleLocalTrueDofs(Array<int> & particle_dofs, unsigned & particle_offset)
+void P2DOperator::GetParticleLocalTrueDofs(Array<int> & particle_dofs, Array<int> & particle_offsets)
 {
    std::set<int> sep_global_dofs_set;
    for (int e = 0; e < x_fespace->GetNE(); e++)
@@ -150,13 +154,10 @@ void P2DOperator::GetParticleLocalTrueDofs(Array<int> & particle_dofs, unsigned 
    particle_dofs.SetSize(particle_dofs_set.size());
    std::copy(particle_dofs_set.begin(), particle_dofs_set.end(), particle_dofs.begin());
 
-   HYPRE_BigInt my_particles = particle_dofs.Size();
-   Array<HYPRE_BigInt> all_particles(Mpi::WorldSize());
-   MPI_Allgather(&my_particles, 1, HYPRE_MPI_BIG_INT,
-                 all_particles.GetData(), 1, HYPRE_MPI_BIG_INT, MPI_COMM_WORLD);
+   int my_particles = particle_dofs.Size();
+   particle_offsets.SetSize(Mpi::WorldSize());
+   MPI_Allgather(&my_particles, 1, MPI_INT, particle_offsets.GetData(), 1, MPI_INT, MPI_COMM_WORLD);
 
-   all_particles.PartialSum();
-   particle_offset = Mpi::WorldRank() > 0 ? all_particles[Mpi::WorldRank() - 1] : 0;
-
-   assert(all_particles[Mpi::WorldSize() - 1] == NPAR);
+   particle_offsets.PartialSum();
+   assert(particle_offsets[Mpi::WorldSize() - 1] == NPAR);
 }
