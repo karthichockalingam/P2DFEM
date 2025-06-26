@@ -101,6 +101,25 @@ void P2DOperator::Update(const BlockVector &x)
    A->owns_blocks = 1;
 
    // call point for j computation here
+   if(M == SPMe)
+   {
+      ParGridFunction cs_gf(x_fespace);
+      cs_gf.SetFromTrueDofs(x.GetBlock(EC));
+
+      ParGridFunction ec_gf(x_fespace);
+      ec_gf.SetFromTrueDofs(x.GetBlock(EC));
+
+      for (int i = 0; i < cs_gf.Size(); i++)
+         cs_gf(i) = 0;
+
+      real_t csurf[NPAR];
+      for (unsigned p = 0; p < NPAR; p++)
+      {
+         csurf[p] = sc[p]->SurfaceConcentration(x);
+         if (!isnan(csurf[p]))
+            cs_gf(sc[p]->GetParticle_ltdof()) = csurf[p];
+      }
+   }
 
    ep->Update(x);
    ec->Update(x);
