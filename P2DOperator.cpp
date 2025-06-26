@@ -1,4 +1,5 @@
 #include "P2DOperator.hpp"
+#include "utils.hpp"
 
 P2DOperator::P2DOperator(ParFiniteElementSpace * &x_fespace, Array<ParFiniteElementSpace *> &r_fespace,
                          const unsigned &ndofs, BlockVector &x)
@@ -119,6 +120,11 @@ void P2DOperator::Update(const BlockVector &x)
          if (!isnan(csurf[p]))
             cs_gf(sc[p]->GetParticle_ltdof()) = csurf[p];
       }
+
+      SPMeJExt spme_coeff(cs_gf, ec_gf, SPMeJFunc);
+      ParLinearForm sum(x_fespace);
+      sum.AddDomainIntegrator(new DomainLFIntegrator(spme_coeff));
+      sum.Assemble();
    }
 
    ep->Update(x);
