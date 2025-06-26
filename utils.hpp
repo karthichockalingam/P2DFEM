@@ -8,8 +8,12 @@ using Func = function<Args>;
 using ArgsT = real_t(const real_t &, const real_t &, const real_t &, const real_t &, const Vector &, const real_t);
 using FuncT = function<ArgsT>;
 
+using SPMeArgs = real_t(const real_t &, const real_t &, const Vector &);
+using SPMeFunc = function<SPMeArgs>;
+
 real_t  FluxJExt(const real_t & ce, const real_t & cs);
 real_t  FluxJ(const real_t & electrolyte_potential, const real_t & electrode_potential, const real_t & electrolyte_concentration, const real_t & electrode_surface_concentration, const Vector & x);
+real_t  SPMeJFunc(const real_t & cs , const real_t & ce , const Vector & x);
 
 class FluxJGridFuncCoefficient : public Coefficient
  {
@@ -33,6 +37,22 @@ class FluxJGridFuncCoefficient : public Coefficient
     const GridFunction & electrolyte_concentration,
     const real_t & _electrode_surface_concentration,
     FuncT foo);
+
+    virtual   real_t Eval(ElementTransformation &T, const IntegrationPoint &ip);
+ };
+
+
+ class SPMeJExt: public Coefficient
+ {
+    const GridFunction & _surface_concentraion;
+    const GridFunction & _electrolyte_concentration;
+    SPMeFunc               GFunction;
+
+ public:
+    SPMeJExt(
+    const GridFunction & surface_concentraion,
+    const GridFunction & electrolyte_concentration,
+    SPMeFunc foo);
 
     virtual   real_t Eval(ElementTransformation &T, const IntegrationPoint &ip);
  };
