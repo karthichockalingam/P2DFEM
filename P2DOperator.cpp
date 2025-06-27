@@ -101,37 +101,38 @@ void P2DOperator::Update(const BlockVector &x)
    A = new BlockOperator(block_trueOffsets);
    A->owns_blocks = 1;
 
-   // call point for j computation here
-   if(M == SPMe)
-   {
-      ParGridFunction cs_gf(x_fespace);
-      cs_gf.SetFromTrueDofs(x.GetBlock(EC));
-
-      ParGridFunction ec_gf(x_fespace);
-      ec_gf.SetFromTrueDofs(x.GetBlock(EC));
-
-      for (int i = 0; i < cs_gf.Size(); i++)
-         cs_gf(i) = 0;
-
-      real_t csurf[NPAR];
-      for (unsigned p = 0; p < NPAR; p++)
-      {
-         csurf[p] = sc[p]->SurfaceConcentration(x);
-         if (!isnan(csurf[p]))
-            cs_gf(sc[p]->GetParticle_ltdof()) = csurf[p];
-      }
-
-      SPMeJExt spme_coeff(cs_gf, ec_gf, SPMeJFunc);
-      ParLinearForm sum(x_fespace);
-      sum.AddDomainIntegrator(new DomainLFIntegrator(spme_coeff));
-      sum.Assemble();
-   }
-
    ep->Update(x);
    ec->Update(x);
    sp->Update(x);
    for (unsigned p = 0; p < NPAR; p++)
       sc[p]->Update(x);
+}
+
+real_t P2DOperator::ComputeSPMeJExt(const BlockVector &x)
+{
+      ParGridFunction cs_gf(x_fespace);
+      cs_gf = 0;
+
+      ParGridFunction ec_gf(x_fespace);
+      ec_gf.SetFromTrueDofs(x.GetBlock(EC));
+
+      for (unsigned p = 0; p < NPAR; p++)
+      {
+         real_t csurf = sc[p]->SurfaceConcentration(x);
+         if (!isnan(csurf))
+            cs_gf(sc[p]->GetParticleLTDof()) = csurf;
+      }
+
+      SPMeJExt spme_coeff(cs_gf, ec_gf);
+      ParLinearForm sum(x_fespace);
+      sum.AddDomainIntegrator(new DomainLFIntegrator(spme_coeff));
+      sum.Assemble();
+
+      real_t reduction_result = sum.Sum();
+      int my_rank = Mpi::WorldRank();
+      MPI_Allreduce(&my_rank, &reduction_result, 1, MFEM_MPI_REAL_T, MPI_SUM, MPI_COMM_WORLD);
+      
+      return reduction_result/(LPE + LSEP + LNE);
 }
 
 void P2DOperator::ComputeVoltage(const BlockVector &x, real_t t, real_t dt)

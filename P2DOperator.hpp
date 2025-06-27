@@ -52,6 +52,8 @@ public:
 
    void ComputeVoltage(const BlockVector &x, real_t t, real_t dt);
 
+   real_t ComputeSPMeJExt(const BlockVector &x);
+
    virtual void GetParticleLocalTrueDofs(Array<int> & particle_dofs, Array<int> & particle_offsets);
 
    virtual ~P2DOperator() { file.close(); }
