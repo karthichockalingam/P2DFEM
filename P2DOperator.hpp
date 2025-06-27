@@ -54,7 +54,7 @@ public:
 
    real_t ComputeExternalCurrent(const BlockVector &x);
 
-   virtual void GetParticleLTDofs(Array<int> & particle_dofs, Array<int> & particle_offsets);
+   virtual void GetParticleDofs(Array<int> & particle_dofs, Array<int> & particle_offsets);
 
    virtual ~P2DOperator() { file.close(); }
 };
