@@ -17,7 +17,7 @@ real_t  FluxJ(const real_t & electrolyte_potential, const real_t & electrode_pot
    return std::sinh(val);
 }
 
-real_t  SPMeJFunc(const real_t & cs , const real_t & ce)
+real_t SPMeJFunc(const real_t & cs, const real_t & ce)
 {
    return m * sqrt(ce) * sqrt(cs) * sqrt(cs - cmax);
 }
@@ -56,14 +56,8 @@ FluxJGridFuncCoefficient::Eval(ElementTransformation &T, const IntegrationPoint 
             : TDGFunction(_electrolyte_potential.GetValue(T, ip), _electrode_potential.GetValue(T, ip), _electrolyte_concentration.GetValue(T, ip), _electrode_surface_concentration, transip, GetTime() );
     }
 
-SPMeJExt::SPMeJExt(
-    const GridFunction & surface_concentraion,
-    const GridFunction & electrolyte_concentration):
-    _surface_concentraion(surface_concentraion),
-    _electrolyte_concentration(electrolyte_concentration) {};
-
 real_t
-SPMeJExt::Eval(ElementTransformation &T, const IntegrationPoint &ip)
+ExternalCurrentCoefficient::Eval(ElementTransformation &T, const IntegrationPoint &ip)
     {
         Vector transip(3);
         T.Transform(ip, transip);

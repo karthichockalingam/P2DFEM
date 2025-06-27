@@ -39,14 +39,16 @@ class FluxJGridFuncCoefficient : public Coefficient
  };
 
 
- class SPMeJExt: public Coefficient
+ class ExternalCurrentCoefficient: public Coefficient
  {
     const GridFunction & _surface_concentraion;
     const GridFunction & _electrolyte_concentration;
  public:
-    SPMeJExt(
-    const GridFunction & surface_concentraion,
-    const GridFunction & electrolyte_concentration);
+    ExternalCurrentCoefficient(
+      const GridFunction & surface_concentraion,
+      const GridFunction & electrolyte_concentration):
+      _surface_concentraion(surface_concentraion),
+      _electrolyte_concentration(electrolyte_concentration) {};
 
-    virtual   real_t Eval(ElementTransformation &T, const IntegrationPoint &ip);
+    virtual real_t Eval(ElementTransformation &T, const IntegrationPoint &ip);
  };

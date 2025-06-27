@@ -57,7 +57,7 @@ P2DOperator::P2DOperator(ParFiniteElementSpace * &x_fespace, Array<ParFiniteElem
    else
    {
       Array<int> particle_dofs, particle_offsets;
-      GetParticleLocalTrueDofs(particle_dofs, particle_offsets);
+      GetParticleLTDofs(particle_dofs, particle_offsets);
       for (unsigned p = 0; p < NPAR; p++)
       {
          unsigned rank = std::distance(particle_offsets.begin(),
@@ -108,31 +108,30 @@ void P2DOperator::Update(const BlockVector &x)
       sc[p]->Update(x);
 }
 
-real_t P2DOperator::ComputeSPMeJExt(const BlockVector &x)
+real_t P2DOperator::ComputeExternalCurrent(const BlockVector &x)
 {
-      ParGridFunction cs_gf(x_fespace);
-      cs_gf = 0;
+   ParGridFunction cs_gf(x_fespace);
+   cs_gf = 0;
 
-      ParGridFunction ec_gf(x_fespace);
-      ec_gf.SetFromTrueDofs(x.GetBlock(EC));
+   ParGridFunction ec_gf(x_fespace);
+   ec_gf.SetFromTrueDofs(x.GetBlock(EC));
 
-      for (unsigned p = 0; p < NPAR; p++)
-      {
-         real_t csurf = sc[p]->SurfaceConcentration(x);
-         if (!isnan(csurf))
-            cs_gf(sc[p]->GetParticleLTDof()) = csurf;
-      }
+   for (unsigned p = 0; p < NPAR; p++)
+   {
+      real_t csurf = sc[p]->SurfaceConcentration(x);
+      if (!isnan(csurf))
+         cs_gf(sc[p]->GetParticleLTDof()) = csurf;
+   }
 
-      SPMeJExt spme_coeff(cs_gf, ec_gf);
-      ParLinearForm sum(x_fespace);
-      sum.AddDomainIntegrator(new DomainLFIntegrator(spme_coeff));
-      sum.Assemble();
+   ExternalCurrentCoefficient spme_coeff(cs_gf, ec_gf);
+   ParLinearForm sum(x_fespace);
+   sum.AddDomainIntegrator(new DomainLFIntegrator(spme_coeff));
+   sum.Assemble();
 
-      real_t reduction_result = sum.Sum();
-      int my_rank = Mpi::WorldRank();
-      MPI_Allreduce(&my_rank, &reduction_result, 1, MFEM_MPI_REAL_T, MPI_SUM, MPI_COMM_WORLD);
-      
-      return reduction_result/(LPE + LSEP + LNE);
+   real_t reduction_result = sum.Sum();
+   MPI_Allreduce(MPI_IN_PLACE, &reduction_result, 1, MFEM_MPI_REAL_T, MPI_SUM, MPI_COMM_WORLD);
+
+   return reduction_result / (LPE + LSEP + LNE);
 }
 
 void P2DOperator::ComputeVoltage(const BlockVector &x, real_t t, real_t dt)
@@ -235,7 +234,7 @@ void P2DOperator::ComputeVoltage(const BlockVector &x, real_t t, real_t dt)
    }
 }
 
-void P2DOperator::GetParticleLocalTrueDofs(Array<int> & particle_dofs, Array<int> & particle_offsets)
+void P2DOperator::GetParticleLTDofs(Array<int> & particle_dofs, Array<int> & particle_offsets)
 {
    std::set<int> sep_global_dofs_set;
    for (int e = 0; e < x_fespace->GetNE(); e++)
