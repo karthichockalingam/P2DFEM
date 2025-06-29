@@ -106,6 +106,9 @@ void P2DOperator::Update(const BlockVector &x)
    sp->Update(x);
    for (unsigned p = 0; p < NPAR; p++)
       sc[p]->Update(x);
+
+   if (M != SPM)
+      ComputeExternalCurrent(x);
 }
 
 real_t P2DOperator::ComputeExternalCurrent(const BlockVector &x)
@@ -113,19 +116,22 @@ real_t P2DOperator::ComputeExternalCurrent(const BlockVector &x)
    ParGridFunction cs_gf(x_fespace);
    cs_gf = 0;
 
-   ParGridFunction ec_gf(x_fespace);
-   ec_gf.SetFromTrueDofs(x.GetBlock(EC));
-
    for (unsigned p = 0; p < NPAR; p++)
    {
       real_t csurf = sc[p]->SurfaceConcentration(x);
       if (!isnan(csurf))
          cs_gf(sc[p]->GetParticleDof()) = csurf;
    }
+   // Apply prolongation after restriction. Might be unnecessary, but guarantees
+   // all processors have the right information for all their local dofs. 
+   cs_gf.SetFromTrueVector();
 
-   ExternalCurrentCoefficient spme_coeff(cs_gf, ec_gf);
+   ParGridFunction ec_gf(x_fespace);
+   ec_gf.SetFromTrueDofs(x.GetBlock(EC));
+
+   ExternalCurrentCoefficient coeff(cs_gf, ec_gf);
    ParLinearForm sum(x_fespace);
-   sum.AddDomainIntegrator(new DomainLFIntegrator(spme_coeff));
+   sum.AddDomainIntegrator(new DomainLFIntegrator(coeff));
    sum.Assemble();
 
    real_t reduction_result = sum.Sum();
