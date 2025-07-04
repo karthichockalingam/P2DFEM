@@ -3,37 +3,32 @@
 using namespace std;
 using namespace mfem;
 
-using Args = real_t(const real_t &, const real_t &, const real_t &, const real_t &, const Vector &);
+using Args = real_t(const real_t &, const real_t &, const real_t &, const real_t &);
 using Func = function<Args>;
-using ArgsT = real_t(const real_t &, const real_t &, const real_t &, const real_t &, const Vector &, const real_t);
-using FuncT = function<ArgsT>;
 
-real_t  FluxJExt(const real_t & ce, const real_t & cs);
-real_t  FluxJ(const real_t & electrolyte_potential, const real_t & electrode_potential, const real_t & electrolyte_concentration, const real_t & electrode_surface_concentration, const Vector & x);
-real_t  SPMeJFunc(const real_t & cs , const real_t & ce , const Vector & x);
+
+real_t  FluxJ(const real_t & electrolyte_potential, const real_t & electrode_potential, const real_t & electrolyte_concentration, const real_t & electrode_surface_concentration);
+real_t  SPMeJFunc(const real_t & cs , const real_t & ce);
 
 class FluxJGridFuncCoefficient : public Coefficient
  {
     const GridFunction & _electrolyte_potential;
     const GridFunction & _electrode_potential;
     const GridFunction & _electrolyte_concentration;
-    const real_t & _electrode_surface_concentration;
+    const GridFunction & _electrode_surface_concentration;
     Func               GFunction;
-    FuncT              TDGFunction;
  public:
-    FluxJGridFuncCoefficient(
+    FluxJGridFuncCoefficient::FluxJGridFuncCoefficient(
     const GridFunction & electrolyte_potential,
     const GridFunction & electrode_potential,
     const GridFunction & electrolyte_concentration,
-    const real_t & _electrode_surface_concentration,
-    Func foo);
-
-    FluxJGridFuncCoefficient(
-    const GridFunction & electrolyte_potential,
-    const GridFunction & electrode_potential,
-    const GridFunction & electrolyte_concentration,
-    const real_t & _electrode_surface_concentration,
-    FuncT foo);
+    const GridFunction & electrode_surface_concentration,
+    Func foo):
+    _electrolyte_potential(electrolyte_potential),
+    _electrode_potential(electrode_potential),
+    _electrolyte_concentration(electrolyte_concentration),
+    _electrode_surface_concentration(electrode_surface_concentration),
+    GFunction( move(foo) ) {};
 
     virtual   real_t Eval(ElementTransformation &T, const IntegrationPoint &ip);
  };
