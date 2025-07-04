@@ -101,17 +101,19 @@ void P2DOperator::Update(const BlockVector &x)
    A = new BlockOperator(block_trueOffsets);
    A->owns_blocks = 1;
 
-   ep->Update(x);
-   ec->Update(x);
-   sp->Update(x);
+   ConstantCoefficient j;
+   if (M != SPM)
+      j = ComputeExternalCurrent(x);
+
+   ep->Update(x, j);
+   ec->Update(x, j);
+   sp->Update(x, j);
    for (unsigned p = 0; p < NPAR; p++)
       sc[p]->Update(x);
 
-   if (M != SPM)
-      ComputeExternalCurrent(x);
 }
 
-real_t P2DOperator::ComputeExternalCurrent(const BlockVector &x)
+ConstantCoefficient P2DOperator::ComputeExternalCurrent(const BlockVector &x)
 {
    ParGridFunction cs_gf(x_fespace);
    cs_gf = 0;
@@ -136,8 +138,8 @@ real_t P2DOperator::ComputeExternalCurrent(const BlockVector &x)
 
    real_t reduction_result = sum.Sum();
    MPI_Allreduce(MPI_IN_PLACE, &reduction_result, 1, MFEM_MPI_REAL_T, MPI_SUM, MPI_COMM_WORLD);
-
-   return reduction_result / (LPE + LSEP + LNE);
+   //Is it correct to use the total length or is it the lenght of the region?
+   return ConstantCoefficient(reduction_result / (LPE + LSEP + LNE));
 }
 
 void P2DOperator::ComputeVoltage(const BlockVector &x, real_t t, real_t dt)
