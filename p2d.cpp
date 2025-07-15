@@ -55,10 +55,10 @@ int main(int argc, char *argv[])
    int par_ref_levels = 0;
    int order = 1;
    int ode_solver_type = 3;
-   real_t t_final = 0.4;
-   real_t dt = 1.0e-6;
+   real_t t_final = 1.0;
+   real_t dt = 1.0e-2;
    bool visualization = true;
-   int vis_steps = 500;
+   int vis_steps = 5;
 
    int precision = 8;
    cout.precision(precision);
@@ -193,7 +193,7 @@ int main(int argc, char *argv[])
    oper.Update(x);
 
    // Filename for writing temporary data to file.
-   std::ofstream dataFile("data.txt");
+   std::ofstream dataFile("data.csv");
    dataFile << "t" << ", " 
          << "\t" << "voltage" << ", " 
          << "\t" << "cp" << ", " 
