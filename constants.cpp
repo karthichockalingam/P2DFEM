@@ -19,6 +19,14 @@ namespace constants {
     unsigned NPAR = 0;
     unsigned NR = 10;
 
+    // Scales
+    real_t r0 = 1e-6;
+    real_t t0 = 3600;
+    
+    // Dimensional parameters
+    real_t Dp = 4.0e-15; // Diffusion coefficient, positive electrode
+    real_t Dn = 3.3e-14; // Diffusion coefficient, negative electrode
+
     real_t LPE  = 0.;
     real_t LSEP = 0.;
     real_t LNE  = 0.;
@@ -26,8 +34,9 @@ namespace constants {
     real_t AP = 1.;
     real_t AN = 1.;
 
-    real_t DP = 1.;
-    real_t DN = 1.;
+    // Scaled diffusion coefficients
+    real_t DP = Dp * t0 / (r0 * r0);
+    real_t DN = Dn * t0 / (r0 * r0);
 
     real_t CE0 = 1.;
 

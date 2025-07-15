@@ -56,9 +56,9 @@ int main(int argc, char *argv[])
    int order = 1;
    int ode_solver_type = 3;
    real_t t_final = 1.0;
-   real_t dt = 1.0e-2;
+   real_t dt = 1.0e-5;
    bool visualization = true;
-   int vis_steps = 5;
+   int vis_steps = 500;
 
    int precision = 8;
    cout.precision(precision);
@@ -198,7 +198,7 @@ int main(int argc, char *argv[])
       last_step = t + dt >= t_final - dt/2;
 
       ode_solver->Step(x, t, dt);
-      oper.ComputeVoltage(x, t, dt);
+      //oper.ComputeVoltage(x, t, dt);
 
       if (last_step || (ti % vis_steps) == 0)
       {
@@ -217,6 +217,8 @@ int main(int argc, char *argv[])
             sum.Assemble();
             std::cout << "[Rank " << Mpi::WorldRank() << "]"
                       << " Total flux accumulated (" << 0 << ") = " << sum.Sum() << std::endl;
+
+            oper.ComputeVoltage(x, t, dt * vis_steps);
 
             pd.SetCycle(ti);
             pd.SetTime(t);
