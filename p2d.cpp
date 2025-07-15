@@ -192,7 +192,6 @@ int main(int argc, char *argv[])
 
    oper.Update(x);
 
-<<<<<<< HEAD
    // Filename for writing temporary data to file.
    std::ofstream dataFile("data.csv");
    dataFile << "t" << ", " 
@@ -205,8 +204,6 @@ int main(int argc, char *argv[])
          << "\t" << "Un" 
          << std::endl;
 
-=======
->>>>>>> origin/main
    bool last_step = false;
    for (int ti = 1; !last_step; ti++)
    {
@@ -220,7 +217,6 @@ int main(int argc, char *argv[])
          if (Mpi::Root())
             cout << "step " << ti << ", t = " << t << endl;
 
-<<<<<<< HEAD
          // Daniel: this is obviously a very rough, hacky way to do things,
          // in the middle of ducking nowhere. Agreed. But it was just to see
          // if we could get the cell voltage out before the bank holiday
@@ -238,21 +234,17 @@ int main(int argc, char *argv[])
                std::cout << "Surface concentration (" << i << ") = " << csurf[i] << std::endl;
    
             LinearForm sum(r_fespace[i]);
-=======
-         // TODO: Stop sim at cutoff voltage
-         if (last_step || visualization)
-         {
-            u_gf.SetFromTrueDofs(x.GetBlock(SC + 0));
-            ParLinearForm sum(r_fespace[0]);
->>>>>>> origin/main
             GridFunctionCoefficient u_gfc(&u_gf);
             FunctionCoefficient r2([](const Vector & x){ return x(0) * x(0); });
             ProductCoefficient ur2(u_gfc,r2);
             sum.AddDomainIntegrator(new DomainLFIntegrator(ur2));
             sum.Assemble();
-<<<<<<< HEAD
+            std::cout << "[Rank " << Mpi::WorldRank() << "]"
+                      << " Total flux accumulated (" << 0 << ") = " << sum.Sum() << std::endl;
 
-            std::cout << "Total flux accumulated (" << i << ") = " << sum.Sum() << std::endl;
+            pd.SetCycle(ti);
+            pd.SetTime(t);
+            pd.Save();
          }
 
          //real_t voltage = 10 - csurf[1]/10 + 
@@ -430,19 +422,7 @@ int main(int argc, char *argv[])
             << "\t" << Un 
             << std::endl;
          }
-         
-         // TODO: Stop sim at cutoff voltage
-         if (last_step || visualization)
-         {
-=======
-            std::cout << "[Rank " << Mpi::WorldRank() << "]"
-                      << " Total flux accumulated (" << 0 << ") = " << sum.Sum() << std::endl;
 
->>>>>>> origin/main
-            pd.SetCycle(ti);
-            pd.SetTime(t);
-            pd.Save();
-         }
       }
       oper.Update(x);
    }
