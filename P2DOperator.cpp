@@ -4,7 +4,7 @@
 P2DOperator::P2DOperator(ParFiniteElementSpace * &x_fespace, Array<ParFiniteElementSpace *> &r_fespace,
                          const unsigned &ndofs, BlockVector &x)
    : TimeDependentOperator(ndofs, (real_t) 0.0), x_fespace(x_fespace), r_fespace(r_fespace),
-     A(NULL), current_dt(0.0), Solver(x_fespace->GetComm()), file("data.txt")
+     A(NULL), current_dt(0.0), Solver(x_fespace->GetComm()), file("data.csv")
 {
    const real_t rel_tol = 1e-8;
 
@@ -148,16 +148,8 @@ ConstantCoefficient P2DOperator::ComputeExchangeCurrent(const BlockVector &x)
    return ConstantCoefficient(reduction_result / (LPE + LSEP + LNE));
 }
 
-void P2DOperator::ComputeVoltage(const BlockVector &x, real_t t, real_t dt)
+void P2DOperator::ComputeVoltage(const BlockVector &x, real_t t, real_t first_viz_step)
 {
-   if (t == dt)
-      file << "t" << ", "
-           << "\t" << "voltage" << ", "
-           << "\t" << "theta_p" << ", "
-           << "\t" << "theta_n" << ", "
-           << "\t" << "Up" << ", "
-           << "\t" << "Un"
-           << std::endl;
 
    real_t csurf[NPAR];
    for (unsigned p = 0; p < NPAR; p++)
@@ -172,33 +164,13 @@ void P2DOperator::ComputeVoltage(const BlockVector &x, real_t t, real_t dt)
    //real_t voltage = 10 - csurf[1]/10 +
    //             asinh(- I / AP / LPE / 2 / sqrt((10+csurf[0])*-csurf[0])) -
    //             asinh(  I / AN / LNE / 2 / sqrt(csurf[1]*(10-csurf[1])));
-
-   //real_t R = 1.;//8.314;
-   //real_t F = 1.;//96485;
-   real_t T = 1.;//300.;
-   //real_t Kp = 1.;
-   //real_t Kn = 1.;
-   real_t ce = 1.;//000.;
-   //real_t ce0 = 1.;//000.;
-   real_t cpmax = 1.;//30555;
-   real_t cnmax = 1.;//51554;
-   real_t Lp = 1./3.;
-   real_t Ln = 1./3.;
-   real_t Ap = 1.;
-   real_t An = 1.;
-   real_t I = 1.;
-   real_t mp = 1.;
-   real_t mn = 1.;
-
+   
    real_t cp = csurf[0];   // Particle surface concentration at the positive electrode.
    real_t cn = csurf[1];   // Particle surface concentration at the negative electrode.
 
-   //real_t jp0 = F * Kp * pow((ce/ce0) * (cp/cpmax) * (1 - (cp/cpmax)),0.5);
-   //real_t jn0 = F * Kn * pow((ce/ce0) * (cn/cnmax) * (1 - (cn/cnmax)),0.5);
-
    // Definition from LIONSIMBA: https://doi.org/10.1149/2.0291607jes
-   real_t theta_p = cp / cpmax;
-   real_t theta_n = cn / cnmax;
+   real_t theta_p = cp; // As cp is non-dimensionalised, theta_p = cp.
+   real_t theta_n = cn; // As cn is non-dimensionalised, theta_n = cn.
 
    // Open Circuit Potential (no temperature dependence).
    // Definition from LIONSIMBA: https://doi.org/10.1149/2.0291607jes
@@ -211,39 +183,98 @@ void P2DOperator::ComputeVoltage(const BlockVector &x, real_t t, real_t dt)
    real_t Un = 0.7222 + 0.1387 * theta_n + 0.029 * pow(theta_n,0.5) - 0.0172 / theta_n +
                      0.0019 * pow(theta_n,-1.5) + 0.2808 * exp(0.9 - 15*theta_n) - 0.7984 * exp(0.4465 * theta_n - 0.4108);
 
-   // Definition from JuBat: https://doi.org/10.1016/j.est.2023.107512
-   real_t jp_ex = mp * pow(( (cp - cpmax) / (cp * ce)),0.5);
-   real_t jn_ex = mn * pow(( (cn - cpmax) / (cn * ce)),0.5);
+   real_t cpmax = 63104;
+   real_t cnmax = 33133;
+   real_t kp = 3.42e-6; // Positive electrode exchange current density.
+   real_t kn = 6.48e-7; // Negative electrode exchange current density.
+   real_t ce = 1000.;
 
    // Definition from JuBat: https://doi.org/10.1016/j.est.2023.107512
-   real_t voltage = Up - Un  + 2 * T * (
-                     asinh( I / (2 * Ap * Lp * jp_ex )) -
-                     asinh( -I / (2 * An * Ln * jn_ex ) ) );
+   real_t cp_dim = cp * cpmax;
+   real_t cn_dim = cn * cnmax;
+   real_t jp_ex = kp * pow( cp_dim * ce * ( cp_dim - cpmax ),0.5);
+   real_t jn_ex = kn * pow( -cn_dim * ce * ( cn_dim - cnmax ),0.5);
+   // TODO: At the moment jn_ex becomes NaN when cn > 1, work out what to do 
+   // in this scenario.
 
-   // Temporary printing.
+   // Definition from LIONSIMBA?
+   //real_t jp_ex = kp * pow(( (cp*cpmax - cpmax) / (cp*cpmax * ce)),0.5);
+   //real_t jn_ex = kn * pow(( -(cn*cnmax - cnmax) / (cn*cnmax * ce)),0.5);
+
+   // Definition from Planella (need to think about non-dimensionalisation).
+   //real_t jp_ex = kp * pow(( -(cp) * (1 - cp) ),0.5);
+   //real_t jn_ex = kn * pow(( (cn) * (1 - cn) ),0.5);
+
+   // Dimensional parameters.
+   real_t T = 298.; // Temperature (K).
+   real_t Lp = 80e-6; // Positive electrode thickness (m).
+   real_t Ln = 80e-6; // Negative electrode thickness (m).
+
+   real_t eps_p = 0.385; // Porosity???
+   real_t eps_p_fi = 0.025;
+   real_t eps_p_s = 1 - eps_p - eps_p_fi;
+   real_t rs_p = 2e-6; // Particle radius (m).
+   real_t Ap = 3 * eps_p_s / rs_p; // Positive electrode area (m^2).
+
+   real_t eps_n = 0.385; // Porosity???
+   real_t eps_n_fi = 0.025;
+   real_t eps_n_s = 1 - eps_n - eps_n_fi;
+   real_t rs_n = 2e-6; // Particle radius (m).
+   real_t An = 3 * eps_n_s / rs_n; // Negative electrode area (m^2).
+
+   real_t L = Lp + Ln + 80e-6; // Length scale (m).  Extra 80e-6 is the separator thickness.
+   real_t a0 = 1/L;  // Surface area to volume ratio?
+
+   Ap = Ap / a0;
+   An = An / a0;
+
+   // Check sign, negative for positive electrode in JuBat code, 
+   // but vice-versa in paper.
+   real_t eta_p = 2 * T * asinh( -I / (2 * Ap * Lp * jp_ex) );
+   real_t eta_n = 2 * T * asinh( I / (2 * An * Ln * jn_ex) );
+
+   // Definition from JuBat: https://doi.org/10.1016/j.est.2023.107512
+   real_t voltage = Up - Un  + eta_p - eta_n;
+
+   // Write out or print to file only on root processor.
    if (Mpi::Root())
    {
       std::cout << "Up = " << Up << std::endl;
       std::cout << "Un = " << Un << std::endl;
 
-      std::cout << "T = " << T << std::endl;
-      std::cout << "I = " << I << std::endl;
-      std::cout << "Ap = " << Ap << std::endl;
-      std::cout << "An = " << An << std::endl;
-      std::cout << "Lp = " << Lp << std::endl;
-      std::cout << "Ln = " << Ln << std::endl;
+      std::cout << "DP = " << DP << std::endl;
+      std::cout << "DN = " << DN << std::endl;
+
       std::cout << "jp_ex = " << jp_ex << std::endl;
       std::cout << "jn_ex = " << jn_ex << std::endl;
 
       std::cout << "Voltage = " << voltage << std::endl;
 
+      // Print file headings first time function is called.
+      static bool writeFileHeadings = true;
+      if (writeFileHeadings) {
+         file << "t" << ", \t"
+           << "voltage" << ", \t"
+           << "cp" << ", \t"
+           << "cn" << ", \t"
+           << "Up" << ", \t"
+           << "Up_num" << ", \t"
+           << "Up_den" << ", \t"
+           << "Un"
+           << std::endl;
+
+         writeFileHeadings = false;
+      }
+
       // Print data to file.
-      file << t << ", "
-           << "\t" << voltage << ", "
-           << "\t" << theta_p << ", "
-           << "\t" << theta_n << ", "
-           << "\t" << Up << ", "
-           << "\t" << Un
+      file << t << ", \t"
+           << voltage << ", \t"
+           << cp << ", \t" 
+           << cn << ", \t" 
+           << Up << ", \t"
+           << Up_num << ", \t"
+           << Up_den << ", \t"
+           << Un
            << std::endl;
    }
 }

@@ -50,7 +50,7 @@ public:
 
    virtual void Update(const BlockVector &x);
 
-   void ComputeVoltage(const BlockVector &x, real_t t, real_t dt);
+   void ComputeVoltage(const BlockVector &x, real_t t, real_t first_viz_step);
 
    FunctionCoefficient ComputeReactionCurrent(const BlockVector &x);
    ConstantCoefficient ComputeExchangeCurrent(const BlockVector &x);
