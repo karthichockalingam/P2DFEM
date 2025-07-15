@@ -91,7 +91,7 @@ int main(int argc, char *argv[])
       return 1;
    }
 
-   if (myid == 0)
+   if (Mpi::Root())
       args.PrintOptions(cout);
 
    // 4. Define the ODE solver used for time integration. Several implicit
@@ -159,7 +159,7 @@ int main(int argc, char *argv[])
       for (unsigned p = 0; p < NPAR; p++)
          fe_size_global += r_fespace[p]->GlobalTrueVSize();
 
-      if (myid == 0)
+      if (Mpi::Root())
          cout << "Unknowns (total): " << fe_size_global << endl;
    }
 
@@ -172,7 +172,7 @@ int main(int argc, char *argv[])
    BlockVector x;
    P2DOperator oper(x_fespace, r_fespace, fe_size_owned, x);
 
-   // X. Viz
+   // X. Visualization for the 0th particle
    ParGridFunction u_gf(r_fespace[0]);
 
    ParaViewDataCollection pd("particle", r_pmesh[0]);
@@ -192,6 +192,7 @@ int main(int argc, char *argv[])
 
    oper.Update(x);
 
+<<<<<<< HEAD
    // Filename for writing temporary data to file.
    std::ofstream dataFile("data.csv");
    dataFile << "t" << ", " 
@@ -204,18 +205,22 @@ int main(int argc, char *argv[])
          << "\t" << "Un" 
          << std::endl;
 
+=======
+>>>>>>> origin/main
    bool last_step = false;
    for (int ti = 1; !last_step; ti++)
    {
       last_step = t + dt >= t_final - dt/2;
 
       ode_solver->Step(x, t, dt);
+      oper.ComputeVoltage(x, t, dt);
 
       if (last_step || (ti % vis_steps) == 0)
       {
-         if (myid == 0)
+         if (Mpi::Root())
             cout << "step " << ti << ", t = " << t << endl;
 
+<<<<<<< HEAD
          // Daniel: this is obviously a very rough, hacky way to do things,
          // in the middle of ducking nowhere. Agreed. But it was just to see
          // if we could get the cell voltage out before the bank holiday
@@ -233,11 +238,19 @@ int main(int argc, char *argv[])
                std::cout << "Surface concentration (" << i << ") = " << csurf[i] << std::endl;
    
             LinearForm sum(r_fespace[i]);
+=======
+         // TODO: Stop sim at cutoff voltage
+         if (last_step || visualization)
+         {
+            u_gf.SetFromTrueDofs(x.GetBlock(SC + 0));
+            ParLinearForm sum(r_fespace[0]);
+>>>>>>> origin/main
             GridFunctionCoefficient u_gfc(&u_gf);
             FunctionCoefficient r2([](const Vector & x){ return x(0) * x(0); });
             ProductCoefficient ur2(u_gfc,r2);
             sum.AddDomainIntegrator(new DomainLFIntegrator(ur2));
             sum.Assemble();
+<<<<<<< HEAD
 
             std::cout << "Total flux accumulated (" << i << ") = " << sum.Sum() << std::endl;
          }
@@ -421,6 +434,11 @@ int main(int argc, char *argv[])
          // TODO: Stop sim at cutoff voltage
          if (last_step || visualization)
          {
+=======
+            std::cout << "[Rank " << Mpi::WorldRank() << "]"
+                      << " Total flux accumulated (" << 0 << ") = " << sum.Sum() << std::endl;
+
+>>>>>>> origin/main
             pd.SetCycle(ti);
             pd.SetTime(t);
             pd.Save();
@@ -428,9 +446,6 @@ int main(int argc, char *argv[])
       }
       oper.Update(x);
    }
-
-   // Close data file.
-   dataFile.close();
 
    // 11. Free the used memory.
    delete ode_solver;

@@ -1,9 +1,10 @@
 #include "P2DOperator.hpp"
+#include "utils.hpp"
 
 P2DOperator::P2DOperator(ParFiniteElementSpace * &x_fespace, Array<ParFiniteElementSpace *> &r_fespace,
                          const unsigned &ndofs, BlockVector &x)
    : TimeDependentOperator(ndofs, (real_t) 0.0), x_fespace(x_fespace), r_fespace(r_fespace),
-     A(NULL), current_dt(0.0), Solver(x_fespace->GetComm())
+     A(NULL), current_dt(0.0), Solver(x_fespace->GetComm()), file("data.txt")
 {
    const real_t rel_tol = 1e-8;
 
@@ -52,15 +53,19 @@ P2DOperator::P2DOperator(ParFiniteElementSpace * &x_fespace, Array<ParFiniteElem
 
    if (M == SPM)
       for (unsigned p = 0; p < NPAR; p++)
-         sc.Append(new SolidConcentration(*r_fespace[p], p));
+         sc.Append(new SolidConcentration(*r_fespace[p], p, 0));
    else
    {
-      Array<int> particle_dofs; unsigned particle_offset;
-      GetParticleLocalTrueDofs(particle_dofs, particle_offset);
+      Array<int> particle_dofs, particle_offsets;
+      GetParticleDofs(particle_dofs, particle_offsets);
       for (unsigned p = 0; p < NPAR; p++)
       {
-         bool my_particle = p >= particle_offset && p < particle_offset + particle_dofs.Size();
-         sc.Append(new SolidConcentration(*r_fespace[p], p, my_particle ? particle_dofs[p - particle_offset] : -1));
+         unsigned rank = std::distance(particle_offsets.begin(),
+            std::find_if(particle_offsets.begin(), particle_offsets.end(), [&](int i){ return p < i; }));
+         unsigned offset = Mpi::WorldRank() > 0 ? particle_offsets[Mpi::WorldRank() - 1] : 0;
+         bool mine = p >= offset && p < offset + particle_dofs.Size();
+         int dof = mine ? particle_dofs[p - offset] : -1;
+         sc.Append(new SolidConcentration(*r_fespace[p], p, rank, dof));
       }
    }
 }
@@ -96,67 +101,191 @@ void P2DOperator::Update(const BlockVector &x)
    A = new BlockOperator(block_trueOffsets);
    A->owns_blocks = 1;
 
-   // call point for j computation here
+   ConstantCoefficient j;
+   if (M != SPM)
+      j = ComputeExternalCurrent(x);
 
-   ep->Update(x);
-   ec->Update(x);
-   sp->Update(x);
+   ep->Update(x, j);
+   ec->Update(x, j);
+   sp->Update(x, j);
    for (unsigned p = 0; p < NPAR; p++)
       sc[p]->Update(x);
 
+<<<<<<< HEAD
    /*for (unsigned p = 0; p < NPAR; p++)
    {
       real_t csurf = sc[p]->SurfaceConcentration(x);
       if (!isnan(csurf))
          std::cout << Mpi::WorldRank() << " " <<  p << " " << csurf << std::endl;
    }*/
+=======
+>>>>>>> origin/main
 }
 
-void P2DOperator::GetParticleLocalTrueDofs(Array<int> & particle_dofs, unsigned & particle_offset)
+ConstantCoefficient P2DOperator::ComputeExternalCurrent(const BlockVector &x)
 {
-   std::set<int> sep_global_dofs_set;
+   ParGridFunction cs_gf(x_fespace);
+   cs_gf = 0;
+
+   for (unsigned p = 0; p < NPAR; p++)
+   {
+      real_t csurf = sc[p]->SurfaceConcentration(x);
+      if (!isnan(csurf))
+         cs_gf(sc[p]->GetParticleDof()) = csurf;
+   }
+   // Apply prolongation after restriction. Might be unnecessary, but guarantees
+   // all processors have the right information for all their local dofs. 
+   cs_gf.SetFromTrueVector();
+
+   ParGridFunction ec_gf(x_fespace);
+   ec_gf.SetFromTrueDofs(x.GetBlock(EC));
+
+   ExternalCurrentCoefficient coeff(cs_gf, ec_gf);
+   ParLinearForm sum(x_fespace);
+   sum.AddDomainIntegrator(new DomainLFIntegrator(coeff));
+   sum.Assemble();
+
+   real_t reduction_result = sum.Sum();
+   MPI_Allreduce(MPI_IN_PLACE, &reduction_result, 1, MFEM_MPI_REAL_T, MPI_SUM, MPI_COMM_WORLD);
+   //Is it correct to use the total length or is it the lenght of the region?
+   return ConstantCoefficient(reduction_result / (LPE + LSEP + LNE));
+}
+
+void P2DOperator::ComputeVoltage(const BlockVector &x, real_t t, real_t dt)
+{
+   if (t == dt)
+      file << "t" << ", "
+           << "\t" << "voltage" << ", "
+           << "\t" << "theta_p" << ", "
+           << "\t" << "theta_n" << ", "
+           << "\t" << "Up" << ", "
+           << "\t" << "Un"
+           << std::endl;
+
+   real_t csurf[NPAR];
+   for (unsigned p = 0; p < NPAR; p++)
+   {
+      csurf[p] = sc[p]->SurfaceConcentration(x);
+      if (!isnan(csurf[p]))
+         std::cout << "[Rank " << Mpi::WorldRank() << "]"
+                   << " Surface concentration (" << p << ") = "
+                   << csurf[p] << std::endl;
+   }
+
+   //real_t voltage = 10 - csurf[1]/10 +
+   //             asinh(- I / AP / LPE / 2 / sqrt((10+csurf[0])*-csurf[0])) -
+   //             asinh(  I / AN / LNE / 2 / sqrt(csurf[1]*(10-csurf[1])));
+
+   //real_t R = 1.;//8.314;
+   //real_t F = 1.;//96485;
+   real_t T = 1.;//300.;
+   //real_t Kp = 1.;
+   //real_t Kn = 1.;
+   real_t ce = 1.;//000.;
+   //real_t ce0 = 1.;//000.;
+   real_t cpmax = 1.;//30555;
+   real_t cnmax = 1.;//51554;
+   real_t Lp = 1./3.;
+   real_t Ln = 1./3.;
+   real_t Ap = 1.;
+   real_t An = 1.;
+   real_t I = 1.;
+   real_t mp = 1.;
+   real_t mn = 1.;
+
+   real_t cp = csurf[0];   // Particle surface concentration at the positive electrode.
+   real_t cn = csurf[1];   // Particle surface concentration at the negative electrode.
+
+   //real_t jp0 = F * Kp * pow((ce/ce0) * (cp/cpmax) * (1 - (cp/cpmax)),0.5);
+   //real_t jn0 = F * Kn * pow((ce/ce0) * (cn/cnmax) * (1 - (cn/cnmax)),0.5);
+
+   // Definition from LIONSIMBA: https://doi.org/10.1149/2.0291607jes
+   real_t theta_p = cp / cpmax;
+   real_t theta_n = cn / cnmax;
+
+   // Open Circuit Potential (no temperature dependence).
+   // Definition from LIONSIMBA: https://doi.org/10.1149/2.0291607jes
+   real_t Up_num = -4.656 + 88.669 * pow(theta_p,2) - 401.119 * pow(theta_p,4) +
+                        342.909 * pow(theta_p,6) - 462.471 * pow(theta_p,8) + 433.434 * pow(theta_p,10);
+   real_t Up_den = -1 + 18.933 * pow(theta_p,2) - 79.532 * pow(theta_p,4) +
+                        37.311 * pow(theta_p,6) - 73.083 * pow(theta_p,8) + 95.96 * pow(theta_p,10);
+   real_t Up = Up_num / Up_den;
+
+   real_t Un = 0.7222 + 0.1387 * theta_n + 0.029 * pow(theta_n,0.5) - 0.0172 / theta_n +
+                     0.0019 * pow(theta_n,-1.5) + 0.2808 * exp(0.9 - 15*theta_n) - 0.7984 * exp(0.4465 * theta_n - 0.4108);
+
+   // Definition from JuBat: https://doi.org/10.1016/j.est.2023.107512
+   real_t jp_ex = mp * pow(( (cp - cpmax) / (cp * ce)),0.5);
+   real_t jn_ex = mn * pow(( (cn - cpmax) / (cn * ce)),0.5);
+
+   // Definition from JuBat: https://doi.org/10.1016/j.est.2023.107512
+   real_t voltage = Up - Un  + 2 * T * (
+                     asinh( I / (2 * Ap * Lp * jp_ex )) -
+                     asinh( -I / (2 * An * Ln * jn_ex ) ) );
+
+   // Temporary printing.
+   if (Mpi::Root())
+   {
+      std::cout << "Up = " << Up << std::endl;
+      std::cout << "Un = " << Un << std::endl;
+
+      std::cout << "T = " << T << std::endl;
+      std::cout << "I = " << I << std::endl;
+      std::cout << "Ap = " << Ap << std::endl;
+      std::cout << "An = " << An << std::endl;
+      std::cout << "Lp = " << Lp << std::endl;
+      std::cout << "Ln = " << Ln << std::endl;
+      std::cout << "jp_ex = " << jp_ex << std::endl;
+      std::cout << "jn_ex = " << jn_ex << std::endl;
+
+      std::cout << "Voltage = " << voltage << std::endl;
+
+      // Print data to file.
+      file << t << ", "
+           << "\t" << voltage << ", "
+           << "\t" << theta_p << ", "
+           << "\t" << theta_n << ", "
+           << "\t" << Up << ", "
+           << "\t" << Un
+           << std::endl;
+   }
+}
+
+void P2DOperator::GetParticleDofs(Array<int> & particle_dofs, Array<int> & particle_offsets)
+{
+   std::set<int> sep_gdofs_set;
    for (int e = 0; e < x_fespace->GetNE(); e++)
       if (x_fespace->GetAttribute(e) == SEP)
       {
          Array<int> dofs;
          x_fespace->GetElementDofs(e, dofs);
          for (int d: dofs)
-            sep_global_dofs_set.insert(x_fespace->GetGlobalTDofNumber(d));
+            sep_gdofs_set.insert(x_fespace->GetGlobalTDofNumber(d));
       }
 
-   unsigned max_sep_global_dofs = NSEP * x_fespace->GetElementOrder(0) + 1;
-   Array<int> sep_global_dofs(max_sep_global_dofs); sep_global_dofs = -1;
-   std::copy(sep_global_dofs_set.begin(), sep_global_dofs_set.end(), sep_global_dofs.begin());
+   unsigned max_sep_gdofs = NSEP * x_fespace->GetElementOrder(0) + 1;
+   Array<int> sep_gdofs(max_sep_gdofs); sep_gdofs = -1;
+   std::copy(sep_gdofs_set.begin(), sep_gdofs_set.end(), sep_gdofs.begin());
 
-   int all_sep_global_dofs[max_sep_global_dofs * Mpi::WorldSize()];
-   MPI_Allgather(sep_global_dofs.GetData(), max_sep_global_dofs, MPI_INT,
-                 all_sep_global_dofs, max_sep_global_dofs, MPI_INT, MPI_COMM_WORLD);
-
-   sep_global_dofs_set = std::set<int>(all_sep_global_dofs, all_sep_global_dofs + max_sep_global_dofs * Mpi::WorldSize());
-   
-   std::set<int> particle_dofs_set;
-
-   for (int d = 0; d < x_fespace->GetNDofs(); d++)
-      if (sep_global_dofs_set.find(x_fespace->GetGlobalTDofNumber(d)) == sep_global_dofs_set.end())
-         particle_dofs_set.insert(x_fespace->GetLocalTDofNumber(d));
+   Array<int> all_sep_gdofs(max_sep_gdofs * Mpi::WorldSize());
+   MPI_Allgather(sep_gdofs.GetData(), max_sep_gdofs, MPI_INT,
+                 all_sep_gdofs.GetData(), max_sep_gdofs, MPI_INT, MPI_COMM_WORLD);
 
    Array<int> boundary_dofs;
    x_fespace->GetBoundaryTrueDofs(boundary_dofs);
 
-   for (int d: boundary_dofs)
-      particle_dofs_set.erase(d);
-   particle_dofs_set.erase(-1);
+   for (int dof = 0; dof < x_fespace->GetNDofs(); dof++)
+   {
+      int ltdof = x_fespace->GetLocalTDofNumber(dof);
+      int gtdof = x_fespace->GetGlobalTDofNumber(dof);
+      if (ltdof != -1 && boundary_dofs.Find(ltdof) == -1 && all_sep_gdofs.Find(gtdof) == -1)
+         particle_dofs.Append(dof);
+   }
 
-   particle_dofs.SetSize(particle_dofs_set.size());
-   std::copy(particle_dofs_set.begin(), particle_dofs_set.end(), particle_dofs.begin());
+   int my_particles = particle_dofs.Size();
+   particle_offsets.SetSize(Mpi::WorldSize());
+   MPI_Allgather(&my_particles, 1, MPI_INT, particle_offsets.GetData(), 1, MPI_INT, MPI_COMM_WORLD);
 
-   HYPRE_BigInt my_particles = particle_dofs.Size();
-   Array<HYPRE_BigInt> all_particles(Mpi::WorldSize());
-   MPI_Allgather(&my_particles, 1, HYPRE_MPI_BIG_INT,
-                 all_particles.GetData(), 1, HYPRE_MPI_BIG_INT, MPI_COMM_WORLD);
-
-   all_particles.PartialSum();
-   particle_offset = Mpi::WorldRank() > 0 ? all_particles[Mpi::WorldRank() - 1] : 0;
-
-   assert(all_particles[Mpi::WorldSize() - 1] == NPAR);
+   particle_offsets.PartialSum();
+   assert(particle_offsets[Mpi::WorldSize() - 1] == NPAR);
 }

@@ -36,6 +36,8 @@ protected:
 
    mutable BlockVector b; // auxiliary vector
 
+   std::ofstream file; // file to write temporary data to
+
 public:
    P2DOperator(ParFiniteElementSpace * &x_fespace, Array<ParFiniteElementSpace *> &r_fespace,
                const unsigned &ndofs, BlockVector &x);
@@ -48,7 +50,11 @@ public:
 
    virtual void Update(const BlockVector &x);
 
-   virtual void GetParticleLocalTrueDofs(Array<int> & particle_dofs, unsigned & particle_offset);
+   void ComputeVoltage(const BlockVector &x, real_t t, real_t dt);
 
-   virtual ~P2DOperator() {}
+   ConstantCoefficient ComputeExternalCurrent(const BlockVector &x);
+
+   virtual void GetParticleDofs(Array<int> & particle_dofs, Array<int> & particle_offsets);
+
+   virtual ~P2DOperator() { file.close(); }
 };
