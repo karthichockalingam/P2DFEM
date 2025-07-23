@@ -10,6 +10,14 @@ void SolidConcentration::Update(const BlockVector &x, Coefficient &j)
    const real_t A = particle_region == PE ? AP : AN;
    const real_t L = particle_region == PE ? LPE : LNE;
    const real_t S = particle_region == PE ? -1 : 1;
+   // Set up initial condtions for positive and negative electrode.
+   //const real_t IC = particle_region == PE ? 0.99 : 0.01;
+
+   //ParGridFunction u_gf(&fespace);
+   //u_gf.SetFromTrueDofs(x.GetBlock(SC[p]));
+
+   //std::cout << "Particle region: " << particle_region << ", D = "
+   //   << D << std::endl;
 
    FunctionCoefficient r2([](const Vector & r){ return r(0) * r(0); });
    FunctionCoefficient dr2([&](const Vector & r){ return D * r(0) * r(0); });
