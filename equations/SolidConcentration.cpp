@@ -7,13 +7,10 @@ void SolidConcentration::Update(const BlockVector &x, Coefficient &j)
    //std::cout << "Number of points " << ir.GetNPoints() << std::endl;
 
    const real_t D = particle_region == PE ? DP : DN;
-   const real_t A = particle_region == PE ? AP : AN;
-   const real_t L = particle_region == PE ? LPE : LNE;
-   const real_t S = particle_region == PE ? -1 : 1;
 
    FunctionCoefficient r2([](const Vector & r){ return r(0) * r(0); });
-   FunctionCoefficient dr2([&](const Vector & r){ return D * r(0) * r(0); });
-   FunctionCoefficient cr2([&](const Vector & r){ return S * I / A / L * r(0) * r(0); });
+   ProductCoefficient dr2(D, r2);
+   ProductCoefficient jr2(j, r2);
 
    delete M;
    M = new ParBilinearForm(&fespace);
@@ -29,7 +26,7 @@ void SolidConcentration::Update(const BlockVector &x, Coefficient &j)
 
    delete Q;
    Q = new ParLinearForm(&fespace);
-   Q->AddBoundaryIntegrator(new BoundaryLFIntegrator(cr2), nbc_bdr);
+   Q->AddBoundaryIntegrator(new BoundaryLFIntegrator(jr2), nbc_bdr);
    Q->Assemble();
    Qvec = std::move(*(Q->ParallelAssemble()));
    Qvec.SetSubVector(ess_tdof_list, 0.0); // do we need this?

@@ -18,7 +18,7 @@ class FluxJGridFuncCoefficient : public Coefficient
     const GridFunction & _electrode_surface_concentration;
     Func               GFunction;
  public:
-    FluxJGridFuncCoefficient::FluxJGridFuncCoefficient(
+    FluxJGridFuncCoefficient(
     const GridFunction & electrolyte_potential,
     const GridFunction & electrode_potential,
     const GridFunction & electrolyte_concentration,

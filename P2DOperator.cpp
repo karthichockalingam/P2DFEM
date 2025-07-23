@@ -101,16 +101,22 @@ void P2DOperator::Update(const BlockVector &x)
    A = new BlockOperator(block_trueOffsets);
    A->owns_blocks = 1;
 
-   ConstantCoefficient j;
-   if (M != SPM)
-      j = ComputeExchangeCurrent(x);
+   FunctionCoefficient j = ComputeReactionCurrent(x);
 
    ep->Update(x, j);
    ec->Update(x, j);
    sp->Update(x, j);
    for (unsigned p = 0; p < NPAR; p++)
-      sc[p]->Update(x);
+      sc[p]->Update(x, j);
 
+}
+
+FunctionCoefficient P2DOperator::ComputeReactionCurrent(const BlockVector &x)
+{
+   const real_t jp = - I / AP / LPE;
+   const real_t jn = + I / AN / LNE;
+   auto j = [=](const Vector & p){ return p(0) < LPE ? jp : p(0) < LPE + LSEP ? 0 : jn; };
+   return FunctionCoefficient(j);
 }
 
 ConstantCoefficient P2DOperator::ComputeExchangeCurrent(const BlockVector &x)
