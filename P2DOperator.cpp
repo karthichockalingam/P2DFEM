@@ -103,7 +103,7 @@ void P2DOperator::Update(const BlockVector &x)
 
    ConstantCoefficient j;
    if (M != SPM)
-      j = ComputeExternalCurrent(x);
+      j = ComputeExchangeCurrent(x);
 
    ep->Update(x, j);
    ec->Update(x, j);
@@ -113,7 +113,7 @@ void P2DOperator::Update(const BlockVector &x)
 
 }
 
-ConstantCoefficient P2DOperator::ComputeExternalCurrent(const BlockVector &x)
+ConstantCoefficient P2DOperator::ComputeExchangeCurrent(const BlockVector &x)
 {
    ParGridFunction cs_gf(x_fespace);
    cs_gf = 0;
@@ -131,7 +131,7 @@ ConstantCoefficient P2DOperator::ComputeExternalCurrent(const BlockVector &x)
    ParGridFunction ec_gf(x_fespace);
    ec_gf.SetFromTrueDofs(x.GetBlock(EC));
 
-   ExternalCurrentCoefficient coeff(cs_gf, ec_gf);
+   ExchangeCurrentCoefficient coeff(cs_gf, ec_gf);
    ParLinearForm sum(x_fespace);
    sum.AddDomainIntegrator(new DomainLFIntegrator(coeff));
    sum.Assemble();

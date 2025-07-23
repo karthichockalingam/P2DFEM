@@ -34,15 +34,15 @@ class FluxJGridFuncCoefficient : public Coefficient
  };
 
 
- class ExternalCurrentCoefficient: public Coefficient
+ class ExchangeCurrentCoefficient: public Coefficient
  {
-    const GridFunction & _surface_concentraion;
+    const GridFunction & _surface_concentration;
     const GridFunction & _electrolyte_concentration;
  public:
-    ExternalCurrentCoefficient(
-      const GridFunction & surface_concentraion,
+    ExchangeCurrentCoefficient(
+      const GridFunction & surface_concentration,
       const GridFunction & electrolyte_concentration):
-      _surface_concentraion(surface_concentraion),
+      _surface_concentration(surface_concentration),
       _electrolyte_concentration(electrolyte_concentration) {};
 
     virtual real_t Eval(ElementTransformation &T, const IntegrationPoint &ip);
