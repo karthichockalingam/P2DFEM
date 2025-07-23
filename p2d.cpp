@@ -55,7 +55,7 @@ int main(int argc, char *argv[])
    int par_ref_levels = 0;
    int order = 1;
    int ode_solver_type = 3;
-   real_t t_final = 1.0;
+   real_t t_final = 0.1;
    real_t dt = 1.0e-5;
    bool visualization = true;
    int vis_steps = 500;
