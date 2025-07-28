@@ -52,7 +52,8 @@ public:
 
    void ComputeVoltage(const BlockVector &x, real_t t, real_t first_viz_step);
 
-   real_t ComputeExternalCurrent(const BlockVector &x);
+   FunctionCoefficient ComputeReactionCurrent(const BlockVector &x);
+   ConstantCoefficient ComputeExchangeCurrent(const BlockVector &x);
 
    virtual void GetParticleDofs(Array<int> & particle_dofs, Array<int> & particle_offsets);
 

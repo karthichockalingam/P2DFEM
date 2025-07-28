@@ -8,8 +8,6 @@ using namespace std;
 
 #pragma once
 
-static ConstantCoefficient cc;
-
 class Equation
 {
 protected:

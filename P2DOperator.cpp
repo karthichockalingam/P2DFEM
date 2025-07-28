@@ -101,17 +101,25 @@ void P2DOperator::Update(const BlockVector &x)
    A = new BlockOperator(block_trueOffsets);
    A->owns_blocks = 1;
 
-   ep->Update(x);
-   ec->Update(x);
-   sp->Update(x);
-   for (unsigned p = 0; p < NPAR; p++)
-      sc[p]->Update(x);
+   FunctionCoefficient j = ComputeReactionCurrent(x);
 
-   if (M != SPM)
-      ComputeExternalCurrent(x);
+   ep->Update(x, j);
+   ec->Update(x, j);
+   sp->Update(x, j);
+   for (unsigned p = 0; p < NPAR; p++)
+      sc[p]->Update(x, j);
+
 }
 
-real_t P2DOperator::ComputeExternalCurrent(const BlockVector &x)
+FunctionCoefficient P2DOperator::ComputeReactionCurrent(const BlockVector &x)
+{
+   real_t jp = - I / AP / LPE;
+   real_t jn = + I / AN / LNE;
+   auto j = [=](const Vector & p){ return l < LPE ? jp : l < LPE + LSEP ? 0 : jn; };
+   return FunctionCoefficient(j);
+}
+
+ConstantCoefficient P2DOperator::ComputeExchangeCurrent(const BlockVector &x)
 {
    ParGridFunction cs_gf(x_fespace);
    cs_gf = 0;
@@ -129,15 +137,15 @@ real_t P2DOperator::ComputeExternalCurrent(const BlockVector &x)
    ParGridFunction ec_gf(x_fespace);
    ec_gf.SetFromTrueDofs(x.GetBlock(EC));
 
-   ExternalCurrentCoefficient coeff(cs_gf, ec_gf);
+   ExchangeCurrentCoefficient coeff(cs_gf, ec_gf);
    ParLinearForm sum(x_fespace);
    sum.AddDomainIntegrator(new DomainLFIntegrator(coeff));
    sum.Assemble();
 
    real_t reduction_result = sum.Sum();
    MPI_Allreduce(MPI_IN_PLACE, &reduction_result, 1, MFEM_MPI_REAL_T, MPI_SUM, MPI_COMM_WORLD);
-
-   return reduction_result / (LPE + LSEP + LNE);
+   //Is it correct to use the total length or is it the lenght of the region?
+   return ConstantCoefficient(reduction_result / (LPE + LSEP + LNE));
 }
 
 void P2DOperator::ComputeVoltage(const BlockVector &x, real_t t, real_t first_viz_step)
@@ -157,11 +165,16 @@ void P2DOperator::ComputeVoltage(const BlockVector &x, real_t t, real_t first_vi
    //             asinh(- I / AP / LPE / 2 / sqrt((10+csurf[0])*-csurf[0])) -
    //             asinh(  I / AN / LNE / 2 / sqrt(csurf[1]*(10-csurf[1])));
    
+<<<<<<< HEAD
    real_t cp0 = 0.27;
    real_t cn0 = 0.94;
 
    real_t cp = csurf[0] + cp0;   // Particle surface concentration at the positive electrode.
    real_t cn = csurf[1] + cn0;   // Particle surface concentration at the negative electrode.
+=======
+   real_t cp = csurf[0] + 1.0;   // Particle surface concentration at the positive electrode.
+   real_t cn = csurf[1];   // Particle surface concentration at the negative electrode.
+>>>>>>> aecaed9c3a3c65a70c3e1ffa2308b2eaa0b12f16
 
    // Definition from LIONSIMBA: https://doi.org/10.1149/2.0291607jes
    real_t theta_p = cp; // As cp is non-dimensionalised, theta_p = cp.
@@ -230,6 +243,7 @@ void P2DOperator::ComputeVoltage(const BlockVector &x, real_t t, real_t first_vi
 
    //real_t T = 298.15; // Temperature (K).
 
+<<<<<<< HEAD
    // Copy and pasted from JuBat (temperature removed).
    real_t ce0 = 1.0;
    real_t I_scale = 1.0;
@@ -264,16 +278,34 @@ void P2DOperator::ComputeVoltage(const BlockVector &x, real_t t, real_t first_vi
    Ap /= A_scale;
    An /= A_scale;
 
+=======
+   real_t jp_ex = -3.0;
+   real_t jn_ex = 3.0;
+
+>>>>>>> aecaed9c3a3c65a70c3e1ffa2308b2eaa0b12f16
    // Check sign, negative for positive electrode in JuBat code, 
    // but vice-versa in paper.
    //real_t eta_p = 2 * asinh( -I / (2 * AP * LPE * jp_ex) );
    //real_t eta_n = 2 * asinh( I / (2 * AN * LNE * jn_ex) );
 
+<<<<<<< HEAD
    real_t j_n = I / An / LNE;
    real_t j_p = -I / Ap / LPE;
 
 
    
+=======
+   real_t j_n = I / AN / LNE;
+   real_t j_p = - I / AP / LPE;
+
+   // Copy and pasted from JuBat (temperature removed).
+   real_t ce0 = 1.0;
+   real_t I_scale = 5.0;
+   real_t r0 = 1e-6;
+   real_t A_scale = 1/r0;
+   real_t L_scale = 1e-6;
+   real_t cell_area = 1.58 * 6.5e-2;
+>>>>>>> aecaed9c3a3c65a70c3e1ffa2308b2eaa0b12f16
 
    real_t j_scale = I_scale / A_scale / L_scale / cell_area;
 
@@ -287,20 +319,26 @@ void P2DOperator::ComputeVoltage(const BlockVector &x, real_t t, real_t first_vi
    real_t kn_scale = j_scale / cnmax / sqrt(ce0);
    real_t kn = kn_dim / kn_scale;
    
+<<<<<<< HEAD
    kp = 24.222957789588076;
    kn = 2.409794138992539;
    
+=======
+>>>>>>> aecaed9c3a3c65a70c3e1ffa2308b2eaa0b12f16
    real_t j0_n =  kn * pow(cn * ce0 * abs(1.0 - cn), 0.5);
    real_t j0_p =  kp * pow(cp * ce0 * abs(1.0 - cp), 0.5);
 
    real_t T = 1.0;
    real_t eta_n = 2 * T * asinh(j_n / 2.0 / j0_n);
    real_t eta_p = 2 * T * asinh(j_p / 2.0 / j0_p);
+<<<<<<< HEAD
 
    eta_n = 2 * T * asinh(5.282253521126759 / 2.0 / j0_n);
    eta_p = 2 * T * asinh(-5.980665950590764 / 2.0 / j0_p);
 
 
+=======
+>>>>>>> aecaed9c3a3c65a70c3e1ffa2308b2eaa0b12f16
 
    // Definition from JuBat: https://doi.org/10.1016/j.est.2023.107512
    real_t voltage = Up - Un  + eta_p - eta_n;

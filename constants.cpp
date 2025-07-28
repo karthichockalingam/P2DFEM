@@ -35,11 +35,16 @@ namespace constants {
     real_t AN = 1.;
 
     // Scaled diffusion coefficients
+<<<<<<< HEAD
     //real_t DP = Dp * t0 / (r0 * r0);
     //real_t DN = Dn * t0 / (r0 * r0);
 
     real_t DP = 86.44151248705668;
     real_t DN = 374.4382245844574;
+=======
+    real_t DP = Dp * t0 / (r0 * r0);
+    real_t DN = Dn * t0 / (r0 * r0);
+>>>>>>> aecaed9c3a3c65a70c3e1ffa2308b2eaa0b12f16
 
     real_t CE0 = 1.;
 

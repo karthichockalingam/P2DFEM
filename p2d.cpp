@@ -54,11 +54,19 @@ int main(int argc, char *argv[])
    int ser_ref_levels = 0;
    int par_ref_levels = 0;
    int order = 1;
+<<<<<<< HEAD
    int ode_solver_type = 1;
    real_t t_final = 1.0;
    real_t dt = 0.00027777;
    bool visualization = true;
    int vis_steps = 1;
+=======
+   int ode_solver_type = 3;
+   real_t t_final = 0.1;
+   real_t dt = 1.0e-5;
+   bool visualization = true;
+   int vis_steps = 500;
+>>>>>>> aecaed9c3a3c65a70c3e1ffa2308b2eaa0b12f16
 
    int precision = 8;
    cout.precision(precision);
@@ -217,6 +225,8 @@ int main(int argc, char *argv[])
             sum.Assemble();
             std::cout << "[Rank " << Mpi::WorldRank() << "]"
                       << " Total flux accumulated (" << 0 << ") = " << sum.Sum()/ti << std::endl;
+
+            oper.ComputeVoltage(x, t, dt * vis_steps);
 
             oper.ComputeVoltage(x, t, dt * vis_steps);
 
