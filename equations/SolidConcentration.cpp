@@ -9,7 +9,7 @@ void SolidConcentration::Update(const BlockVector &x, Coefficient &j)
    const real_t D = particle_region == PE ? DP : DN;
    const real_t A = particle_region == PE ? AP : AN;
    const real_t L = particle_region == PE ? LPE : LNE;
-   const real_t S = particle_region == PE ? -1 : 1;
+   const real_t S = particle_region == PE ? 5.980665950590764 : -5.282253521126759;
    // Set up initial condtions for positive and negative electrode.
    //const real_t IC = particle_region == PE ? 0.99 : 0.01;
 
@@ -21,7 +21,7 @@ void SolidConcentration::Update(const BlockVector &x, Coefficient &j)
 
    FunctionCoefficient r2([](const Vector & r){ return r(0) * r(0); });
    FunctionCoefficient dr2([&](const Vector & r){ return D * r(0) * r(0); });
-   FunctionCoefficient cr2([&](const Vector & r){ return S * I / A / L * r(0) * r(0); });
+   FunctionCoefficient cr2([&](const Vector & r){ return S * r(0) * r(0); });
 
    delete M;
    M = new ParBilinearForm(&fespace);

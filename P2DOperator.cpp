@@ -157,8 +157,11 @@ void P2DOperator::ComputeVoltage(const BlockVector &x, real_t t, real_t first_vi
    //             asinh(- I / AP / LPE / 2 / sqrt((10+csurf[0])*-csurf[0])) -
    //             asinh(  I / AN / LNE / 2 / sqrt(csurf[1]*(10-csurf[1])));
    
-   real_t cp = csurf[0] + 1.0;   // Particle surface concentration at the positive electrode.
-   real_t cn = csurf[1];   // Particle surface concentration at the negative electrode.
+   real_t cp0 = 0.27;
+   real_t cn0 = 0.94;
+
+   real_t cp = csurf[0] + cp0;   // Particle surface concentration at the positive electrode.
+   real_t cn = csurf[1] + cn0;   // Particle surface concentration at the negative electrode.
 
    // Definition from LIONSIMBA: https://doi.org/10.1149/2.0291607jes
    real_t theta_p = cp; // As cp is non-dimensionalised, theta_p = cp.
@@ -227,24 +230,50 @@ void P2DOperator::ComputeVoltage(const BlockVector &x, real_t t, real_t first_vi
 
    //real_t T = 298.15; // Temperature (K).
 
+   // Copy and pasted from JuBat (temperature removed).
+   real_t ce0 = 1.0;
+   real_t I_scale = 1.0;
+   real_t r0 = 1e-6;
+   real_t A_scale = 1/r0;
+   real_t L_scale = 1e-6;
+   real_t cell_area = 1.58 * 6.5e-2;
+
+   real_t Lp = 80e-6; // Positive electrode thickness (m).
+   real_t Ln = 80e-6; // Negative electrode thickness (m).
+
+
+
    real_t jp_ex = -3.0;
    real_t jn_ex = 3.0;
+
+
+
+   real_t eps_p = 0.335; // Porosity???
+   real_t eps_p_fi = 0.0;
+   real_t eps_p_s = 1 - eps_p - eps_p_fi;
+   real_t rs_p = 5.22e-6; // Particle radius (m).
+   real_t Ap = 3 * eps_p_s / rs_p; // Positive electrode area (m^2).
+
+   real_t eps_n = 0.25; // Porosity???
+   real_t eps_n_fi = 0.0;
+   real_t eps_n_s = 1 - eps_n - eps_n_fi;
+   real_t rs_n = 5.86e-6; // Particle radius (m).
+   real_t An = 3 * eps_n_s / rs_n; // Negative electrode area (m^2).
+
+
+   Ap /= A_scale;
+   An /= A_scale;
 
    // Check sign, negative for positive electrode in JuBat code, 
    // but vice-versa in paper.
    //real_t eta_p = 2 * asinh( -I / (2 * AP * LPE * jp_ex) );
    //real_t eta_n = 2 * asinh( I / (2 * AN * LNE * jn_ex) );
 
-   real_t j_n = I / AN / LNE;
-   real_t j_p = - I / AP / LPE;
+   real_t j_n = I / An / LNE;
+   real_t j_p = -I / Ap / LPE;
 
-   // Copy and pasted from JuBat (temperature removed).
-   real_t ce0 = 1.0;
-   real_t I_scale = 5.0;
-   real_t r0 = 1e-6;
-   real_t A_scale = 1/r0;
-   real_t L_scale = 1e-6;
-   real_t cell_area = 1.58 * 6.5e-2;
+
+   
 
    real_t j_scale = I_scale / A_scale / L_scale / cell_area;
 
@@ -258,12 +287,20 @@ void P2DOperator::ComputeVoltage(const BlockVector &x, real_t t, real_t first_vi
    real_t kn_scale = j_scale / cnmax / sqrt(ce0);
    real_t kn = kn_dim / kn_scale;
    
+   kp = 24.222957789588076;
+   kn = 2.409794138992539;
+   
    real_t j0_n =  kn * pow(cn * ce0 * abs(1.0 - cn), 0.5);
    real_t j0_p =  kp * pow(cp * ce0 * abs(1.0 - cp), 0.5);
 
    real_t T = 1.0;
    real_t eta_n = 2 * T * asinh(j_n / 2.0 / j0_n);
    real_t eta_p = 2 * T * asinh(j_p / 2.0 / j0_p);
+
+   eta_n = 2 * T * asinh(5.282253521126759 / 2.0 / j0_n);
+   eta_p = 2 * T * asinh(-5.980665950590764 / 2.0 / j0_p);
+
+
 
    // Definition from JuBat: https://doi.org/10.1016/j.est.2023.107512
    real_t voltage = Up - Un  + eta_p - eta_n;

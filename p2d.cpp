@@ -54,11 +54,11 @@ int main(int argc, char *argv[])
    int ser_ref_levels = 0;
    int par_ref_levels = 0;
    int order = 1;
-   int ode_solver_type = 3;
-   real_t t_final = 0.1;
-   real_t dt = 1.0e-5;
+   int ode_solver_type = 1;
+   real_t t_final = 1.0;
+   real_t dt = 0.00027777;
    bool visualization = true;
-   int vis_steps = 500;
+   int vis_steps = 1;
 
    int precision = 8;
    cout.precision(precision);
@@ -131,7 +131,7 @@ int main(int argc, char *argv[])
 
    Mesh r_smesh[NPAR];
    for (unsigned p = 0; p < NPAR; p++)
-      r_smesh[p] = Mesh::MakeCartesian1D(NR);
+      r_smesh[p] = Mesh::MakeCartesian1D(NR, 5.5);
 
    // 6. Define a parallel mesh by a partitioning of the serial mesh. Refine
    //    this mesh further in parallel to increase the resolution. Once the
@@ -216,7 +216,7 @@ int main(int argc, char *argv[])
             sum.AddDomainIntegrator(new DomainLFIntegrator(ur2));
             sum.Assemble();
             std::cout << "[Rank " << Mpi::WorldRank() << "]"
-                      << " Total flux accumulated (" << 0 << ") = " << sum.Sum() << std::endl;
+                      << " Total flux accumulated (" << 0 << ") = " << sum.Sum()/ti << std::endl;
 
             oper.ComputeVoltage(x, t, dt * vis_steps);
 
