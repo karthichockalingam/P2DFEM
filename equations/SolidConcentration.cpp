@@ -7,13 +7,17 @@ void SolidConcentration::Update(const BlockVector &x, Coefficient &j)
    //std::cout << "Number of points " << ir.GetNPoints() << std::endl;
 
    const real_t R = particle_region == PE ? 5.22 : 5.86;
-   const real_t D = particle_region == PE ? 86.44151248705668 : 374.4382245844574;
-   const real_t Ms = particle_region == PE ? 6 : 3.1518;
-   const real_t jj = particle_region == PE ? -5.980665950590764 : 5.282253521126759;
+   //const real_t D = particle_region == PE ? 86.44151248705668 : 374.4382245844574;
+   const real_t D = particle_region == PE ? DP : DN;
+   //const real_t Ms = particle_region == PE ? 6 : 3.1518;
+   //const real_t jj = particle_region == PE ? -5.980665950590764 : 5.282253521126759;
 
    FunctionCoefficient r2([](const Vector & r){ return r(0) * r(0); });
-   ProductCoefficient dr2(D / R / R / Ms, r2);
-   ProductCoefficient jr2(-jj / R / Ms, r2);
+   //ProductCoefficient dr2(D / R / R / Ms, r2);
+   ProductCoefficient dr2(D / R / R, r2);
+   //ProductCoefficient jr2(-jj / R / Ms, r2);
+   ProductCoefficient jr2(j / R, r2);
+
 
    delete M;
    M = new ParBilinearForm(&fespace);
