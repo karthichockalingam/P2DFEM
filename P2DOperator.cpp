@@ -116,12 +116,7 @@ FunctionCoefficient P2DOperator::ComputeReactionCurrent(const BlockVector &x)
    const real_t jp = - I / AP / LPE;
    const real_t jn = + I / AN / LNE;
    auto j = [=](const Vector & p){ return p(0) < LPE ? jp : p(0) < LPE + LSEP ? 0 : jn; };
-
-   std::cout << "jp = " << jp << std::endl;
-   std::cout << "jn = " << jn << std::endl;
-   std::cout << "AP = " << AP << std::endl;
-   std::cout << "AN = " << AN << std::endl;
-
+   
    return FunctionCoefficient(j);
 }
 
@@ -154,6 +149,21 @@ ConstantCoefficient P2DOperator::ComputeExchangeCurrent(const BlockVector &x)
    return ConstantCoefficient(reduction_result / (LPE + LSEP + LNE));
 }
 
+
+real_t ComputeOpenCircuitPotentialPositive(real_t x)
+{
+   real_t Up = -0.8090*x + 4.4875 - 0.0428*tanh(18.5138*(x - 0.5542)) 
+               - 17.7326*tanh(15.7890*(x - 0.3117)) + 17.5842*tanh(15.9308*(x - 0.3120));
+   return Up / phi_scale;
+}
+
+real_t ComputeOpenCircuitPotentialNegative(real_t x)
+{
+   real_t Un = 1.97938*exp(-39.3631*x) + 0.2482 - 0.0909*tanh(29.8538*(x - 0.1234)) 
+               - 0.04478*tanh(14.9159*(x - 0.2769)) - 0.0205*tanh(30.4444*(x - 0.6103));
+   return Un / phi_scale;
+}
+
 void P2DOperator::ComputeVoltage(const BlockVector &x, real_t t, real_t dt)
 {
 
@@ -167,77 +177,45 @@ void P2DOperator::ComputeVoltage(const BlockVector &x, real_t t, real_t dt)
                    << csurf[p] << std::endl;
    }
 
-   //real_t voltage = 10 - csurf[1]/10 +
-   //             asinh(- I / AP / LPE / 2 / sqrt((10+csurf[0])*-csurf[0])) -
-   //             asinh(  I / AN / LNE / 2 / sqrt(csurf[1]*(10-csurf[1])));
 
-   real_t cp0 = 0.27;
-   real_t cn0 = 0.94;
-
-   real_t cp = csurf[0] + cp0;   // Particle surface concentration at the positive electrode.
-   real_t cn = csurf[1] + cn0;   // Particle surface concentration at the negative electrode.
+   real_t cp = csurf[0] + CP0;   // Particle surface concentration at the positive electrode.
+   real_t cn = csurf[1] + CN0;   // Particle surface concentration at the negative electrode.
 
    // Definition from LIONSIMBA: https://doi.org/10.1149/2.0291607jes
    real_t theta_p = cp; // As cp is non-dimensionalised, theta_p = cp.
    real_t theta_n = cn; // As cn is non-dimensionalised, theta_n = cn.
 
-   std::cout << "DP = " << DP << std::endl;
-   std::cout << "DN = " << DN << std::endl;
-
-   // Open Circuit Potential (no temperature dependence).
-   real_t Up = -0.8090*theta_p + 4.4875 - 0.0428*tanh(18.5138*(theta_p - 0.5542)) - 17.7326*tanh(15.7890*(theta_p - 0.3117)) + 17.5842*tanh(15.9308*(theta_p - 0.3120));
-   real_t Un = 1.97938*exp(-39.3631*theta_n) + 0.2482 - 0.0909*tanh(29.8538*(theta_n - 0.1234)) - 0.04478*tanh(14.9159*(theta_n - 0.2769)) - 0.0205*tanh(30.4444*(theta_n - 0.6103));
-
-
-   real_t T = 1.0;
+   real_t Up = ComputeOpenCircuitPotentialPositive(theta_p);
+   real_t Un = ComputeOpenCircuitPotentialNegative(theta_n);
 
    real_t jp = - I / AP / LPE;
    real_t jn = + I / AN / LNE;
 
-   real_t ce0_scaled = 1.0;
-
-   real_t j0_p =  KP * pow(cp * ce0_scaled * abs(1.0 - cp), 0.5);
-   real_t j0_n =  KN * pow(cn * ce0_scaled * abs(1.0 - cn), 0.5);
+   real_t j0_p =  KP * pow(cp * CE0 * abs(1.0 - cp), 0.5);
+   real_t j0_n =  KN * pow(cn * CE0 * abs(1.0 - cn), 0.5);
 
    real_t eta_p = 2 * T * asinh(jp / 2.0 / j0_p);
    real_t eta_n = 2 * T * asinh(jn / 2.0 / j0_n);
 
-
-   // Definition from JuBat: https://doi.org/10.1016/j.est.2023.107512
-   //real_t jp_ex = mp * pow(( (cp - cpmax) / (cp * ce)),0.5);
-   //real_t jn_ex = mn * pow(( (cn - cpmax) / (cn * ce)),0.5);
-
    // Definition from JuBat: https://doi.org/10.1016/j.est.2023.107512
    real_t voltage = Up - Un  + eta_p - eta_n;
+
+   // Re-dimensionalise the voltage.
+   voltage *= phi_scale;
 
    // Temporary printing.
    if (Mpi::Root())
    {
-      std::cout << "Up = " << Up << std::endl;
-      std::cout << "Un = " << Un << std::endl;
-
-      std::cout << "T = " << T << std::endl;
-      std::cout << "I = " << I << std::endl;
-      std::cout << "AP = " << AP << std::endl;
-      std::cout << "AN = " << AN << std::endl;
-      std::cout << "LPE = " << LPE << std::endl;
-      std::cout << "LNE = " << LNE << std::endl;
-      std::cout << "j0_p = " << j0_p << std::endl;
-      std::cout << "j0_n = " << j0_n << std::endl;
-
-      std::cout << "Voltage = " << voltage << std::endl;
+      std::cout << "[Rank " << Mpi::WorldRank() << "]"
+                  << " Voltage = " << voltage << std::endl;
 
       // Print file headings first time function is called.
       static bool writeFileHeadings = true;
       if (writeFileHeadings) {
          file << "t" << ", \t"
-           << "voltage" << ", \t"
            << "cp" << ", \t"
            << "cn" << ", \t"
-           << "eta_p" << ", \t"
-           << "eta_n" << ", \t"
-           << "Up" << ", \t"
-           << "Un"
+           << "voltage" 
            << std::endl;
 
          writeFileHeadings = false;
@@ -245,13 +223,9 @@ void P2DOperator::ComputeVoltage(const BlockVector &x, real_t t, real_t dt)
 
       // Print data to file.
       file << t << ", \t"
-           << voltage << ", \t"
            << cp << ", \t" 
            << cn << ", \t" 
-           << eta_p << ", \t"
-           << eta_n << ", \t"
-           << Up << ", \t"
-           << Un
+           << voltage 
            << std::endl;
    }
 }

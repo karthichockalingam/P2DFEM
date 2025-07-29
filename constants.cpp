@@ -1,4 +1,5 @@
 #include "mfem.hpp"
+
 using namespace mfem;
 
 namespace constants {
@@ -25,12 +26,17 @@ namespace constants {
 
     // Dimensional constants
     real_t F = 96485.33289; // Faraday constant, C/mol
-    
-    
+    real_t R = 8.314; // Universal gas constant, J/(mol*K) 
+    real_t T_ref = 298.; // Reference temperature, K
 
-    // Electrochemical parameters
+
+
+    // Dimensional electrochemical parameters
     real_t cpmax = 63104; // Maximum concentration, positive electrode, mol/m^3
     real_t cnmax = 33133; // Maximum concentration, negative electrode, mol/m
+
+    real_t cp0 = 17038.; // Initial concentration, positive electrode, mol/m^3
+    real_t cn0 = 29866.; // Initial concentration, negative electrode, mol/m^3
 
     real_t cell_length = 1.58;
     real_t cell_width = 6.5e-2;
@@ -47,8 +53,8 @@ namespace constants {
     real_t eps_n_fi = 0.0;
     real_t eps_n_s = 1 - eps_n - eps_n_fi;
 
-    real_t rs_p = 5.22e-6; // Positive particle radius (m).
-    real_t rs_n = 5.86e-6; // Negative particle radius (m).
+    real_t rp = 5.22e-6; // Positive particle radius (m).
+    real_t rn = 5.86e-6; // Negative particle radius (m).
 
     real_t positive_electrode_thickness = 75.6e-6;
     real_t separator_thickness = 12e-6;
@@ -59,32 +65,51 @@ namespace constants {
 
     real_t ce0 = 1000.0;
 
+    
 
     // Scalings
+    real_t t0 = 3600.0; // Time scale.
     real_t r0 = 1e-6;  // Length scale (particle)
-    real_t L = 1e-6;  // Length scale (cell)
+    real_t L = positive_electrode_thickness + separator_thickness + negative_electrode_thickness; // Length scale (cell)
     
-    real_t a0 = 1.0 / r0; 
+    real_t a0 = 1.0 / r0;
 
-    real_t tp = F * cpmax * cell_area * L / I_typ;
-    real_t tn = F * cnmax * cell_area * L / I_typ;
+    real_t tp = F * cpmax * cell_area * L / I_typ; // Positive particle time scale.
+    real_t tn = F * cnmax * cell_area * L / I_typ; // Negative particle time scale.
 
-    real_t Dp_scale = r0 * r0 / tp; // Positive particle diffusion coefficient scale.
-    real_t Dn_scale = r0 * r0 / tn; // Negative particle diffusion coefficient scale.
+    real_t Dp_scale = r0 * r0 / t0; // Positive particle diffusion coefficient scale.  Units of m^2/s.
+    real_t Dn_scale = r0 * r0 / t0; // Negative particle diffusion coefficient scale.  Units of m^2/s.
+    // For some reason, JuBat calculates the following diffusion coefficient scales, but then later on multiplies
+    // the mass matrix by tp / t0 (or tn / t0) which results in cancelling out tp (or tn) and replacing it with t0.
+    //real_t Dp_scale = r0 * r0 / tp; // Positive particle diffusion coefficient scale.  Units of m^2/s.
+    //real_t Dn_scale = r0 * r0 / tn; // Negative particle diffusion coefficient scale.  Units of m^2/s.
 
     real_t j_scale = I_typ / a0 / L / cell_area;
 
+    // This works out to the same as j_scale above.
+    //real_t j_scale_alt_p = r0 * cpmax * F / tp;
+    //real_t j_scale_alt_n = r0 * cnmax * F / tn;
+
     real_t kp_scale = j_scale / cpmax / sqrt(ce0);
     real_t kn_scale = j_scale / cnmax / sqrt(ce0);
+
+    real_t phi_scale = T_ref * R / F;
+
+    // For scaling between particle time scale and cell time scale.  Required for scaling the flux j in the
+    // SolidConcentration equation.
+    real_t tp_scale = tp / t0;
+    real_t tn_scale = tn / t0;
+
 
 
     // Dimensional parameters
     real_t Dp = 4.0e-15; // Diffusion coefficient, positive electrode
     real_t Dn = 3.3e-14; // Diffusion coefficient, negative electrode
 
-    real_t Ap = 3 * eps_p_s / rs_p; // Positive electrode area (m^2).
-    real_t An = 3 * eps_n_s / rs_n; // Negative electrode area (m^2).
+    real_t Ap = 3 * eps_p_s / rp; // Positive electrode area (m^2).
+    real_t An = 3 * eps_n_s / rn; // Negative electrode area (m^2).
 
+    
 
     // Scaled parameters
     real_t DP = Dp / Dp_scale; // Positive particle diffusion coefficient.
@@ -96,9 +121,16 @@ namespace constants {
     real_t KP = kp_dim / kp_scale; // Scaled positive electrode reaction rate.
     real_t KN = kn_dim / kn_scale; // Scaled negative electrode reaction rate.
 
-    real_t CE0 = 1.;
+    real_t CP0 = cp0 / cpmax; // Scaled initial concentration, positive electrode.
+    real_t CN0 = cn0 / cnmax; // Scaled initial concentration, negative electrode.
 
-    real_t I = 1.;
+    real_t RP = rp / r0; // Scaled positive particle radius.
+    real_t RN = rn / r0; // Scaled negative particle radius.
+
+    real_t CE0 = 1.; // Scaled electrolyte concentration.
+    real_t I = 1.; // Scaled current.
+    real_t T = 1.0; // Scaled temperature.
+
 
     void init_params(Method m, int order) {
         M = m;

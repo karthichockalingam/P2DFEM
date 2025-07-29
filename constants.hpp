@@ -1,4 +1,5 @@
 #include "mfem.hpp"
+
 using namespace mfem;
 
 namespace constants {
@@ -45,9 +46,20 @@ namespace constants {
     extern const real_t KP;
     extern const real_t KN;
 
+    extern const real_t RP;
+    extern const real_t RN;
+
+    extern const real_t CP0;
+    extern const real_t CN0;
+
     extern const real_t CE0;
 
     extern const real_t I;
+    extern const real_t T;
+
+    extern const real_t phi_scale;
+    extern const real_t tp_scale;
+    extern const real_t tn_scale;
 
     void init_params(Method m, int order);
 }

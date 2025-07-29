@@ -56,7 +56,7 @@ int main(int argc, char *argv[])
    int order = 1;
    int ode_solver_type = 3;
    real_t t_final = 1.0;
-   real_t dt = 1.0e-2;
+   real_t dt = 2.7778e-04;
    bool visualization = true;
    int vis_steps = 5;
 
