@@ -68,7 +68,7 @@ namespace constants {
     
 
     // Scalings
-    real_t t0 = 3600.0; // Time scale.
+    real_t t0 = 1.0; // Time scale.
     real_t r0 = 1e-6;  // Length scale (particle)
     real_t L = positive_electrode_thickness + separator_thickness + negative_electrode_thickness; // Length scale (cell)
     

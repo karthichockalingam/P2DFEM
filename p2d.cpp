@@ -38,9 +38,6 @@
 using namespace std;
 using namespace mfem;
 
-const real_t T0 = 298.15;
-const real_t C0 = 0.0;
-
 int main(int argc, char *argv[])
 {
    // 1. Initialize MPI and HYPRE.
@@ -55,8 +52,8 @@ int main(int argc, char *argv[])
    int par_ref_levels = 0;
    int order = 1;
    int ode_solver_type = 3;
-   real_t t_final = 1.0;
-   real_t dt = 2.7778e-04;
+   real_t t_final = 3600.0;
+   real_t dt = 1.0;
    bool visualization = true;
    int vis_steps = 5;
 
