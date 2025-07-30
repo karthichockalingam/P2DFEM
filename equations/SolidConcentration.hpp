@@ -23,5 +23,6 @@ class SolidConcentration : public Equation
       { nbc_bdr = 0; nbc_bdr[1] = 1; };
       virtual void Update(const BlockVector &x, Coefficient &j);
       virtual real_t SurfaceConcentration(const BlockVector &x);
-      int GetParticleDof(){return particle_dof;}
+      Region GetParticleRegion(){ return particle_region; }
+      int GetParticleDof(){ return particle_dof; }
 };

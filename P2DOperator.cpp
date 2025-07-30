@@ -101,23 +101,49 @@ void P2DOperator::Update(const BlockVector &x)
    A = new BlockOperator(block_trueOffsets);
    A->owns_blocks = 1;
 
-   FunctionCoefficient j = ComputeReactionCurrent(x);
+   FunctionCoefficient jx = ComputeReactionCurrent(x);
 
-   ep->Update(x, j);
-   ec->Update(x, j);
-   sp->Update(x, j);
-   for (unsigned p = 0; p < NPAR; p++)
-      sc[p]->Update(x, j);
+   ep->Update(x, jx);
+   ec->Update(x, jx);
+   sp->Update(x, jx);
 
+   if (M == SPM)
+      for (unsigned p = 0; p < NPAR; p++)
+      {
+         ConstantCoefficient jr = ComputeReactionCurrent(sc[p]->GetParticleRegion());
+         sc[p]->Update(x, jr);
+      }
+   else
+   {
+      ParGridFunction j(x_fespace);
+      j.ProjectCoefficient(jx);
+
+      for (unsigned p = 0; p < NPAR; p++)
+      {
+         // incomplete, needs comm
+         ConstantCoefficient jr(j(sc[p]->GetParticleDof()));
+         sc[p]->Update(x, jr);
+      }
+   }
+
+}
+
+ConstantCoefficient P2DOperator::ComputeReactionCurrent(const Region &r)
+{
+   switch(r)
+   {
+      case PE:
+         return ConstantCoefficient(- I / AP / LPE);
+      case NE:
+         return ConstantCoefficient(+ I / AN / LNE);
+      default:
+         mfem_error("Cannot provide constant reaction current for such region");
+   }
 }
 
 FunctionCoefficient P2DOperator::ComputeReactionCurrent(const BlockVector &x)
 {
-   const real_t jp = - I / AP / LPE;
-   const real_t jn = + I / AN / LNE;
-   auto j = [=](const Vector & p){ return p(0) < LPE ? jp : p(0) < LPE + LSEP ? 0 : jn; };
-   
-   return FunctionCoefficient(j);
+   return FunctionCoefficient([=](const Vector & p){ return 0; });
 }
 
 ConstantCoefficient P2DOperator::ComputeExchangeCurrent(const BlockVector &x)
@@ -188,11 +214,11 @@ void P2DOperator::ComputeVoltage(const BlockVector &x, real_t t, real_t dt)
    real_t Up = ComputeOpenCircuitPotentialPositive(theta_p);
    real_t Un = ComputeOpenCircuitPotentialNegative(theta_n);
 
-   real_t jp = - I / AP / LPE;
-   real_t jn = + I / AN / LNE;
+   real_t jp = ComputeReactionCurrent(PE).constant;
+   real_t jn = ComputeReactionCurrent(NE).constant;
 
-   real_t j0_p =  KP * pow(cp * CE0 * abs(1.0 - cp), 0.5);
-   real_t j0_n =  KN * pow(cn * CE0 * abs(1.0 - cn), 0.5);
+   real_t j0_p =  KP * sqrt(cp * CE0 * abs(1.0 - cp));
+   real_t j0_n =  KN * sqrt(cn * CE0 * abs(1.0 - cn));
 
    real_t eta_p = 2 * T * asinh(jp / 2.0 / j0_p);
    real_t eta_n = 2 * T * asinh(jn / 2.0 / j0_n);

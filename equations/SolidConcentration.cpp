@@ -9,11 +9,11 @@ void SolidConcentration::Update(const BlockVector &x, Coefficient &j)
    const real_t R = particle_region == PE ? RP : RN;
    const real_t D = particle_region == PE ? DP : DN;
    const real_t t_scale = particle_region == PE ? tp_scale : tn_scale;
-   const real_t j_flux = particle_region == PE ? -I / AP / LPE : +I / AN / LNE;
 
    FunctionCoefficient r2([](const Vector & r){ return r(0) * r(0); });
    ProductCoefficient dr2(D / R / R, r2);
-   ProductCoefficient jr2(-j_flux / R / t_scale, r2);
+   ProductCoefficient jjr2(j, r2);
+   ProductCoefficient jr2(-1. / R / t_scale, jjr2);
 
    delete M;
    M = new ParBilinearForm(&fespace);

@@ -52,6 +52,7 @@ public:
 
    void ComputeVoltage(const BlockVector &x, real_t t, real_t dt);
 
+   ConstantCoefficient ComputeReactionCurrent(const Region &r);
    FunctionCoefficient ComputeReactionCurrent(const BlockVector &x);
    ConstantCoefficient ComputeExchangeCurrent(const BlockVector &x);
 
