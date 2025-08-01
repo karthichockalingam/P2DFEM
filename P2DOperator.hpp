@@ -3,6 +3,7 @@
 #include "equations/ElectrolyteConcentration.hpp"
 #include "equations/SolidPotential.hpp"
 #include "equations/SolidConcentration.hpp"
+#include "coefficients/ExchangeCurrentCoefficient.hpp"
 
 using namespace std;
 using namespace mfem;
@@ -50,11 +51,16 @@ public:
 
    virtual void Update(const BlockVector &x);
 
-   void ComputeVoltage(const BlockVector &x, real_t t, real_t dt);
-
    ConstantCoefficient ComputeReactionCurrent(const Region &r);
-   FunctionCoefficient ComputeReactionCurrent(const BlockVector &x);
-   ConstantCoefficient ComputeExchangeCurrent(const BlockVector &x);
+   ConstantCoefficient ComputeReactionCurrent(const BlockVector &x);
+
+   real_t ComputeSurfaceConcentration(const Region &r, const BlockVector &x);
+   ParGridFunction ComputeSurfaceConcentration(const BlockVector &x);
+
+   real_t ComputeExchangeCurrent(const Region &r, const BlockVector &x);
+   ExchangeCurrentCoefficient ComputeExchangeCurrent(const BlockVector &x);
+
+   void ComputeVoltage(const BlockVector &x, real_t t, real_t dt);
 
    virtual void GetParticleDofs(Array<int> & particle_dofs, Array<int> & particle_offsets);
 

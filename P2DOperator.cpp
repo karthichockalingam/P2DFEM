@@ -1,5 +1,4 @@
 #include "P2DOperator.hpp"
-#include "coefficients/ExchangeCurrentCoefficient.hpp"
 
 P2DOperator::P2DOperator(ParFiniteElementSpace * &x_fespace, Array<ParFiniteElementSpace *> &r_fespace,
                          const unsigned &ndofs, BlockVector &x)
@@ -101,7 +100,7 @@ void P2DOperator::Update(const BlockVector &x)
    A = new BlockOperator(block_trueOffsets);
    A->owns_blocks = 1;
 
-   FunctionCoefficient jx = ComputeReactionCurrent(x);
+   ConstantCoefficient jx = ComputeReactionCurrent(x);
 
    ep->Update(x, jx);
    ec->Update(x, jx);
@@ -130,51 +129,85 @@ void P2DOperator::Update(const BlockVector &x)
 
 ConstantCoefficient P2DOperator::ComputeReactionCurrent(const Region &r)
 {
-   switch(r)
-   {
-      case PE:
-         return ConstantCoefficient(- I / AP / LPE);
-      case NE:
-         return ConstantCoefficient(+ I / AN / LNE);
-      default:
-         mfem_error("Cannot provide constant reaction current for such region");
-   }
+   if (r == PE)
+      return ConstantCoefficient(- I / AP / LPE);
+   else if (r == NE)
+      return ConstantCoefficient(+ I / AN / LNE);
+   else
+      mfem_error("Cannot provide constant reaction current for such region");
 }
 
-FunctionCoefficient P2DOperator::ComputeReactionCurrent(const BlockVector &x)
+ConstantCoefficient P2DOperator::ComputeReactionCurrent(const BlockVector &x)
 {
-   return FunctionCoefficient([=](const Vector & p){ return 0; });
+   return ConstantCoefficient(0);
 }
 
-ConstantCoefficient P2DOperator::ComputeExchangeCurrent(const BlockVector &x)
+real_t P2DOperator::ComputeSurfaceConcentration(const Region &r, const BlockVector &x)
 {
-   ParGridFunction cs_gf(x_fespace);
-   cs_gf = 0;
+   real_t sc0 = r == PE ? CP0 : r == NE ? CN0 : 0;
+   for (unsigned p = 0; p < NPAR; p++)
+      if (sc[p]->GetParticleRegion() == r)
+         return sc0 + sc[p]->SurfaceConcentration(x);
+
+   mfem_error("Cannot provide constant surface concentration for such region");
+}
+
+ParGridFunction P2DOperator::ComputeSurfaceConcentration(const BlockVector &x)
+{
+   ParGridFunction sc_gf(x_fespace);
+   sc_gf = 0;
 
    for (unsigned p = 0; p < NPAR; p++)
    {
+      Region r = sc[p]->GetParticleRegion();
+      real_t sc0 = r == PE ? CP0 : r == NE ? CN0 : 0;
       real_t csurf = sc[p]->SurfaceConcentration(x);
       if (!isnan(csurf))
-         cs_gf(sc[p]->GetParticleDof()) = csurf;
+         sc_gf(sc[p]->GetParticleDof()) = sc0 + csurf;
    }
    // Apply prolongation after restriction. Might be unnecessary, but guarantees
    // all processors have the right information for all their local dofs. 
-   cs_gf.SetFromTrueVector();
+   sc_gf.SetFromTrueVector();
 
+   return sc_gf;
+}
+
+real_t P2DOperator::ComputeExchangeCurrent(const Region &r, const BlockVector &x)
+{
+   if (M == SPM)
+   {
+      real_t sc = ComputeSurfaceConcentration(r, x);
+      real_t k = r == PE ? KP : r == NE ? KN : 0;
+      return k * sqrt(sc * CE0 * abs(1.0 - sc));
+   }
+   else if (M == SPMe)
+   {
+      ParLinearForm sum(x_fespace);
+      ExchangeCurrentCoefficient jex = ComputeExchangeCurrent(x);
+      Array<int> markers(x_fespace->GetParMesh()->attributes.Max());
+      markers = 0; markers[r] = 1;
+      sum.AddDomainIntegrator(new DomainLFIntegrator(jex), markers);
+      sum.Assemble();
+
+      real_t reduction_result = sum.Sum();
+      MPI_Allreduce(MPI_IN_PLACE, &reduction_result, 1, MFEM_MPI_REAL_T, MPI_SUM, MPI_COMM_WORLD);
+      //Is it correct to use the total length or is it the lenght of the region?
+
+      real_t l = r == PE ? LPE : r == NE ? LNE : 0;
+      return reduction_result / l;
+   }
+   else
+      mfem_error("Cannot provide constant exchange current for such method");
+}
+
+ExchangeCurrentCoefficient P2DOperator::ComputeExchangeCurrent(const BlockVector &x)
+{
+   ParGridFunction sc_gf = ComputeSurfaceConcentration(x);
    ParGridFunction ec_gf(x_fespace);
    ec_gf.SetFromTrueDofs(x.GetBlock(EC));
 
-   ExchangeCurrentCoefficient coeff(cs_gf, ec_gf);
-   ParLinearForm sum(x_fespace);
-   sum.AddDomainIntegrator(new DomainLFIntegrator(coeff));
-   sum.Assemble();
-
-   real_t reduction_result = sum.Sum();
-   MPI_Allreduce(MPI_IN_PLACE, &reduction_result, 1, MFEM_MPI_REAL_T, MPI_SUM, MPI_COMM_WORLD);
-   //Is it correct to use the total length or is it the lenght of the region?
-   return ConstantCoefficient(reduction_result / (LPE + LSEP + LNE));
+   return ExchangeCurrentCoefficient(sc_gf, ec_gf);
 }
-
 
 real_t ComputeOpenCircuitPotentialPositive(real_t x)
 {
@@ -192,42 +225,20 @@ real_t ComputeOpenCircuitPotentialNegative(real_t x)
 
 void P2DOperator::ComputeVoltage(const BlockVector &x, real_t t, real_t dt)
 {
-
-   real_t csurf[NPAR];
-   for (unsigned p = 0; p < NPAR; p++)
-   {
-      csurf[p] = sc[p]->SurfaceConcentration(x);
-      if (!isnan(csurf[p]))
-         std::cout << "[Rank " << Mpi::WorldRank() << "]"
-                   << " Surface concentration (" << p << ") = "
-                   << csurf[p] << std::endl;
-   }
-
-
-   real_t cp = csurf[0] + CP0;   // Particle surface concentration at the positive electrode.
-   real_t cn = csurf[1] + CN0;   // Particle surface concentration at the negative electrode.
-
-   // Definition from LIONSIMBA: https://doi.org/10.1149/2.0291607jes
-   real_t theta_p = cp; // As cp is non-dimensionalised, theta_p = cp.
-   real_t theta_n = cn; // As cn is non-dimensionalised, theta_n = cn.
-
-   real_t Up = ComputeOpenCircuitPotentialPositive(theta_p);
-   real_t Un = ComputeOpenCircuitPotentialNegative(theta_n);
+   real_t Up = ComputeOpenCircuitPotentialPositive(ComputeSurfaceConcentration(PE, x));
+   real_t Un = ComputeOpenCircuitPotentialNegative(ComputeSurfaceConcentration(NE, x));
 
    real_t jp = ComputeReactionCurrent(PE).constant;
    real_t jn = ComputeReactionCurrent(NE).constant;
 
-   real_t j0_p =  KP * sqrt(cp * CE0 * abs(1.0 - cp));
-   real_t j0_n =  KN * sqrt(cn * CE0 * abs(1.0 - cn));
+   real_t j0_p =  ComputeExchangeCurrent(PE, x);
+   real_t j0_n =  ComputeExchangeCurrent(NE, x);
 
    real_t eta_p = 2 * T * asinh(jp / 2.0 / j0_p);
    real_t eta_n = 2 * T * asinh(jn / 2.0 / j0_n);
 
    // Definition from JuBat: https://doi.org/10.1016/j.est.2023.107512
-   real_t voltage = Up - Un  + eta_p - eta_n;
-
-   // Re-dimensionalise the voltage.
-   voltage *= phi_scale;
+   real_t voltage = (Up - Un  + eta_p - eta_n) * phi_scale;
 
    // Temporary printing.
    if (Mpi::Root())
@@ -249,8 +260,8 @@ void P2DOperator::ComputeVoltage(const BlockVector &x, real_t t, real_t dt)
 
       // Print data to file.
       file << t << ", \t"
-           << cp << ", \t" 
-           << cn << ", \t" 
+           << ComputeSurfaceConcentration(PE, x) << ", \t" 
+           << ComputeSurfaceConcentration(NE, x) << ", \t" 
            << voltage 
            << std::endl;
    }
