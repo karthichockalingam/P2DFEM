@@ -1,5 +1,5 @@
 #include "P2DOperator.hpp"
-#include "utils.hpp"
+#include "coefficients/ExchangeCurrentCoefficient.hpp"
 
 P2DOperator::P2DOperator(ParFiniteElementSpace * &x_fespace, Array<ParFiniteElementSpace *> &r_fespace,
                          const unsigned &ndofs, BlockVector &x)
