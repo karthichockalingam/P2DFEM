@@ -162,7 +162,7 @@ ParGridFunction P2DOperator::ComputeSurfaceConcentration(const BlockVector &x)
       Region r = sc[p]->GetParticleRegion();
       real_t sc0 = r == PE ? CP0 : r == NE ? CN0 : 0;
       real_t csurf = sc[p]->SurfaceConcentration(x);
-      if (!isnan(csurf))
+      if (sc[p]->IsParticleOwned())
          sc_gf(sc[p]->GetParticleDof()) = sc0 + csurf;
    }
    // Apply prolongation after restriction. Might be unnecessary, but guarantees
