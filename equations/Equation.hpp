@@ -14,7 +14,6 @@ protected:
    ParFiniteElementSpace &fespace;
 
    Array<int> ess_tdof_list; // this list remains empty for pure Neumann b.c.
-   Array<int> nbc_bdr; // this list remains empty for pure Neumann b.c.
 
    ParBilinearForm *M = nullptr;
    ParBilinearForm *K = nullptr;
@@ -29,7 +28,7 @@ protected:
    mutable Vector b; // auxiliary vector
 
 public:
-   Equation(ParFiniteElementSpace &f) : fespace(f), nbc_bdr(2), b(f.GetTrueVSize()) {};
+   Equation(ParFiniteElementSpace &f) : fespace(f), b(f.GetTrueVSize()) {};
 
    const HypreParMatrix & GetM() const { return Mmat; };
    const HypreParMatrix & GetK() const { return Kmat; };

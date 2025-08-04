@@ -22,7 +22,6 @@ protected:
    Array<SolidConcentration *> sc;
 
    Array<int> ess_tdof_list; // this list remains empty for pure Neumann b.c.
-   Array<int> nbc_bdr; // this list remains empty for pure Neumann b.c.
 
    Array<int> block_offsets;
    Array<int> block_trueOffsets;

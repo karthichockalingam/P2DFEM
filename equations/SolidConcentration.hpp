@@ -15,18 +15,25 @@ class SolidConcentration : public Equation
       const bool particle_owned;
       const Region particle_region;
       const int particle_dof;
+      const Array<int> surface_bdr;
+      const int surface_dof;
+      const bool surface_owned;
 
    public:
       SolidConcentration(ParFiniteElementSpace &f, unsigned id, unsigned rank, int dof = -1)
          : Equation(f),
            particle_id(id), particle_rank(rank),
            particle_owned(particle_rank == Mpi::WorldRank()),
-           particle_region(id < NPEPAR ? PE : NE), particle_dof(dof)
-      { nbc_bdr = 0; nbc_bdr[1] = 1; };
+           particle_region(id < NPEPAR ? PE : NE), particle_dof(dof),
+           surface_bdr({0, 1}), surface_dof(FindSurfaceDof()),
+           surface_owned(surface_dof != -1)
+      { }
 
       virtual void Update(const BlockVector &x, Coefficient &j);
       virtual real_t SurfaceConcentration(const BlockVector &x);
       bool IsParticleOwned(){ return particle_owned; }
+      bool IsSurfaceOwned() { return surface_owned; }
       Region GetParticleRegion(){ return particle_region; }
       int GetParticleDof(){ return particle_dof; }
+      int FindSurfaceDof();
 };

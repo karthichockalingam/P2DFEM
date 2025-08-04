@@ -29,7 +29,7 @@ void SolidConcentration::Update(const BlockVector &x, Coefficient &j)
 
    delete Q;
    Q = new ParLinearForm(&fespace);
-   Q->AddBoundaryIntegrator(new BoundaryLFIntegrator(jr2), nbc_bdr);
+   Q->AddBoundaryIntegrator(new BoundaryLFIntegrator(jr2), const_cast<mfem::Array<int>&>(surface_bdr));
    Q->Assemble();
    Qvec = std::move(*(Q->ParallelAssemble()));
    Qvec.SetSubVector(ess_tdof_list, 0.0); // do we need this?
@@ -41,25 +41,25 @@ void SolidConcentration::Update(const BlockVector &x, Coefficient &j)
 
 real_t SolidConcentration::SurfaceConcentration(const BlockVector &x)
 {
-   Array<int> ess_ldofs;
-   fespace.GetEssentialVDofs(nbc_bdr, ess_ldofs);
-
-   assert(ess_ldofs.Sum() == -1 || ess_ldofs.Sum() == 0);
-
-   int surface_ldof = ess_ldofs.Find(-1);
-
    ParGridFunction r_gf(&fespace);
    r_gf.SetFromTrueDofs(x.GetBlock(SC + particle_id));
 
    real_t csurf = numeric_limits<real_t>::quiet_NaN();
    MPI_Request request;
-   if (surface_ldof != -1)
-      MPI_Isend(&r_gf[surface_ldof], 1, MFEM_MPI_REAL_T, particle_rank, 1, MPI_COMM_WORLD, &request);
+   if (IsSurfaceOwned())
+      MPI_Isend(&r_gf[surface_dof], 1, MFEM_MPI_REAL_T, particle_rank, 1, MPI_COMM_WORLD, &request);
    if (IsParticleOwned())
       MPI_Recv(&csurf, 1, MFEM_MPI_REAL_T, MPI_ANY_SOURCE, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
-   if (surface_ldof != -1)
+   if (IsSurfaceOwned())
       MPI_Wait(&request, MPI_STATUS_IGNORE);
 
    return csurf;
+}
+
+int SolidConcentration::FindSurfaceDof()
+{
+   Array<int> nat_dofs;
+   fespace.GetEssentialVDofs(surface_bdr, nat_dofs);
+   return nat_dofs.Find(-1);
 }
