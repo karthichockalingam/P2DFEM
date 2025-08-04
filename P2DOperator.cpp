@@ -106,7 +106,7 @@ void P2DOperator::Update(const BlockVector &x)
    ec->Update(x, jx);
    sp->Update(x, jx);
 
-   if (M == SPM)
+   if (M == SPM || M == SPMe)
       for (unsigned p = 0; p < NPAR; p++)
       {
          ConstantCoefficient jr = ComputeReactionCurrent(sc[p]->GetParticleRegion());
@@ -182,16 +182,15 @@ real_t P2DOperator::ComputeExchangeCurrent(const Region &r, const BlockVector &x
    }
    else if (M == SPMe)
    {
-      ParLinearForm sum(x_fespace);
       ExchangeCurrentCoefficient jex = ComputeExchangeCurrent(x);
       Array<int> markers(x_fespace->GetParMesh()->attributes.Max());
       markers = 0; markers[r] = 1;
+      ParLinearForm sum(x_fespace);
       sum.AddDomainIntegrator(new DomainLFIntegrator(jex), markers);
       sum.Assemble();
 
       real_t reduction_result = sum.Sum();
       MPI_Allreduce(MPI_IN_PLACE, &reduction_result, 1, MFEM_MPI_REAL_T, MPI_SUM, MPI_COMM_WORLD);
-      //Is it correct to use the total length or is it the lenght of the region?
 
       real_t l = r == PE ? LPE : r == NE ? LNE : 0;
       return reduction_result / l;
