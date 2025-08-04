@@ -101,18 +101,16 @@ void P2DOperator::Update(const BlockVector &x)
    A->owns_blocks = 1;
 
    ConstantCoefficient jx = ComputeReactionCurrent(x);
-
    ep->Update(x, jx);
-   ec->Update(x, jx);
    sp->Update(x, jx);
 
    if (M == SPM || M == SPMe)
+   {
+      ec->Update(x, ComputeReactionCurrent());
       for (unsigned p = 0; p < NPAR; p++)
-      {
-         ConstantCoefficient jr = ComputeReactionCurrent(sc[p]->GetParticleRegion());
-         sc[p]->Update(x, jr);
-      }
-   else
+         sc[p]->Update(x, ComputeReactionCurrent(sc[p]->GetParticleRegion()));
+   }
+   else if (M == P2D)
    {
       ParGridFunction j(x_fespace);
       j.ProjectCoefficient(jx);
@@ -124,22 +122,22 @@ void P2DOperator::Update(const BlockVector &x)
          sc[p]->Update(x, jr);
       }
    }
-
 }
 
 ConstantCoefficient P2DOperator::ComputeReactionCurrent(const Region &r)
 {
-   if (r == PE)
-      return ConstantCoefficient(- I / AP / LPE);
-   else if (r == NE)
-      return ConstantCoefficient(+ I / AN / LNE);
-   else
-      mfem_error("Cannot calculate constant reaction current for the given region. Only positive (PE) and negative electrodes (NE) are supported.");
+   return ConstantCoefficient(ComputeReactionCurrent()(r + 1));
+}
+
+PWConstCoefficient P2DOperator::ComputeReactionCurrent()
+{
+   Vector c{/* PE */ - I / AP / LPE, /* SEP */ 0., /* NE */ + I / AN / LNE};
+   return PWConstCoefficient(c);
 }
 
 ConstantCoefficient P2DOperator::ComputeReactionCurrent(const BlockVector &x)
 {
-   return ConstantCoefficient(0);
+   return ConstantCoefficient();
 }
 
 real_t P2DOperator::ComputeSurfaceConcentration(const Region &r, const BlockVector &x)

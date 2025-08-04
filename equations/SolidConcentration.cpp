@@ -1,6 +1,6 @@
 #include "SolidConcentration.hpp"
 
-void SolidConcentration::Update(const BlockVector &x, Coefficient &j)
+void SolidConcentration::Update(const BlockVector &x, const Coefficient &j)
 {
    IntegrationRule ir = IntRules.Get(Geometry::SEGMENT, 6);
 
@@ -12,7 +12,7 @@ void SolidConcentration::Update(const BlockVector &x, Coefficient &j)
 
    FunctionCoefficient r2([](const Vector & r){ return r(0) * r(0); });
    ProductCoefficient dr2(D / R / R, r2);
-   ProductCoefficient jjr2(j, r2);
+   ProductCoefficient jjr2(const_cast<Coefficient&>(j), r2);
    ProductCoefficient jr2(-1. / R / t_scale, jjr2);
 
    delete M;

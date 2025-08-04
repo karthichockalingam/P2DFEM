@@ -35,7 +35,7 @@ public:
    const Vector         & GetZ() const { return b; };
 
    /// Update the diffusion BilinearForm K using the given true-dof vector `x`.
-   virtual void Update(const BlockVector &x, Coefficient &j) = 0;
+   virtual void Update(const BlockVector &x, const Coefficient &j) = 0;
 
    virtual ~Equation()
    {

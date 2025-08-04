@@ -1,7 +1,7 @@
 
 #include "ElectrolytePotential.hpp"
 
-void ElectrolytePotential::Update(const BlockVector &x, Coefficient &j)
+void ElectrolytePotential::Update(const BlockVector &x, const Coefficient &j)
 {
    ParGridFunction u_gf(&fespace);
    u_gf.SetFromTrueDofs(x.GetBlock(EP));
@@ -17,7 +17,7 @@ void ElectrolytePotential::Update(const BlockVector &x, Coefficient &j)
    GradientGridFunctionCoefficient GradEcCoeff(&u_gf);
    ScalarVectorProductCoefficient VecCoeff(KappaOverEcCoeff, GradEcCoeff);
 
-   ProductCoefficient source(dummy, j);
+   ProductCoefficient source(dummy, const_cast<Coefficient&>(j));
 
    IntegrationRule ir = IntRules.Get(Geometry::SEGMENT, 6);
 

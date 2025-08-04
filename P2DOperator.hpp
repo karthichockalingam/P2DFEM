@@ -50,6 +50,7 @@ public:
 
    virtual void Update(const BlockVector &x);
 
+   PWConstCoefficient ComputeReactionCurrent();
    ConstantCoefficient ComputeReactionCurrent(const Region &r);
    ConstantCoefficient ComputeReactionCurrent(const BlockVector &x);
 

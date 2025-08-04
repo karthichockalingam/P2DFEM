@@ -1,7 +1,7 @@
 
 #include "SolidPotential.hpp"
 
-void SolidPotential::Update(const BlockVector &x, Coefficient &j)
+void SolidPotential::Update(const BlockVector &x, const Coefficient &j)
 {
    ParGridFunction u_gf(&fespace);
    u_gf.SetFromTrueDofs(x.GetBlock(SP));
@@ -10,7 +10,7 @@ void SolidPotential::Update(const BlockVector &x, Coefficient &j)
 
    ConstantCoefficient sigma(1.0);
    FunctionCoefficient dummy([](const Vector & x){ return sin(2*M_PI*x(0)); });
-   ProductCoefficient source(dummy, j);
+   ProductCoefficient source(dummy, const_cast<Coefficient&>(j));
 
    IntegrationRule ir = IntRules.Get(Geometry::SEGMENT, 6);
 
