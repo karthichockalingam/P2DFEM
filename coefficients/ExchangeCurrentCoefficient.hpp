@@ -12,7 +12,7 @@ class ExchangeCurrentCoefficient: public Coefficient
       GridFunctionCoefficient _sc;
       GridFunctionCoefficient _ec;
       TransformedCoefficient _jex;
-   
+
    public:
       ExchangeCurrentCoefficient(
         const GridFunction & surface_concentration,

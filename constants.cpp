@@ -26,7 +26,7 @@ namespace constants {
 
     // Dimensional constants
     real_t F = 96485.33289; // Faraday constant, C/mol
-    real_t R = 8.314; // Universal gas constant, J/(mol*K) 
+    real_t R = 8.314; // Universal gas constant, J/(mol*K)
     real_t T_ref = 298.; // Reference temperature, K
 
 
@@ -65,13 +65,13 @@ namespace constants {
 
     real_t ce0 = 1000.0;
 
-    
+
 
     // Scalings
     real_t t0 = 1.0; // Time scale.
     real_t r0 = 1e-6;  // Length scale (particle)
     real_t L = positive_electrode_thickness + separator_thickness + negative_electrode_thickness; // Length scale (cell)
-    
+
     real_t a0 = 1.0 / r0;
 
     real_t tp = F * cpmax * cell_area * L / I_typ; // Positive particle time scale.
@@ -109,7 +109,7 @@ namespace constants {
     real_t Ap = 3 * eps_p_s / rp; // Positive electrode area (m^2).
     real_t An = 3 * eps_n_s / rn; // Negative electrode area (m^2).
 
-    
+
 
     // Scaled parameters
     real_t DP = Dp / Dp_scale; // Positive particle diffusion coefficient.
