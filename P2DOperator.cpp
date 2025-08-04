@@ -134,7 +134,7 @@ ConstantCoefficient P2DOperator::ComputeReactionCurrent(const Region &r)
    else if (r == NE)
       return ConstantCoefficient(+ I / AN / LNE);
    else
-      mfem_error("Cannot provide constant reaction current for such region");
+      mfem_error("Cannot calculate constant reaction current for the given region. Only positive (PE) and negative electrodes (NE) are supported.");
 }
 
 ConstantCoefficient P2DOperator::ComputeReactionCurrent(const BlockVector &x)
@@ -149,7 +149,7 @@ real_t P2DOperator::ComputeSurfaceConcentration(const Region &r, const BlockVect
       if (sc[p]->GetParticleRegion() == r)
          return sc0 + sc[p]->SurfaceConcentration(x);
 
-   mfem_error("Cannot provide constant surface concentration for such region");
+   mfem_error("Cannot calculate constant surface concentration for the given region. Only positive (PE) and negative electrodes (NE) are supported.");
 }
 
 ParGridFunction P2DOperator::ComputeSurfaceConcentration(const BlockVector &x)
@@ -197,7 +197,7 @@ real_t P2DOperator::ComputeExchangeCurrent(const Region &r, const BlockVector &x
       return reduction_result / l;
    }
    else
-      mfem_error("Cannot provide constant exchange current for such method");
+      mfem_error("Cannot calculate constant exchange current for the given method. Only SPM and SPMe are supported.");
 }
 
 ExchangeCurrentCoefficient P2DOperator::ComputeExchangeCurrent(const BlockVector &x)
@@ -218,7 +218,7 @@ real_t P2DOperator::ComputeOpenCircuitPotential(const Region &r, const real_t &x
       return 1.97938*exp(-39.3631*x) + 0.2482 - 0.0909*tanh(29.8538*(x - 0.1234))
              - 0.04478*tanh(14.9159*(x - 0.2769)) - 0.0205*tanh(30.4444*(x - 0.6103));
    else
-      mfem_error("Cannot provide open circuit potential for such region");
+      mfem_error("Cannot calculate open circuit potential for the given region. Only positive (PE) and negative electrodes (NE) are supported.");
 }
 
 void P2DOperator::ComputeVoltage(const BlockVector &x, real_t t, real_t dt)
