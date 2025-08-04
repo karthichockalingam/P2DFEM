@@ -9,6 +9,8 @@
 # terms of the BSD-3 license. We welcome feedback and contributions, see file
 # CONTRIBUTING.md for details.
 
+-include makefile.local
+
 # Use the MFEM install directory
 MFEM_INSTALL_DIR ?= ../mfem-debug
 CONFIG_MK = $(MFEM_INSTALL_DIR)/share/mfem/config.mk
@@ -21,7 +23,7 @@ EQ_SRC_FILES = SolidConcentration.cpp ElectrolyteConcentration.cpp SolidPotentia
 EQ_INC_FILES = SolidConcentration.hpp ElectrolyteConcentration.hpp SolidPotential.hpp ElectrolytePotential.hpp Equation.hpp
 COEFF_INC_FILES = ExchangeCurrentCoefficient.hpp
 SRC_FILES = $(addprefix equations/, $(EQ_SRC_FILES)) P2DOperator.cpp constants.cpp
-INC_FILES = $(addprefix equations/, $(EQ_INC_FILES)) $(addprefix coefficients/, $(COEFF_INC_FILES)) P2DOperator.hpp constants.hpp
+INC_FILES = $(addprefix equations/, $(EQ_INC_FILES)) $(addprefix coefficients/, $(COEFF_INC_FILES)) parameters.hpp P2DOperator.hpp constants.hpp
 
 .PHONY: all clean
 

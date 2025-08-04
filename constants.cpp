@@ -1,6 +1,8 @@
 #include "mfem.hpp"
+#include "parameters.hpp"
 
 using namespace mfem;
+using namespace LGM50;
 
 namespace constants {
     enum Method : int {
@@ -28,44 +30,6 @@ namespace constants {
     real_t F = 96485.33289; // Faraday constant, C/mol
     real_t R = 8.314; // Universal gas constant, J/(mol*K)
     real_t T_ref = 298.; // Reference temperature, K
-
-
-
-    // Dimensional electrochemical parameters
-    real_t cpmax = 63104; // Maximum concentration, positive electrode, mol/m^3
-    real_t cnmax = 33133; // Maximum concentration, negative electrode, mol/m
-
-    real_t cp0 = 17038.; // Initial concentration, positive electrode, mol/m^3
-    real_t cn0 = 29866.; // Initial concentration, negative electrode, mol/m^3
-
-    real_t cell_length = 1.58;
-    real_t cell_width = 6.5e-2;
-    real_t cell_no_layers = 1;
-    real_t cell_area = cell_width * cell_length * cell_no_layers;
-
-    real_t I_typ = 5.0;    // Or I1C in Jubat.
-
-    real_t eps_p = 0.335; // Porosity???
-    real_t eps_p_fi = 0.0;
-    real_t eps_p_s = 1 - eps_p - eps_p_fi;
-
-    real_t eps_n = 0.25; // Porosity???
-    real_t eps_n_fi = 0.0;
-    real_t eps_n_s = 1 - eps_n - eps_n_fi;
-
-    real_t rp = 5.22e-6; // Positive particle radius (m).
-    real_t rn = 5.86e-6; // Negative particle radius (m).
-
-    real_t positive_electrode_thickness = 75.6e-6;
-    real_t separator_thickness = 12e-6;
-    real_t negative_electrode_thickness = 85.2e-6;
-
-    real_t kp_dim = 3.42e-6;
-    real_t kn_dim = 6.48e-7;
-
-    real_t ce0 = 1000.0;
-
-
 
     // Scalings
     real_t t0 = 1.0; // Time scale.
@@ -100,17 +64,6 @@ namespace constants {
     real_t tp_scale = tp / t0;
     real_t tn_scale = tn / t0;
 
-
-
-    // Dimensional parameters
-    real_t Dp = 4.0e-15; // Diffusion coefficient, positive electrode
-    real_t Dn = 3.3e-14; // Diffusion coefficient, negative electrode
-
-    real_t Ap = 3 * eps_p_s / rp; // Positive electrode area (m^2).
-    real_t An = 3 * eps_n_s / rn; // Negative electrode area (m^2).
-
-
-
     // Scaled parameters
     real_t DP = Dp / Dp_scale; // Positive particle diffusion coefficient.
     real_t DN = Dn / Dn_scale; // Negative particle diffusion coefficient.
@@ -127,6 +80,7 @@ namespace constants {
     real_t RP = rp / r0; // Scaled positive particle radius.
     real_t RN = rn / r0; // Scaled negative particle radius.
 
+    // Extras to be properly defined later.
     real_t CE0 = 1.; // Scaled electrolyte concentration.
     real_t I = 1.; // Scaled current.
     real_t T = 1.0; // Scaled temperature.
@@ -153,7 +107,6 @@ namespace constants {
         {
             case SPM:
                 NPEPAR = NNEPAR = 1;
-                //LPE = LSEP = LNE = 1./3;
                 LPE = positive_electrode_thickness / L;
                 LSEP = separator_thickness / L;
                 LNE = negative_electrode_thickness / L;
