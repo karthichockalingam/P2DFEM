@@ -59,6 +59,8 @@ public:
    real_t ComputeExchangeCurrent(const Region &r, const BlockVector &x);
    ExchangeCurrentCoefficient ComputeExchangeCurrent(const BlockVector &x);
 
+   real_t ComputeOpenCircuitPotential(const Region &r, const real_t &x);
+
    void ComputeVoltage(const BlockVector &x, real_t t, real_t dt);
 
    virtual void GetParticleDofs(Array<int> & particle_dofs, Array<int> & particle_offsets);

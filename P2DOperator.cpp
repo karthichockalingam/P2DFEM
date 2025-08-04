@@ -209,24 +209,22 @@ ExchangeCurrentCoefficient P2DOperator::ComputeExchangeCurrent(const BlockVector
    return ExchangeCurrentCoefficient(sc_gf, ec_gf);
 }
 
-real_t ComputeOpenCircuitPotentialPositive(real_t x)
+real_t P2DOperator::ComputeOpenCircuitPotential(const Region &r, const real_t &x)
 {
-   real_t Up = -0.8090*x + 4.4875 - 0.0428*tanh(18.5138*(x - 0.5542)) 
-               - 17.7326*tanh(15.7890*(x - 0.3117)) + 17.5842*tanh(15.9308*(x - 0.3120));
-   return Up / phi_scale;
-}
-
-real_t ComputeOpenCircuitPotentialNegative(real_t x)
-{
-   real_t Un = 1.97938*exp(-39.3631*x) + 0.2482 - 0.0909*tanh(29.8538*(x - 0.1234)) 
-               - 0.04478*tanh(14.9159*(x - 0.2769)) - 0.0205*tanh(30.4444*(x - 0.6103));
-   return Un / phi_scale;
+   if (r == PE)
+      return -0.8090*x + 4.4875 - 0.0428*tanh(18.5138*(x - 0.5542)) 
+             - 17.7326*tanh(15.7890*(x - 0.3117)) + 17.5842*tanh(15.9308*(x - 0.3120));
+   else if (r == NE)
+      return 1.97938*exp(-39.3631*x) + 0.2482 - 0.0909*tanh(29.8538*(x - 0.1234)) 
+             - 0.04478*tanh(14.9159*(x - 0.2769)) - 0.0205*tanh(30.4444*(x - 0.6103));
+   else
+      mfem_error("Cannot provide open circuit potential for such region");
 }
 
 void P2DOperator::ComputeVoltage(const BlockVector &x, real_t t, real_t dt)
 {
-   real_t Up = ComputeOpenCircuitPotentialPositive(ComputeSurfaceConcentration(PE, x));
-   real_t Un = ComputeOpenCircuitPotentialNegative(ComputeSurfaceConcentration(NE, x));
+   real_t Up = ComputeOpenCircuitPotential(PE, ComputeSurfaceConcentration(PE, x));
+   real_t Un = ComputeOpenCircuitPotential(NE, ComputeSurfaceConcentration(NE, x));
 
    real_t jp = ComputeReactionCurrent(PE).constant;
    real_t jn = ComputeReactionCurrent(NE).constant;
@@ -238,7 +236,7 @@ void P2DOperator::ComputeVoltage(const BlockVector &x, real_t t, real_t dt)
    real_t eta_n = 2 * T * asinh(jn / 2.0 / j0_n);
 
    // Definition from JuBat: https://doi.org/10.1016/j.est.2023.107512
-   real_t voltage = (Up - Un  + eta_p - eta_n) * phi_scale;
+   real_t voltage = Up - Un + (eta_p - eta_n) * phi_scale;
 
    // Temporary printing.
    if (Mpi::Root())
