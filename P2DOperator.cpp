@@ -131,7 +131,7 @@ ConstantCoefficient P2DOperator::ComputeReactionCurrent(const Region &r)
 
 PWConstCoefficient P2DOperator::ComputeReactionCurrent()
 {
-   Vector c{/* PE */ - I / AP / LPE, /* SEP */ 0., /* NE */ + I / AN / LNE};
+   Vector c({/* PE */ - I / AP / LPE, /* SEP */ 0., /* NE */ + I / AN / LNE});
    return PWConstCoefficient(c);
 }
 
