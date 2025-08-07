@@ -1,7 +1,7 @@
 
 #include "ElectrolytePotential.hpp"
 
-void ElectrolytePotential::Update(const BlockVector &x, const Coefficient &j)
+void ElectrolytePotential::Update(const BlockVector &x, const Coefficient &j, real_t dt)
 {
    ParGridFunction u_gf(&fespace);
    u_gf.SetFromTrueDofs(x.GetBlock(EP));

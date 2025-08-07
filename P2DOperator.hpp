@@ -40,7 +40,7 @@ protected:
 
 public:
    P2DOperator(ParFiniteElementSpace * &x_fespace, Array<ParFiniteElementSpace *> &r_fespace,
-               const unsigned &ndofs, BlockVector &x);
+               const unsigned &ndofs, real_t dt, BlockVector &x);
 
    virtual void Mult(const Vector &x, Vector &dx_dt) const override {};
 

@@ -167,7 +167,7 @@ int main(int argc, char *argv[])
 
    // 9. Initialize the conduction operator and the VisIt visualization.
    BlockVector x;
-   P2DOperator oper(x_fespace, r_fespace, fe_size_owned, x);
+   P2DOperator oper(x_fespace, r_fespace, fe_size_owned, dt, x);
 
    // X. Visualization for the 0th particle
    ParGridFunction u_gf(r_fespace[0]);

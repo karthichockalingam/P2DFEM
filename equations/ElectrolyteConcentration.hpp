@@ -13,5 +13,5 @@ class ElectrolyteConcentration : public Equation
 {
    public:
       using Equation::Equation;
-      virtual void Update(const BlockVector &x, const Coefficient &j);
+      virtual void Update(const BlockVector &x, const Coefficient &j, real_t dt);
 };
