@@ -7,10 +7,15 @@ P2DOperator::P2DOperator(ParFiniteElementSpace * &x_fespace, Array<ParFiniteElem
 {
    const real_t rel_tol = 1e-8;
 
+   Prec.SetRelTol(rel_tol);
+   Prec.SetAbsTol(0.0);
+   Prec.SetMaxIter(100);
+   Prec.SetPrintLevel(0);
+
    Solver.iterative_mode = false;
    Solver.SetRelTol(rel_tol);
    Solver.SetAbsTol(0.0);
-   Solver.SetMaxIter(100);
+   Solver.SetMaxIter(1);
    Solver.SetPrintLevel(0);
    Solver.SetPreconditioner(Prec);
 
@@ -76,7 +81,7 @@ BlockOperator & P2DOperator::GetGradient(const Vector &dx_dt) const
 }
 
 void P2DOperator::Mult(const Vector &dx_dt, Vector &r) const
-{ 
+{
    const_cast<P2DOperator*>(this)->Update(current_dt, x, dx_dt);
    r = this->r;
 }
