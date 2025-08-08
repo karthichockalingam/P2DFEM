@@ -3,7 +3,7 @@
 P2DOperator::P2DOperator(ParFiniteElementSpace * &x_fespace, Array<ParFiniteElementSpace *> &r_fespace,
                          const unsigned &ndofs, BlockVector &x)
    : TimeDependentOperator(ndofs, (real_t) 0.0), x_fespace(x_fespace), r_fespace(r_fespace),
-     A(NULL), current_dt(0.0), Solver(x_fespace->GetComm()), file("data.csv")
+     A(NULL), current_dt(0.0), Solver(x_fespace->GetComm()), x(x), file("data.csv")
 {
    const real_t rel_tol = 1e-8;
 
@@ -12,7 +12,7 @@ P2DOperator::P2DOperator(ParFiniteElementSpace * &x_fespace, Array<ParFiniteElem
    Solver.SetAbsTol(0.0);
    Solver.SetMaxIter(100);
    Solver.SetPrintLevel(0);
-   //Solver.SetPreconditioner(Prec);
+   Solver.SetPreconditioner(Prec);
 
    const unsigned nb = SC + NPAR; // 3 macro eqs + 1 micro eq/particle
 
@@ -45,6 +45,7 @@ P2DOperator::P2DOperator(ParFiniteElementSpace * &x_fespace, Array<ParFiniteElem
 
    x.Update(block_trueOffsets); x = 0.;
    b.Update(block_trueOffsets);
+   r.Update(block_trueOffsets);
 
    ep = new ElectrolytePotential(*x_fespace);
    ec = new ElectrolyteConcentration(*x_fespace);
@@ -69,37 +70,37 @@ P2DOperator::P2DOperator(ParFiniteElementSpace * &x_fespace, Array<ParFiniteElem
    }
 }
 
+BlockOperator & P2DOperator::GetGradient(const Vector &dx_dt) const
+{
+   return *A;
+}
+
+void P2DOperator::Mult(const Vector &dx_dt, Vector &r) const
+{ 
+   const_cast<P2DOperator*>(this)->Update(current_dt, x, dx_dt);
+   r = this->r;
+}
+
 void P2DOperator::ImplicitSolve(const real_t dt,
                                 const Vector &x, Vector &dx_dt)
 {
    // Solve the equation:
    //   M dx_dt = -K(x + dt*dx_dt) <=> (M + dt K) dx_dt = -Kx
    // for dx_dt, where K is linearized by using x from the previous timestep
-
-   // assemble A
-   A->SetDiagonalBlock(EP, new HypreParMatrix(ep->GetK()));
-   A->SetDiagonalBlock(EC, Add(1, ec->GetM(), dt, ec->GetK()));
-   A->SetDiagonalBlock(SP, new HypreParMatrix(sp->GetK()));
-   b.GetBlock(EP) = ep->GetZ();
-   b.GetBlock(EC) = ec->GetZ();
-   b.GetBlock(SP) = sp->GetZ();
-   for (unsigned p = 0; p < NPAR; p++)
-   {
-      A->SetDiagonalBlock(SC + p, Add(1, sc[p]->GetM(), dt, sc[p]->GetK()));
-      b.GetBlock(SC + p) = sc[p]->GetZ();
-   }
-
-   Solver.SetOperator(*A);
-   Solver.Mult(b, dx_dt);
+   current_dt = dt;
+   Solver.SetOperator(*this);
+   Solver.Mult(Vector(), dx_dt);
 }
 
-void P2DOperator::Update(const BlockVector &x, const real_t &dt)
+void P2DOperator::Update(const real_t dt,
+                         const BlockVector &x, const Vector &dx_dt /* TODO: change to BlockVector */)
 {
    // rebuild A
    delete A;
    A = new BlockOperator(block_trueOffsets);
    A->owns_blocks = 1;
 
+   // assemble A and b
    ConstantCoefficient jx = ComputeReactionCurrent(x);
    ep->Update(x, jx, dt);
    sp->Update(x, jx, dt);
@@ -122,6 +123,23 @@ void P2DOperator::Update(const BlockVector &x, const real_t &dt)
          sc[p]->Update(x, jr);
       }
    }
+
+   // assign blocks of A and b
+   A->SetDiagonalBlock(EP, new HypreParMatrix(ep->GetK()));
+   A->SetDiagonalBlock(EC, Add(1, ec->GetM(), dt, ec->GetK()));
+   A->SetDiagonalBlock(SP, new HypreParMatrix(sp->GetK()));
+   b.GetBlock(EP) = ep->GetZ();
+   b.GetBlock(EC) = ec->GetZ();
+   b.GetBlock(SP) = sp->GetZ();
+   for (unsigned p = 0; p < NPAR; p++)
+   {
+      A->SetDiagonalBlock(SC + p, Add(1, sc[p]->GetM(), dt, sc[p]->GetK()));
+      b.GetBlock(SC + p) = sc[p]->GetZ();
+   }
+
+   // compute residual
+   A->Mult(dx_dt, r);
+   r -= b;
 }
 
 ConstantCoefficient P2DOperator::ComputeReactionCurrent(const Region &r)

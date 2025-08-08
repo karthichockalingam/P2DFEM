@@ -31,10 +31,12 @@ protected:
    HypreParMatrix *C; // C = M + dt K
    real_t current_dt;
 
-   CGSolver Solver;    // Implicit solver for T = M + dt K
-   HypreSmoother Prec; // Preconditioner for the implicit solver
+   NewtonSolver Solver;  // Non-linear solver
+   CGSolver Prec;        // Linear solver
 
-   mutable BlockVector b; // auxiliary vector
+   BlockVector &x;
+   mutable BlockVector b; // rhs vector
+   mutable BlockVector r; // residual vector
 
    std::ofstream file; // file to write temporary data to
 
@@ -42,13 +44,14 @@ public:
    P2DOperator(ParFiniteElementSpace * &x_fespace, Array<ParFiniteElementSpace *> &r_fespace,
                const unsigned &ndofs, BlockVector &x);
 
-   virtual void Mult(const Vector &x, Vector &dx_dt) const override {};
+   virtual BlockOperator & GetGradient(const Vector &dx_dt) const override;
+   virtual void Mult(const Vector &dx_dt, Vector &r) const override;
 
    /** Solve the Backward-Euler equation: k = f(x + dt*k, t), for the unknown k.
        This is the only requirement for high-order SDIRK implicit integration.*/
    virtual void ImplicitSolve(const real_t dt, const Vector &x, Vector &k) override;
 
-   virtual void Update(const BlockVector &x, const real_t &dt);
+   virtual void Update(const real_t dt, const BlockVector &x, const Vector &dx_dt);
 
    PWConstCoefficient ComputeReactionCurrent();
    ConstantCoefficient ComputeReactionCurrent(const Region &r);
