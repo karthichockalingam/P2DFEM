@@ -17,11 +17,9 @@ void ElectrolytePotential::Update(const BlockVector &x, const Coefficient &j, co
 
    ProductCoefficient source(dummy, const_cast<Coefficient&>(j));
 
-   IntegrationRule ir = IntRules.Get(Geometry::SEGMENT, 6);
-
    delete K;
    K = new ParBilinearForm(&fespace);
-   K->AddDomainIntegrator(new DiffusionIntegrator(kappa, &ir));
+   K->AddDomainIntegrator(new DiffusionIntegrator(kappa));
    K->Assemble(0); // keep sparsity pattern of M and K the same
    K->FormSystemMatrix(ess_tdof_list, Kmat);
 

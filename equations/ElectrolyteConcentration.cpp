@@ -9,21 +9,17 @@ void ElectrolyteConcentration::Update(const BlockVector &x, const Coefficient &j
    real_t a = 1, tplus = 0;
    ProductCoefficient source((1 - tplus) * a, const_cast<Coefficient&>(j));
 
-   IntegrationRule ir = IntRules.Get(Geometry::SEGMENT, 6);
-
-   //std::cout << "Number of points " << ir.GetNPoints() << std::endl;
-
    ConstantCoefficient one(1.0);
 
    delete M;
    M = new ParBilinearForm(&fespace);
-   M->AddDomainIntegrator(new MassIntegrator(one, &ir));
+   M->AddDomainIntegrator(new MassIntegrator(one));
    M->Assemble(0); // keep sparsity pattern of M and K the same
    M->FormSystemMatrix(ess_tdof_list, Mmat);
 
    delete K;
    K = new ParBilinearForm(&fespace);
-   K->AddDomainIntegrator(new DiffusionIntegrator(one, &ir));
+   K->AddDomainIntegrator(new DiffusionIntegrator(one));
    K->Assemble(0); // keep sparsity pattern of M and K the same
    K->FormSystemMatrix(ess_tdof_list, Kmat);
 

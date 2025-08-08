@@ -2,10 +2,6 @@
 
 void SolidConcentration::Update(const BlockVector &x, const Coefficient &j, const real_t &dt)
 {
-   IntegrationRule ir = IntRules.Get(Geometry::SEGMENT, 6);
-
-   //std::cout << "Number of points " << ir.GetNPoints() << std::endl;
-
    const real_t R = particle_region == PE ? RP : RN;
    const real_t D = particle_region == PE ? DP : DN;
    const real_t t_scale = particle_region == PE ? tp_scale : tn_scale;
@@ -17,13 +13,13 @@ void SolidConcentration::Update(const BlockVector &x, const Coefficient &j, cons
 
    delete M;
    M = new ParBilinearForm(&fespace);
-   M->AddDomainIntegrator(new MassIntegrator(r2, &ir));
+   M->AddDomainIntegrator(new MassIntegrator(r2));
    M->Assemble(0); // keep sparsity pattern of M and K the same
    M->FormSystemMatrix(ess_tdof_list, Mmat);
 
    delete K;
    K = new ParBilinearForm(&fespace);
-   K->AddDomainIntegrator(new DiffusionIntegrator(dr2, &ir));
+   K->AddDomainIntegrator(new DiffusionIntegrator(dr2));
    K->Assemble(0); // keep sparsity pattern of M and K the same
    K->FormSystemMatrix(ess_tdof_list, Kmat);
 

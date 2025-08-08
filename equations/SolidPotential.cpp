@@ -10,11 +10,9 @@ void SolidPotential::Update(const BlockVector &x, const Coefficient &j, const re
    FunctionCoefficient dummy([](const Vector & x){ return sin(2*M_PI*x(0)); });
    ProductCoefficient source(dummy, const_cast<Coefficient&>(j));
 
-   IntegrationRule ir = IntRules.Get(Geometry::SEGMENT, 6);
-
    delete K;
    K = new ParBilinearForm(&fespace);
-   K->AddDomainIntegrator(new DiffusionIntegrator(sigma, &ir));
+   K->AddDomainIntegrator(new DiffusionIntegrator(sigma));
    K->Assemble(0); // keep sparsity pattern of M and K the same
    K->FormSystemMatrix(ess_tdof_list, Kmat);
 
