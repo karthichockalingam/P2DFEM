@@ -6,8 +6,6 @@ void SolidPotential::Update(const BlockVector &x, const Coefficient &j, const re
    ParGridFunction u_gf(&fespace);
    u_gf.SetFromTrueDofs(x.GetBlock(SP));
 
-   real_t a = 1;
-
    ConstantCoefficient sigma(1.0);
    FunctionCoefficient dummy([](const Vector & x){ return sin(2*M_PI*x(0)); });
    ProductCoefficient source(dummy, const_cast<Coefficient&>(j));
@@ -30,4 +28,5 @@ void SolidPotential::Update(const BlockVector &x, const Coefficient &j, const re
    Kmat.Mult(x.GetBlock(SP), b);
    b.Neg();
    b += Qvec;
+   b *= 1./dt;
 }

@@ -6,8 +6,6 @@ void ElectrolytePotential::Update(const BlockVector &x, const Coefficient &j, co
    ParGridFunction u_gf(&fespace);
    u_gf.SetFromTrueDofs(x.GetBlock(EP));
 
-   real_t a = 1;
-
    ConstantCoefficient kappa(1.0);
    ConstantCoefficient kappa_D(1.0);
    FunctionCoefficient dummy([](const Vector & x){ return sin(2*M_PI*x(0)); });
