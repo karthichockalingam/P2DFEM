@@ -1,9 +1,9 @@
 #include "P2DOperator.hpp"
 
 P2DOperator::P2DOperator(ParFiniteElementSpace * &x_fespace, Array<ParFiniteElementSpace *> &r_fespace,
-                         const unsigned &ndofs, real_t dt, BlockVector &x)
+                         const unsigned &ndofs, BlockVector &x)
    : TimeDependentOperator(ndofs, (real_t) 0.0), x_fespace(x_fespace), r_fespace(r_fespace),
-     A(NULL), current_dt(dt), Solver(x_fespace->GetComm()), file("data.csv")
+     A(NULL), current_dt(0.0), Solver(x_fespace->GetComm()), file("data.csv")
 {
    const real_t rel_tol = 1e-8;
 
@@ -93,7 +93,7 @@ void P2DOperator::ImplicitSolve(const real_t dt,
    Solver.Mult(b, dx_dt);
 }
 
-void P2DOperator::Update(const BlockVector &x)
+void P2DOperator::Update(const BlockVector &x, const real_t &dt)
 {
    // rebuild A
    delete A;
@@ -101,14 +101,14 @@ void P2DOperator::Update(const BlockVector &x)
    A->owns_blocks = 1;
 
    ConstantCoefficient jx = ComputeReactionCurrent(x);
-   ep->Update(x, jx, current_dt);
-   sp->Update(x, jx, current_dt);
+   ep->Update(x, jx, dt);
+   sp->Update(x, jx, dt);
 
    if (M == SPM || M == SPMe)
    {
-      ec->Update(x, ComputeReactionCurrent(), current_dt);
+      ec->Update(x, ComputeReactionCurrent());
       for (unsigned p = 0; p < NPAR; p++)
-         sc[p]->Update(x, ComputeReactionCurrent(sc[p]->GetParticleRegion()), current_dt);
+         sc[p]->Update(x, ComputeReactionCurrent(sc[p]->GetParticleRegion()));
    }
    else if (M == P2D)
    {
@@ -119,7 +119,7 @@ void P2DOperator::Update(const BlockVector &x)
       {
          // incomplete, needs comm
          ConstantCoefficient jr(j(sc[p]->GetParticleDof()));
-         sc[p]->Update(x, jr, current_dt);
+         sc[p]->Update(x, jr);
       }
    }
 }

@@ -1,6 +1,6 @@
 #include "SolidConcentration.hpp"
 
-void SolidConcentration::Update(const BlockVector &x, const Coefficient &j, real_t dt)
+void SolidConcentration::Update(const BlockVector &x, const Coefficient &j, const real_t &dt)
 {
    IntegrationRule ir = IntRules.Get(Geometry::SEGMENT, 6);
 

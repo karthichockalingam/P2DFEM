@@ -29,7 +29,7 @@ class SolidConcentration : public Equation
            surface_owned(surface_dof != -1)
       { }
 
-      virtual void Update(const BlockVector &x, const Coefficient &j, real_t dt);
+      virtual void Update(const BlockVector &x, const Coefficient &j, const real_t &dt = 0.0);
       virtual real_t SurfaceConcentration(const BlockVector &x);
       bool IsParticleOwned(){ return particle_owned; }
       bool IsSurfaceOwned() { return surface_owned; }

@@ -40,7 +40,7 @@ protected:
 
 public:
    P2DOperator(ParFiniteElementSpace * &x_fespace, Array<ParFiniteElementSpace *> &r_fespace,
-               const unsigned &ndofs, real_t dt, BlockVector &x);
+               const unsigned &ndofs, BlockVector &x);
 
    virtual void Mult(const Vector &x, Vector &dx_dt) const override {};
 
@@ -48,7 +48,7 @@ public:
        This is the only requirement for high-order SDIRK implicit integration.*/
    virtual void ImplicitSolve(const real_t dt, const Vector &x, Vector &k) override;
 
-   virtual void Update(const BlockVector &x);
+   virtual void Update(const BlockVector &x, const real_t &dt);
 
    PWConstCoefficient ComputeReactionCurrent();
    ConstantCoefficient ComputeReactionCurrent(const Region &r);

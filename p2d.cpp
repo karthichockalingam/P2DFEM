@@ -167,7 +167,7 @@ int main(int argc, char *argv[])
 
    // 9. Initialize the conduction operator and the VisIt visualization.
    BlockVector x;
-   P2DOperator oper(x_fespace, r_fespace, fe_size_owned, dt, x);
+   P2DOperator oper(x_fespace, r_fespace, fe_size_owned, x);
 
    // X. Visualization for the 0th particle
    ParGridFunction u_gf(r_fespace[0]);
@@ -187,7 +187,7 @@ int main(int argc, char *argv[])
    ode_solver->Init(oper);
    real_t t = 0.0;
 
-   oper.Update(x);
+   oper.Update(x, dt);
 
    bool last_step = false;
    for (int ti = 1; !last_step; ti++)
@@ -220,7 +220,7 @@ int main(int argc, char *argv[])
             pd.Save();
          }
       }
-      oper.Update(x);
+      oper.Update(x, dt);
    }
 
    // 11. Free the used memory.
