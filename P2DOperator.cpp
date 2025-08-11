@@ -56,6 +56,7 @@ P2DOperator::P2DOperator(ParFiniteElementSpace * &x_fespace, Array<ParFiniteElem
    else
    {
       Array<int> particle_dofs, particle_offsets;
+      Array<bool>  surface_dof_all_rank;
       GetParticleDofs(particle_dofs, particle_offsets);
       for (unsigned p = 0; p < NPAR; p++)
       {
@@ -64,6 +65,9 @@ P2DOperator::P2DOperator(ParFiniteElementSpace * &x_fespace, Array<ParFiniteElem
          unsigned offset = Mpi::WorldRank() > 0 ? particle_offsets[Mpi::WorldRank() - 1] : 0;
          bool mine = p >= offset && p < offset + particle_dofs.Size();
          int dof = mine ? particle_dofs[p - offset] : -1;
+         GetSurfaceDofRank(r_fespace[p], surface_dof_all_rank);
+         unsigned surface_rank = std::distance(surface_dof_all_rank.begin(),
+            std::find_if(surface_dof_all_rank.begin(), surface_dof_all_rank.end(), [&](int i){ return i == true; }));
          sc.Append(new SolidConcentration(*r_fespace[p], p, rank, dof));
       }
    }
