@@ -11,7 +11,7 @@ namespace constants {
     };
 
     enum Region : int {
-        PE,
+        PE = 1,
         SEP,
         NE
     };

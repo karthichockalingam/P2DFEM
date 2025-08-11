@@ -126,7 +126,7 @@ void P2DOperator::Update(const BlockVector &x, const real_t &dt)
 
 ConstantCoefficient P2DOperator::ComputeReactionCurrent(const Region &r)
 {
-   return ConstantCoefficient(ComputeReactionCurrent()(r + 1));
+   return ConstantCoefficient(ComputeReactionCurrent()(r));
 }
 
 PWConstCoefficient P2DOperator::ComputeReactionCurrent()
@@ -182,7 +182,7 @@ real_t P2DOperator::ComputeExchangeCurrent(const Region &r, const BlockVector &x
    {
       ExchangeCurrentCoefficient jex = ComputeExchangeCurrent(x);
       Array<int> markers(x_fespace->GetParMesh()->attributes.Max());
-      markers = 0; markers[r] = 1;
+      markers = 0; markers[r-1] = 1;
       ParLinearForm sum(x_fespace);
       sum.AddDomainIntegrator(new DomainLFIntegrator(jex), markers);
       sum.Assemble();
