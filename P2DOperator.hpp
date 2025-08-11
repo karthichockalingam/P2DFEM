@@ -66,5 +66,7 @@ public:
 
    virtual void GetParticleDofs(Array<int> & particle_dofs, Array<int> & particle_offsets);
 
+   void GetSurfaceDofRank(ParFiniteElementSpace * r_fespace, Array<bool> & surface_dof_all_rank);
+
    virtual ~P2DOperator() { file.close(); }
 };

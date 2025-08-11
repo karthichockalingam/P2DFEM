@@ -300,3 +300,22 @@ void P2DOperator::GetParticleDofs(Array<int> & particle_dofs, Array<int> & parti
    particle_offsets.PartialSum();
    assert(particle_offsets[Mpi::WorldSize() - 1] == NPAR);
 }
+
+void P2DOperator::GetSurfaceDofRank(ParFiniteElementSpace * r_fespace, Array<bool> & surface_dof_all_rank)
+{
+   Array<int> surface_bdr({0, 1});
+   Array<int> nat_dofs;
+   Array<bool> surface_dof_rank;
+
+   surface_dof_all_rank.SetSize(Mpi::WorldSize());
+   surface_dof_rank.SetSize(Mpi::WorldSize());
+   surface_dof_all_rank = 0;
+   surface_dof_rank = 0;
+
+   r_fespace->GetEssentialVDofs(surface_bdr, nat_dofs);
+   
+   if(nat_dofs.Find(-1) != -1)
+      surface_dof_rank[Mpi::WorldRank()] = 1;
+
+   MPI_Allreduce(surface_dof_rank.GetData(), surface_dof_all_rank.GetData(), Mpi::WorldSize(), MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+}
