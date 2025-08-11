@@ -16,16 +16,19 @@ class SolidConcentration : public Equation
       const Region particle_region;
       const int particle_dof;
       const Array<int> surface_bdr;
+      const int surface_dof_rank;
       const int surface_dof;
       const bool surface_owned;
 
    public:
-      SolidConcentration(ParFiniteElementSpace &f, unsigned id, unsigned rank, int dof = -1)
+      SolidConcentration(ParFiniteElementSpace &f, unsigned id, unsigned rank, unsigned surface_rank, int dof = -1)
          : Equation(f),
            particle_id(id), particle_rank(rank),
            particle_owned(particle_rank == Mpi::WorldRank()),
            particle_region(id < NPEPAR ? PE : NE), particle_dof(dof),
-           surface_bdr({0, 1}), surface_dof(FindSurfaceDof()),
+           surface_bdr({0, 1}), 
+           surface_dof_rank(surface_rank),
+           surface_dof(FindSurfaceDof()),
            surface_owned(surface_dof != -1)
       { }
 

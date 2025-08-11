@@ -52,7 +52,7 @@ P2DOperator::P2DOperator(ParFiniteElementSpace * &x_fespace, Array<ParFiniteElem
 
    if (M == SPM)
       for (unsigned p = 0; p < NPAR; p++)
-         sc.Append(new SolidConcentration(*r_fespace[p], p, 0));
+         sc.Append(new SolidConcentration(*r_fespace[p], p, 0, 0));
    else
    {
       Array<int> particle_dofs, particle_offsets;
@@ -68,7 +68,7 @@ P2DOperator::P2DOperator(ParFiniteElementSpace * &x_fespace, Array<ParFiniteElem
          GetSurfaceDofRank(r_fespace[p], surface_dof_all_rank);
          unsigned surface_rank = std::distance(surface_dof_all_rank.begin(),
             std::find_if(surface_dof_all_rank.begin(), surface_dof_all_rank.end(), [&](int i){ return i == true; }));
-         sc.Append(new SolidConcentration(*r_fespace[p], p, rank, dof));
+         sc.Append(new SolidConcentration(*r_fespace[p], p, rank, surface_rank , dof));
       }
    }
 }
