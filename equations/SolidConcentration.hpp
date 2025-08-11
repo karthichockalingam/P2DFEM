@@ -38,5 +38,6 @@ class SolidConcentration : public Equation
       bool IsSurfaceOwned() { return surface_owned; }
       Region GetParticleRegion(){ return particle_region; }
       int GetParticleDof(){ return particle_dof; }
+      int GetSurfaceDofRank() {return surface_dof_rank;}
       int FindSurfaceDof();
 };

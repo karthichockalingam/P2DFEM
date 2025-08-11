@@ -121,9 +121,25 @@ void P2DOperator::Update(const BlockVector &x, const real_t &dt)
 
       for (unsigned p = 0; p < NPAR; p++)
       {
-         // incomplete, needs comm
-         ConstantCoefficient jr(j(sc[p]->GetParticleDof()));
-         sc[p]->Update(x, jr);
+         MPI_Request request;
+         real_t j_flux; 
+         if (sc[p]->IsParticleOwned())
+            {
+               ConstantCoefficient jr(j(sc[p]->GetParticleDof()));
+               MPI_Isend(&jr.constant, 1, MFEM_MPI_REAL_T, sc[p]->GetSurfaceDofRank(), 1, MPI_COMM_WORLD, &request);
+            }
+
+         if (sc[p]->IsSurfaceOwned())
+            MPI_Recv(&j_flux, 1, MFEM_MPI_REAL_T, MPI_ANY_SOURCE, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+
+         if (sc[p]->IsParticleOwned())
+            MPI_Wait(&request, MPI_STATUS_IGNORE);
+
+         if (sc[p]->IsSurfaceOwned())
+            sc[p]->Update(x, ConstantCoefficient(j_flux));
+         else
+            sc[p]->Update(x, ConstantCoefficient(0.0));
+         //Alternatively call sc[p]->Update(x, ConstantCoefficient(j_flux)) on every proc  
       }
    }
 }
