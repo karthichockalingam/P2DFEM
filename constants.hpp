@@ -61,5 +61,16 @@ namespace constants {
     extern const real_t tp_scale;
     extern const real_t tn_scale;
 
+    extern const real_t ce_scale;
+
+    extern const real_t TPLUS;
+    extern real_t De_p_scale;
+    extern real_t De_n_scale;
+    extern real_t De_s_scale;
+
+    extern real_t DE(real_t ce);
+
+    extern real_t EPS_P, EPS_N, EPS_S;
+
     void init_params(Method m, int order);
 }

@@ -41,12 +41,21 @@ namespace constants {
     real_t tp = F * cpmax * cell_area * L / I_typ; // Positive particle time scale.
     real_t tn = F * cnmax * cell_area * L / I_typ; // Negative particle time scale.
 
+    real_t te = F * ce0 * cell_area * L / I_typ; // Electrolyte "particle" time scale.
+
     real_t Dp_scale = r0 * r0 / t0; // Positive particle diffusion coefficient scale.  Units of m^2/s.
     real_t Dn_scale = r0 * r0 / t0; // Negative particle diffusion coefficient scale.  Units of m^2/s.
     // For some reason, JuBat calculates the following diffusion coefficient scales, but then later on multiplies
     // the mass matrix by tp / t0 (or tn / t0) which results in cancelling out tp (or tn) and replacing it with t0.
     //real_t Dp_scale = r0 * r0 / tp; // Positive particle diffusion coefficient scale.  Units of m^2/s.
     //real_t Dn_scale = r0 * r0 / tn; // Negative particle diffusion coefficient scale.  Units of m^2/s.
+
+    real_t De_scale = L * L / t0;
+
+    real_t De_p_scale = pow(eps_p, brugg);
+    real_t De_n_scale = pow(eps_n, brugg);
+    real_t De_s_scale = pow(eps_s, brugg);
+
 
     real_t j_scale = I_typ / a0 / L / cell_area;
 
@@ -63,6 +72,8 @@ namespace constants {
     // SolidConcentration equation.
     real_t tp_scale = tp / t0;
     real_t tn_scale = tn / t0;
+
+    real_t ce_scale = ce0;
 
     // Scaled parameters
     real_t DP = Dp / Dp_scale; // Positive particle diffusion coefficient.
@@ -81,9 +92,20 @@ namespace constants {
     real_t RN = rn / r0; // Scaled negative particle radius.
 
     // Extras to be properly defined later.
-    real_t CE0 = 1.; // Scaled electrolyte concentration.
+    real_t CE0 = ce0 / ce_scale; // Scaled electrolyte concentration.
     real_t I = 1.; // Scaled current.
     real_t T = 1.0; // Scaled temperature.
+
+    real_t EPS_P = eps_p;
+    real_t EPS_N = eps_n;
+    real_t EPS_S = eps_s;
+
+    real_t TPLUS = tplus;
+
+    real_t DE(real_t ce)
+    {
+        return De(ce) / De_scale;
+    }
 
 
     void init_params(Method m, int order) {

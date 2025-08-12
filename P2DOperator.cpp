@@ -232,6 +232,10 @@ void P2DOperator::ComputeVoltage(const BlockVector &x, real_t t, real_t dt)
    real_t eta_p = 2 * T * asinh(jp / 2.0 / j0_p);
    real_t eta_n = 2 * T * asinh(jn / 2.0 / j0_n);
 
+   // Beginning of implementation of Ve.  Seems to differ from JuBat's paper...
+   //real_t dphi_S =  I_app / 3 * (param.NE.thickness / param.NE.sig + param.PE.thickness / param.PE.sig)
+   //real_t Ve = 2.0 * T * (1 - TPLUS) * (csp_av - csn_av)/ce0 - I_app * R_EL - dphi_S
+
    // Definition from JuBat: https://doi.org/10.1016/j.est.2023.107512
    real_t voltage = Up - Un + (eta_p - eta_n) * phi_scale;
 
