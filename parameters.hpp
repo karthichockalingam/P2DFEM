@@ -12,7 +12,7 @@ namespace LGM50 {
     extern const real_t rp = 5.22e-6; // Positive particle radius (m).
     extern const real_t positive_electrode_thickness = 75.6e-6;
 
-    extern const real_t eps_p = 0.335; // Porosity???
+    extern const real_t eps_p = 0.335; // Electrode volume fraction.
     extern const real_t eps_p_fi = 0.0;
     extern const real_t eps_p_s = 1 - eps_p - eps_p_fi;
 
@@ -27,7 +27,7 @@ namespace LGM50 {
     extern const real_t rn = 5.86e-6; // Negative particle radius (m).
     extern const real_t negative_electrode_thickness = 85.2e-6;
 
-    extern const real_t eps_n = 0.25; // Porosity???
+    extern const real_t eps_n = 0.25; // Electrode volume fraction.
     extern const real_t eps_n_fi = 0.0;
     extern const real_t eps_n_s = 1 - eps_n - eps_n_fi;
 
@@ -38,6 +38,12 @@ namespace LGM50 {
     // Separator.
     extern const real_t separator_thickness = 12e-6;
     extern const real_t ce0 = 1000.0;
+    extern const real_t tplus = 0.2594;
+    extern const real_t eps_s = 0.47;
+    extern real_t De(real_t ce)
+    {
+        return 8.794e-11 * pow(ce / 1000, 2) - 3.972e-10 * (ce / 1000) + 4.862e-10;
+    }
 
     // Cell parameters.
     extern const real_t cell_length = 1.58;
@@ -46,6 +52,8 @@ namespace LGM50 {
     extern const real_t cell_area = cell_width * cell_length * cell_no_layers;
 
     extern const real_t I_typ = 5.0;    // Or I1C in Jubat.
+
+    extern const real_t brugg = 1.5; // Currently the same in each region, may need to vary later.
 
 
 }

@@ -4,6 +4,8 @@
 #include "equations/SolidPotential.hpp"
 #include "equations/SolidConcentration.hpp"
 #include "coefficients/ExchangeCurrentCoefficient.hpp"
+//#include "coefficients/ElectrolyteDiffusionCoefficient.hpp"
+
 
 using namespace std;
 using namespace mfem;
