@@ -188,9 +188,13 @@ real_t P2DOperator::ComputeExchangeCurrent(const Region &r, const BlockVector &x
       sum.Assemble();
 
       real_t reduction_result = sum.Sum();
+      std::cout << "CEC: " << "reduction_result = " << reduction_result << std::endl;
+
       MPI_Allreduce(MPI_IN_PLACE, &reduction_result, 1, MFEM_MPI_REAL_T, MPI_SUM, MPI_COMM_WORLD);
 
+      std::cout << "CEC: " << "reduction_result = " << reduction_result << std::endl;
       real_t l = r == PE ? LPE : r == NE ? LNE : 0;
+      std::cout << "CEC: " << "l = " << l << std::endl;
       return reduction_result / l;
    }
    else
@@ -236,12 +240,26 @@ void P2DOperator::ComputeVoltage(const BlockVector &x, real_t t, real_t dt)
    //real_t dphi_S =  I_app / 3 * (param.NE.thickness / param.NE.sig + param.PE.thickness / param.PE.sig)
    //real_t Ve = 2.0 * T * (1 - TPLUS) * (csp_av - csn_av)/ce0 - I_app * R_EL - dphi_S
 
+   real_t Ve = 0.0;
+   if (M == SPMe)
+   {
+      real_t Ve = 0.0;
+   }
+
    // Definition from JuBat: https://doi.org/10.1016/j.est.2023.107512
-   real_t voltage = Up - Un + (eta_p - eta_n) * phi_scale;
+   real_t voltage = Up - Un + (eta_p - eta_n) * phi_scale - Ve;
 
    // Temporary printing.
    if (Mpi::Root())
    {
+      std::cout << "Up = " << Up << std::endl;
+      std::cout << "Un = " << Un << std::endl;
+      std::cout << "jp = " << jp << std::endl;
+      std::cout << "jn = " << jn << std::endl;
+      std::cout << "j0_p = " << j0_p << std::endl;
+      std::cout << "j0_n = " << j0_n << std::endl;
+      std::cout << "eta_p = " << eta_p << std::endl;
+      std::cout << "eta_n = " << eta_n << std::endl;
       std::cout << "[Rank " << Mpi::WorldRank() << "]"
                   << " Voltage = " << voltage << std::endl;
 
