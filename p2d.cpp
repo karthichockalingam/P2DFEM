@@ -53,7 +53,7 @@ int main(int argc, char *argv[])
    int order = 1;
    int ode_solver_type = 3;
    real_t t_final = 3600.0;
-   real_t dt = 0.1;
+   real_t dt = 0.01;
    bool visualization = true;
    int vis_steps = 5;
 
@@ -172,6 +172,7 @@ int main(int argc, char *argv[])
 
    // X. Visualization for the 0th particle
    ParGridFunction u_gf(r_fespace[0]);
+   ParGridFunction ec_gf(x_fespace);
 
    ParaViewDataCollection pd("particle", r_pmesh[0]);
    pd.SetPrefixPath("ParaView");
@@ -182,6 +183,16 @@ int main(int argc, char *argv[])
    pd.SetCycle(0);
    pd.SetTime(0.0);
    pd.Save();
+
+   ParaViewDataCollection pd_e("electrolyte", x_pmesh);
+   pd_e.SetPrefixPath("ParaView");
+   pd_e.SetLevelsOfDetail(order);
+   pd_e.SetHighOrderOutput(true);
+   pd_e.SetDataFormat(VTKFormat::BINARY);
+   pd_e.RegisterField("ec", &ec_gf);
+   pd_e.SetCycle(0);
+   pd_e.SetTime(0.0);
+   pd_e.Save();
 
    // 10. Perform time-integration (looping over the time iterations, ti, with a
    //     time-step dt).
@@ -216,9 +227,15 @@ int main(int argc, char *argv[])
             std::cout << "[Rank " << Mpi::WorldRank() << "]"
                       << " Total flux accumulated (" << 0 << ") = " << sum.Sum() << std::endl;
 
+            ec_gf.SetFromTrueDofs(x.GetBlock(EC));
+
             pd.SetCycle(ti);
             pd.SetTime(t);
             pd.Save();
+
+            pd_e.SetCycle(ti);
+            pd_e.SetTime(t);
+            pd_e.Save();
          }
       }
       oper.Update(x, dt);
