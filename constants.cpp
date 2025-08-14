@@ -137,9 +137,12 @@ namespace constants {
             case P2D:
                 NPEPAR = NPE * order - 1;
                 NNEPAR = NNE * order - 1;
-                LPE  = 1. * NPE  / NX;
-                LSEP = 1. * NSEP / NX;
-                LNE  = 1. * NNE  / NX;
+                //LPE  = 1. * NPE  / NX;
+                //LSEP = 1. * NSEP / NX;
+                //LNE  = 1. * NNE  / NX;
+                LPE = positive_electrode_thickness / L;
+                LSEP = separator_thickness / L;
+                LNE = negative_electrode_thickness / L;
                 break;
         }
         NPAR = NPEPAR + NNEPAR;
