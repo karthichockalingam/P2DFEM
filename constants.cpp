@@ -22,10 +22,6 @@ namespace constants {
     unsigned NPAR = 0;
     unsigned NR = 10;
 
-    real_t LPE  = 0.;
-    real_t LSEP = 0.;
-    real_t LNE  = 0.;
-
     // Dimensional constants
     real_t F = 96485.33289; // Faraday constant, C/mol
     real_t R = 8.314; // Universal gas constant, J/(mol*K)
@@ -91,6 +87,10 @@ namespace constants {
     real_t RP = rp / r0; // Scaled positive particle radius.
     real_t RN = rn / r0; // Scaled negative particle radius.
 
+    real_t LPE = positive_electrode_thickness / L;  // Scaled positive electrode thickness.
+    real_t LSEP = separator_thickness / L;          // Scaled separator thickness.
+    real_t LNE = negative_electrode_thickness / L;  // Scaled negative electrode thickness.
+
     // Extras to be properly defined later.
     real_t CE0 = ce0 / ce_scale; // Scaled electrolyte concentration.
     real_t I = 1.; // Scaled current.
@@ -106,6 +106,8 @@ namespace constants {
     {
         return De(ce) / De_scale;
     }
+
+    
 
 
     void init_params(Method m, int order) {
@@ -128,19 +130,10 @@ namespace constants {
             case SPM:
             case SPMe:
                 NPEPAR = NNEPAR = 1;
-                LPE = positive_electrode_thickness / L;
-                LSEP = separator_thickness / L;
-                LNE = negative_electrode_thickness / L;
                 break;
             case P2D:
                 NPEPAR = NPE * order - 1;
                 NNEPAR = NNE * order - 1;
-                //LPE  = 1. * NPE  / NX;
-                //LSEP = 1. * NSEP / NX;
-                //LNE  = 1. * NNE  / NX;
-                LPE = positive_electrode_thickness / L;
-                LSEP = separator_thickness / L;
-                LNE = negative_electrode_thickness / L;
                 break;
         }
         NPAR = NPEPAR + NNEPAR;
