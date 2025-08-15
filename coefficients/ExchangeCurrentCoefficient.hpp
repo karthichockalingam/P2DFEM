@@ -21,7 +21,13 @@ class ExchangeCurrentCoefficient: public Coefficient
         _electrolyte_concentration(electrolyte_concentration),
         _sc(&_surface_concentration),
         _ec(&_electrolyte_concentration),
-        _jex(&_sc, &_ec, [](real_t sc, real_t ec) { return sqrt( sc * ec * (1 - sc) ); }) {}
+        _jex(&_sc, &_ec, [](real_t sc, real_t ec) 
+        {  
+         
+         std::cout << " sc = " << sc << endl;
+         std::cout << " ec = " << ec << endl;
+         return sqrt( sc * ec * (1 - sc) ); 
+        }) {}
 
       virtual real_t Eval(ElementTransformation &T, const IntegrationPoint &ip)
       { return _jex.Eval(T, ip); }

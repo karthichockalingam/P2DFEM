@@ -146,6 +146,7 @@ void P2DOperator::Update(const BlockVector &x, const real_t &dt)
 
 ConstantCoefficient P2DOperator::ComputeReactionCurrent(const Region &r)
 {
+   std::cout << "r = " << r << " ComputeReactionCurrent = " << ComputeReactionCurrent()(r) << std::endl;
    return ConstantCoefficient(ComputeReactionCurrent()(r));
 }
 
@@ -215,12 +216,14 @@ real_t P2DOperator::ComputeExchangeCurrent(const Region &r, const BlockVector &x
       sum.AddDomainIntegrator(new DomainLFIntegrator(jex), markers);
       sum.Assemble();
 
+      sum.Print_HYPRE(std::cout);
+
       real_t reduction_result = sum.Sum();
-      std::cout << "CEC: " << "reduction_result = " << reduction_result << std::endl;
+      std::cout << "CEC: r = " << r << " reduction_result = " << reduction_result << std::endl;
 
       MPI_Allreduce(MPI_IN_PLACE, &reduction_result, 1, MFEM_MPI_REAL_T, MPI_SUM, MPI_COMM_WORLD);
 
-      std::cout << "CEC: " << "reduction_result = " << reduction_result << std::endl;
+      std::cout << "CEC: r = " << r << " reduction_result = " << reduction_result << std::endl;
       real_t l = r == PE ? LPE : r == NE ? LNE : 0;
       std::cout << "CEC: " << "l = " << l << std::endl;
       return reduction_result / l;
