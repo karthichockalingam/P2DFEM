@@ -4,7 +4,7 @@
 void ElectrolytePotential::Update(const BlockVector &x, const Coefficient &j, const real_t &dt)
 {
    ParGridFunction u_gf(&fespace);
-   u_gf.SetFromTrueDofs(x.GetBlock(EP));
+   u_gf.SetFromTrueDofs(x.GetBlock(EC));
 
    ConstantCoefficient kappa(1.0);
    ConstantCoefficient kappa_D(1.0);
@@ -34,4 +34,5 @@ void ElectrolytePotential::Update(const BlockVector &x, const Coefficient &j, co
    Kmat.Mult(x.GetBlock(EP), b);
    b.Neg();
    b += Qvec;
+   b *= 1./dt;
 }
