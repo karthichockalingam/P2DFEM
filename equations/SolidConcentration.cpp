@@ -59,3 +59,10 @@ int SolidConcentration::FindSurfaceDof()
    fespace.GetEssentialVDofs(surface_bdr, nat_dofs);
    return nat_dofs.Find(-1);
 }
+
+unsigned SolidConcentration::FindSurfaceRank()
+{
+   Array<bool> surface_rank(Mpi::WorldSize());
+   MPI_Allgather(&surface_owned, 1, MPI_CXX_BOOL, surface_rank.GetData(), 1, MPI_CXX_BOOL, MPI_COMM_WORLD);
+   return std::distance(surface_rank.begin(), std::find(surface_rank.begin(), surface_rank.end(), true));
+}

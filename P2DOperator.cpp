@@ -52,11 +52,10 @@ P2DOperator::P2DOperator(ParFiniteElementSpace * &x_fespace, Array<ParFiniteElem
 
    if (M == SPM || M == SPMe)
       for (unsigned p = 0; p < NPAR; p++)
-         sc.Append(new SolidConcentration(*r_fespace[p], p, 0, 0));
+         sc.Append(new SolidConcentration(*r_fespace[p], p, 0));
    else
    {
       Array<int> particle_dofs, particle_offsets;
-      Array<bool>  surface_dof_all_rank;
       GetParticleDofs(particle_dofs, particle_offsets);
       for (unsigned p = 0; p < NPAR; p++)
       {
@@ -65,10 +64,7 @@ P2DOperator::P2DOperator(ParFiniteElementSpace * &x_fespace, Array<ParFiniteElem
          unsigned offset = Mpi::WorldRank() > 0 ? particle_offsets[Mpi::WorldRank() - 1] : 0;
          bool mine = p >= offset && p < offset + particle_dofs.Size();
          int dof = mine ? particle_dofs[p - offset] : -1;
-         GetSurfaceDofRank(r_fespace[p], surface_dof_all_rank);
-         unsigned surface_rank = std::distance(surface_dof_all_rank.begin(),
-            std::find_if(surface_dof_all_rank.begin(), surface_dof_all_rank.end(), [&](int i){ return i == true; }));
-         sc.Append(new SolidConcentration(*r_fespace[p], p, rank, surface_rank , dof));
+         sc.Append(new SolidConcentration(*r_fespace[p], p, rank, dof));
       }
    }
 }
@@ -122,24 +118,17 @@ void P2DOperator::Update(const BlockVector &x, const real_t &dt)
       for (unsigned p = 0; p < NPAR; p++)
       {
          MPI_Request request;
-         real_t j_flux; 
+         real_t jr = sc[p]->IsParticleOwned() ? j(sc[p]->GetParticleDof()) : 0;
          if (sc[p]->IsParticleOwned())
-            {
-               ConstantCoefficient jr(j(sc[p]->GetParticleDof()));
-               MPI_Isend(&jr.constant, 1, MFEM_MPI_REAL_T, sc[p]->GetSurfaceDofRank(), 1, MPI_COMM_WORLD, &request);
-            }
+            MPI_Isend(&jr, 1, MFEM_MPI_REAL_T, sc[p]->GetSurfaceRank(), 1, MPI_COMM_WORLD, &request);
 
          if (sc[p]->IsSurfaceOwned())
-            MPI_Recv(&j_flux, 1, MFEM_MPI_REAL_T, MPI_ANY_SOURCE, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+            MPI_Recv(&jr, 1, MFEM_MPI_REAL_T, MPI_ANY_SOURCE, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
          if (sc[p]->IsParticleOwned())
             MPI_Wait(&request, MPI_STATUS_IGNORE);
 
-         if (sc[p]->IsSurfaceOwned())
-            sc[p]->Update(x, ConstantCoefficient(j_flux));
-         else
-            sc[p]->Update(x, ConstantCoefficient(0.0));
-         //Alternatively call sc[p]->Update(x, ConstantCoefficient(j_flux)) on every proc  
+         sc[p]->Update(x, ConstantCoefficient(jr));
       }
    }
 }
@@ -332,23 +321,4 @@ void P2DOperator::GetParticleDofs(Array<int> & particle_dofs, Array<int> & parti
 
    particle_offsets.PartialSum();
    assert(particle_offsets[Mpi::WorldSize() - 1] == NPAR);
-}
-
-void P2DOperator::GetSurfaceDofRank(ParFiniteElementSpace * r_fespace, Array<bool> & surface_dof_all_rank)
-{
-   Array<int> surface_bdr({0, 1});
-   Array<int> nat_dofs;
-   Array<bool> surface_dof_rank;
-
-   surface_dof_all_rank.SetSize(Mpi::WorldSize());
-   surface_dof_rank.SetSize(Mpi::WorldSize());
-   surface_dof_all_rank = 0;
-   surface_dof_rank = 0;
-
-   r_fespace->GetEssentialVDofs(surface_bdr, nat_dofs);
-   
-   if(nat_dofs.Find(-1) != -1)
-      surface_dof_rank[Mpi::WorldRank()] = 1;
-
-   MPI_Allreduce(surface_dof_rank.GetData(), surface_dof_all_rank.GetData(), Mpi::WorldSize(), MPI_INT, MPI_SUM, MPI_COMM_WORLD);
 }
