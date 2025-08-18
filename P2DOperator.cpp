@@ -50,7 +50,7 @@ P2DOperator::P2DOperator(ParFiniteElementSpace * &x_fespace, Array<ParFiniteElem
    ec = new ElectrolyteConcentration(*x_fespace);
    sp = new SolidPotential(*x_fespace);
 
-   if (M == SPM)
+   if (M == SPM || M == SPMe)
       for (unsigned p = 0; p < NPAR; p++)
          sc.Append(new SolidConcentration(*r_fespace[p], p, 0, 0));
    else
@@ -200,7 +200,15 @@ real_t P2DOperator::ComputeExchangeCurrent(const Region &r, const BlockVector &x
    }
    else if (M == SPMe)
    {
-      ExchangeCurrentCoefficient jex = ComputeExchangeCurrent(x);
+      real_t sc = ComputeSurfaceConcentration(r, x);
+      real_t k = r == PE ? KP : r == NE ? KN : 0;
+
+      ParGridFunction ec_gf(x_fespace);
+      ec_gf.SetFromTrueDofs(x.GetBlock(EC));
+
+      GridFunctionCoefficient ec_gfc(&ec_gf);
+      TransformedCoefficient jex(&ec_gfc, [=](real_t ec) { return k * sqrt(sc * ec * abs(1.0 - sc)); });
+
       Array<int> markers(x_fespace->GetParMesh()->attributes.Max());
       markers = 0; markers[r-1] = 1;
       ParLinearForm sum(x_fespace);
@@ -212,6 +220,11 @@ real_t P2DOperator::ComputeExchangeCurrent(const Region &r, const BlockVector &x
 
       real_t l = r == PE ? LPE : r == NE ? LNE : 0;
       return reduction_result / l;
+   }
+   else if (M == P2D)
+   {
+      ExchangeCurrentCoefficient jex = ComputeExchangeCurrent(x);
+      return -1;
    }
    else
       mfem_error("Cannot calculate constant exchange current for the given method. Only SPM and SPMe are supported.");

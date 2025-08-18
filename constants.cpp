@@ -95,8 +95,6 @@ namespace constants {
                 NPE = NSEP = NNE = 0;
                 break;
             case SPMe:
-                NPE = NNE = 2; NSEP = 1;
-                break;
             case P2D:
                 NPE = NSEP = NNE = 5;
                 break;
@@ -106,12 +104,12 @@ namespace constants {
         switch (M)
         {
             case SPM:
+            case SPMe:
                 NPEPAR = NNEPAR = 1;
                 LPE = positive_electrode_thickness / L;
                 LSEP = separator_thickness / L;
                 LNE = negative_electrode_thickness / L;
                 break;
-            case SPMe:
             case P2D:
                 NPEPAR = NPE * order - 1;
                 NNEPAR = NNE * order - 1;
