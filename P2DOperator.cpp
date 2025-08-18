@@ -257,7 +257,7 @@ void P2DOperator::ComputeVoltage(const BlockVector &x, real_t t, real_t dt)
    // Definition from JuBat: https://doi.org/10.1016/j.est.2023.107512
    real_t voltage = Up - Un + (eta_p - eta_n) * phi_scale;
 
-   // Temporary printing.
+   // Temporary printing (a bit miraculous this is working even with ComputeSurfaceConcentration but causes MPI error on termination)
    if (Mpi::Root())
    {
       std::cout << "[Rank " << Mpi::WorldRank() << "]"
