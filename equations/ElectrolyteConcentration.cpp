@@ -28,9 +28,10 @@ void ElectrolyteConcentration::Update(const BlockVector &x, const Coefficient &j
       /* PE */  De_p_scale, 
       /* SEP */ De_s_scale, 
       /* NE */  De_n_scale    });
-   DECoefficient D_coeff(u_gf, ce_scale);
+   //DECoefficient D_coeff(u_gf, ce_scale);
+   ConstantCoefficient D_coeff_fixed(0.5);
    PWConstCoefficient D_scale_coeff(D_scale_vec);
-   ProductCoefficient D(D_scale_coeff, D_coeff);
+   ProductCoefficient D(D_scale_coeff, D_coeff_fixed);
 
    delete M;
    M = new ParBilinearForm(&fespace);
