@@ -46,7 +46,11 @@ namespace constants {
     //real_t Dp_scale = r0 * r0 / tp; // Positive particle diffusion coefficient scale.  Units of m^2/s.
     //real_t Dn_scale = r0 * r0 / tn; // Negative particle diffusion coefficient scale.  Units of m^2/s.
 
+<<<<<<< HEAD
     real_t De_scale = L * L / te;
+=======
+    real_t De_scale = L * L / t0;
+>>>>>>> 9cdeb5b93fb6d9d4942555f0815d3beba7cf25f8
 
     real_t De_p_scale = pow(eps_p, brugg);
     real_t De_n_scale = pow(eps_n, brugg);
@@ -106,7 +110,13 @@ namespace constants {
     {
         return De(ce) / De_scale;
     }
+<<<<<<< HEAD
     
+=======
+
+    
+
+>>>>>>> 9cdeb5b93fb6d9d4942555f0815d3beba7cf25f8
 
     void init_params(Method m, int order) {
         M = m;
@@ -126,6 +136,11 @@ namespace constants {
         switch (M)
         {
             case SPM:
+<<<<<<< HEAD
+=======
+                NPEPAR = NNEPAR = 1;
+                break;
+>>>>>>> 9cdeb5b93fb6d9d4942555f0815d3beba7cf25f8
             case SPMe:
                 NPEPAR = NNEPAR = 1;
                 break;

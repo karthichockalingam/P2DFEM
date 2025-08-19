@@ -172,6 +172,11 @@ int main(int argc, char *argv[])
 
    // X. Visualization for the 0th particle
    ParGridFunction u_gf(r_fespace[0]);
+<<<<<<< HEAD
+=======
+   ParGridFunction ec_gf(x_fespace);
+
+>>>>>>> 9cdeb5b93fb6d9d4942555f0815d3beba7cf25f8
    ParaViewDataCollection pd("particle", r_pmesh[0]);
    pd.SetPrefixPath("ParaView");
    pd.SetLevelsOfDetail(order);
@@ -182,8 +187,11 @@ int main(int argc, char *argv[])
    pd.SetTime(0.0);
    pd.Save();
 
+<<<<<<< HEAD
    // Visualisation for the electrolyte
    ParGridFunction ec_gf(x_fespace);
+=======
+>>>>>>> 9cdeb5b93fb6d9d4942555f0815d3beba7cf25f8
    ParaViewDataCollection pd_e("electrolyte", x_pmesh);
    pd_e.SetPrefixPath("ParaView");
    pd_e.SetLevelsOfDetail(order);
@@ -229,8 +237,11 @@ int main(int argc, char *argv[])
 
             ec_gf.SetFromTrueDofs(x.GetBlock(EC));
 
+<<<<<<< HEAD
             std::cout << "ec(0) = " << ec_gf(0) << std::endl;
 
+=======
+>>>>>>> 9cdeb5b93fb6d9d4942555f0815d3beba7cf25f8
             pd.SetCycle(ti);
             pd.SetTime(t);
             pd.Save();
