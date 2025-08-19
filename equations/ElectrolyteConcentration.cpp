@@ -23,15 +23,22 @@ void ElectrolyteConcentration::Update(const BlockVector &x, const Coefficient &j
    PWConstCoefficient source_part(source_vec);
    ProductCoefficient source(source_part, const_cast<Coefficient&>(j));
 
+   //std::cout << "Source = " << source_vec(0) << ", " << source_vec(1) << ", " << source_vec(2) << std::endl;
+
    // Diffusion coefficient.
    Vector D_scale_vec({
       /* PE */  De_p_scale, 
       /* SEP */ De_s_scale, 
       /* NE */  De_n_scale    });
    //DECoefficient D_coeff(u_gf, ce_scale);
-   ConstantCoefficient D_coeff_fixed(0.5);
+   //ConstantCoefficient D_coeff_fixed(0.5);
+   FunctionCoefficient D_coeff_func([](const Vector & x){ return DE(0.5); });
    PWConstCoefficient D_scale_coeff(D_scale_vec);
-   ProductCoefficient D(D_scale_coeff, D_coeff_fixed);
+   ProductCoefficient D(D_scale_coeff, D_coeff_func);
+
+   //std::cout << "DE(0.5) = " << DE(0.5 * ce_scale) << std::endl;
+   //std::cout << "D_p_scale = " << De_p_scale << std::endl;
+   //std::cout << "De_pe = " << De_p_scale * DE(0.5 * ce_scale) << std::endl;
 
    delete M;
    M = new ParBilinearForm(&fespace);

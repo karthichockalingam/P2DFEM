@@ -172,8 +172,6 @@ int main(int argc, char *argv[])
 
    // X. Visualization for the 0th particle
    ParGridFunction u_gf(r_fespace[0]);
-   ParGridFunction ec_gf(x_fespace);
-
    ParaViewDataCollection pd("particle", r_pmesh[0]);
    pd.SetPrefixPath("ParaView");
    pd.SetLevelsOfDetail(order);
@@ -184,6 +182,8 @@ int main(int argc, char *argv[])
    pd.SetTime(0.0);
    pd.Save();
 
+   // Visualisation for the electrolyte
+   ParGridFunction ec_gf(x_fespace);
    ParaViewDataCollection pd_e("electrolyte", x_pmesh);
    pd_e.SetPrefixPath("ParaView");
    pd_e.SetLevelsOfDetail(order);
@@ -228,6 +228,8 @@ int main(int argc, char *argv[])
                       << " Total flux accumulated (" << 0 << ") = " << sum.Sum() << std::endl;
 
             ec_gf.SetFromTrueDofs(x.GetBlock(EC));
+
+            std::cout << "ec(0) = " << ec_gf(0) << std::endl;
 
             pd.SetCycle(ti);
             pd.SetTime(t);

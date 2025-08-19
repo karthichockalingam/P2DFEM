@@ -46,7 +46,7 @@ namespace constants {
     //real_t Dp_scale = r0 * r0 / tp; // Positive particle diffusion coefficient scale.  Units of m^2/s.
     //real_t Dn_scale = r0 * r0 / tn; // Negative particle diffusion coefficient scale.  Units of m^2/s.
 
-    real_t De_scale = L * L / t0;
+    real_t De_scale = L * L / te;
 
     real_t De_p_scale = pow(eps_p, brugg);
     real_t De_n_scale = pow(eps_n, brugg);
@@ -106,9 +106,7 @@ namespace constants {
     {
         return De(ce) / De_scale;
     }
-
     
-
 
     void init_params(Method m, int order) {
         M = m;

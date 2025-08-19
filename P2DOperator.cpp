@@ -146,13 +146,14 @@ void P2DOperator::Update(const BlockVector &x, const real_t &dt)
 
 ConstantCoefficient P2DOperator::ComputeReactionCurrent(const Region &r)
 {
-   std::cout << "r = " << r << " ComputeReactionCurrent = " << ComputeReactionCurrent()(r) << std::endl;
+   //std::cout << "r = " << r << " ComputeReactionCurrent = " << ComputeReactionCurrent()(r) << std::endl;
    return ConstantCoefficient(ComputeReactionCurrent()(r));
 }
 
 PWConstCoefficient P2DOperator::ComputeReactionCurrent()
 {
    Vector c({/* PE */ - I / AP / LPE, /* SEP */ 0., /* NE */ + I / AN / LNE});
+   //std::cout << "j_p = " << I / AN / LNE << std::endl;
    return PWConstCoefficient(c);
 }
 
@@ -208,7 +209,7 @@ real_t P2DOperator::ComputeExchangeCurrent(const Region &r, const BlockVector &x
       ec_gf.SetFromTrueDofs(x.GetBlock(EC));
 
       GridFunctionCoefficient ec_gfc(&ec_gf);
-      TransformedCoefficient jex(&ec_gfc, [=](real_t ec) { return k * sqrt(sc * ec * abs(1.0 - sc)); });
+      TransformedCoefficient jex(&ec_gfc, [=](real_t ec) { return k * sqrt(sc * (ec + CE0) * abs(1.0 - sc)); });
 
       Array<int> markers(x_fespace->GetParMesh()->attributes.Max());
       markers = 0; markers[r-1] = 1;
@@ -216,16 +217,16 @@ real_t P2DOperator::ComputeExchangeCurrent(const Region &r, const BlockVector &x
       sum.AddDomainIntegrator(new DomainLFIntegrator(jex), markers);
       sum.Assemble();
 
-      sum.Print_HYPRE(std::cout);
+      //sum.Print_HYPRE(std::cout);
 
       real_t reduction_result = sum.Sum();
-      std::cout << "CEC: r = " << r << " reduction_result = " << reduction_result << std::endl;
+      //std::cout << "CEC: r = " << r << " reduction_result = " << reduction_result << std::endl;
 
       MPI_Allreduce(MPI_IN_PLACE, &reduction_result, 1, MFEM_MPI_REAL_T, MPI_SUM, MPI_COMM_WORLD);
 
-      std::cout << "CEC: r = " << r << " reduction_result = " << reduction_result << std::endl;
+      //std::cout << "CEC: r = " << r << " reduction_result = " << reduction_result << std::endl;
       real_t l = r == PE ? LPE : r == NE ? LNE : 0;
-      std::cout << "CEC: " << "l = " << l << std::endl;
+      //std::cout << "CEC: " << "l = " << l << std::endl;
       return reduction_result / l;
    }
    else if (M == P2D)
@@ -288,14 +289,14 @@ void P2DOperator::ComputeVoltage(const BlockVector &x, real_t t, real_t dt)
    // Temporary printing.
    if (Mpi::Root())
    {
-      std::cout << "Up = " << Up << std::endl;
+      /*std::cout << "Up = " << Up << std::endl;
       std::cout << "Un = " << Un << std::endl;
       std::cout << "jp = " << jp << std::endl;
       std::cout << "jn = " << jn << std::endl;
       std::cout << "j0_p = " << j0_p << std::endl;
       std::cout << "j0_n = " << j0_n << std::endl;
       std::cout << "eta_p = " << eta_p << std::endl;
-      std::cout << "eta_n = " << eta_n << std::endl;
+      std::cout << "eta_n = " << eta_n << std::endl;*/
       std::cout << "[Rank " << Mpi::WorldRank() << "]"
                   << " Voltage = " << voltage << std::endl;
 
