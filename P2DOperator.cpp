@@ -151,11 +151,15 @@ ConstantCoefficient P2DOperator::ComputeReactionCurrent(const BlockVector &x)
 
 real_t P2DOperator::GetSurfaceConcentration(const Region &r, const BlockVector &x)
 {
+   MFEM_ASSERT(M == SPM || M == SPMe, "Cannot get constant surface concentration, only SPM and SPMe are supported.");
    MFEM_ASSERT(r == PE || r == NE, "Cannot get constant surface concentration, only positive (PE) and negative electrodes (NE) are supported.");
-   real_t sc0 = r == PE ? CP0 : CN0;
+
+   real_t csurf = r == PE ? CP0 : CN0;
    for (unsigned p = 0; p < NPAR; p++)
       if (sc[p]->GetParticleRegion() == r)
-         return sc0 + sc[p]->SurfaceConcentration(x);
+         csurf += sc[p]->SurfaceConcentration(x);
+
+   return csurf;
 }
 
 ParGridFunction P2DOperator::GetSurfaceConcentration(const BlockVector &x)
@@ -164,14 +168,12 @@ ParGridFunction P2DOperator::GetSurfaceConcentration(const BlockVector &x)
    sc_gf = 0;
 
    for (unsigned p = 0; p < NPAR; p++)
-   {
-      Region r = sc[p]->GetParticleRegion();
-      MFEM_ASSERT(r == PE || r == NE, "Particles outside electrodes not supported.");
-      real_t sc0 = r == PE ? CP0 : CN0;
-      real_t csurf = sc[p]->SurfaceConcentration(x);
       if (sc[p]->IsParticleOwned())
-         sc_gf(sc[p]->GetParticleDof()) = sc0 + csurf;
-   }
+      {
+         real_t csurf0 = sc[p]->GetParticleRegion() == PE ? CP0 : CN0;
+         sc_gf(sc[p]->GetParticleDof()) = csurf0 + sc[p]->SurfaceConcentration(x);
+      }
+
    // Apply prolongation after restriction. Might be unnecessary, but guarantees
    // all processors have the right information for all their local dofs.
    sc_gf.SetFromTrueVector();
