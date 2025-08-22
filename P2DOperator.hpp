@@ -28,7 +28,6 @@ protected:
 
    BlockOperator * A;
 
-   HypreParMatrix *C; // C = M + dt K
    real_t current_dt;
 
    CGSolver Solver;    // Implicit solver for T = M + dt K
