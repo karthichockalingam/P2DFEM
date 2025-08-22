@@ -181,22 +181,17 @@ ParGridFunction P2DOperator::ComputeSurfaceConcentration(const BlockVector &x)
 
 real_t P2DOperator::ComputeExchangeCurrent(const Region &r, const BlockVector &x)
 {
+   real_t sc = ComputeSurfaceConcentration(r, x);
+   real_t k = r == PE ? KP : r == NE ? KN : 0;
+
    if (M == SPM)
-   {
-      real_t sc = ComputeSurfaceConcentration(r, x);
-      real_t k = r == PE ? KP : r == NE ? KN : 0;
-      return k * sqrt(sc * CE0 * abs(1.0 - sc));
-   }
+      return ExchangeCurrentCoefficient(k, sc, CE0).Eval();
    else if (M == SPMe)
    {
-      real_t sc = ComputeSurfaceConcentration(r, x);
-      real_t k = r == PE ? KP : r == NE ? KN : 0;
-
       ParGridFunction ec_gf(x_fespace);
       ec_gf.SetFromTrueDofs(x.GetBlock(EC));
 
-      GridFunctionCoefficient ec_gfc(&ec_gf);
-      TransformedCoefficient jex(&ec_gfc, [=](real_t ec) { return k * sqrt(sc * ec * abs(1.0 - sc)); });
+      ExchangeCurrentCoefficient jex(k, sc, ec_gf);
 
       Array<int> markers(x_fespace->GetParMesh()->attributes.Max());
       markers = 0; markers[r-1] = 1;
@@ -204,16 +199,8 @@ real_t P2DOperator::ComputeExchangeCurrent(const Region &r, const BlockVector &x
       sum.AddDomainIntegrator(new DomainLFIntegrator(jex), markers);
       sum.Assemble();
 
-      real_t reduction_result = sum.Sum();
-      MPI_Allreduce(MPI_IN_PLACE, &reduction_result, 1, MFEM_MPI_REAL_T, MPI_SUM, MPI_COMM_WORLD);
-
       real_t l = r == PE ? LPE : r == NE ? LNE : 0;
-      return reduction_result / l;
-   }
-   else if (M == P2D)
-   {
-      ExchangeCurrentCoefficient jex = ComputeExchangeCurrent(x);
-      return -1;
+      return x_fespace->GetParMesh()->ReduceInt(sum.Sum()) / l;
    }
    else
       mfem_error("Cannot calculate constant exchange current for the given method. Only SPM and SPMe are supported.");
@@ -225,7 +212,7 @@ ExchangeCurrentCoefficient P2DOperator::ComputeExchangeCurrent(const BlockVector
    ParGridFunction ec_gf(x_fespace);
    ec_gf.SetFromTrueDofs(x.GetBlock(EC));
 
-   return ExchangeCurrentCoefficient(sc_gf, ec_gf);
+   return ExchangeCurrentCoefficient(1, sc_gf, ec_gf);
 }
 
 real_t P2DOperator::ComputeOpenCircuitPotential(const Region &r, const real_t &x)

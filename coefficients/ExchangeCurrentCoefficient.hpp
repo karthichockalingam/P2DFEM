@@ -6,23 +6,56 @@ using namespace mfem;
 class ExchangeCurrentCoefficient: public Coefficient
 {
    private:
-      const GridFunction _surface_concentration;
-      const GridFunction _electrolyte_concentration;
+      const ParGridFunction _surface_concentration_gf;
+      const ParGridFunction _electrolyte_concentration_gf;
 
-      GridFunctionCoefficient _sc;
-      GridFunctionCoefficient _ec;
-      TransformedCoefficient _jex;
+      GridFunctionCoefficient _surface_concentration_gfc;
+      GridFunctionCoefficient _electrolyte_concentration_gfc;
+
+      ConstantCoefficient _jex_cc;
+      TransformedCoefficient _jex_tc;
+      Coefficient & _jex;
 
    public:
+      /// SPM
       ExchangeCurrentCoefficient(
-        const GridFunction & surface_concentration,
-        const GridFunction & electrolyte_concentration):
-        _surface_concentration(surface_concentration),
-        _electrolyte_concentration(electrolyte_concentration),
-        _sc(&_surface_concentration),
-        _ec(&_electrolyte_concentration),
-        _jex(&_sc, &_ec, [](real_t sc, real_t ec) { return sqrt( sc * ec * (1 - sc) ); }) {}
+        const real_t & k,
+        const real_t & sc,
+        const real_t & ec):
+        _jex_cc(k * sqrt( sc * ec * (1 - sc) )),
+        _jex_tc(nullptr, nullptr, [](real_t, real_t) { return 0; }),
+        _jex(_jex_cc) {}
 
-      virtual real_t Eval(ElementTransformation &T, const IntegrationPoint &ip)
-      { return _jex.Eval(T, ip); }
+      /// SPMe
+      ExchangeCurrentCoefficient(
+        const real_t & k,
+        const real_t & sc,
+        const ParGridFunction & ec):
+        _electrolyte_concentration_gf(ec),
+        _electrolyte_concentration_gfc(&_electrolyte_concentration_gf),
+        _jex_tc(&_electrolyte_concentration_gfc, [=](real_t ec) { return k * sqrt( sc * ec * (1 - sc) ); }),
+        _jex(_jex_tc) {}
+
+      /// P2D
+      ExchangeCurrentCoefficient(
+        const real_t & k /* Probably needs to be a gridfunction too */,
+        const ParGridFunction & sc,
+        const ParGridFunction & ec):
+        _surface_concentration_gf(sc),
+        _electrolyte_concentration_gf(ec),
+        _surface_concentration_gfc(&_surface_concentration_gf),
+        _electrolyte_concentration_gfc(&_electrolyte_concentration_gf),
+        _jex_tc(&_surface_concentration_gfc, &_electrolyte_concentration_gfc, [=](real_t sc, real_t ec) { return k * sqrt( sc * ec * (1 - sc) ); }),
+        _jex(_jex_tc) {}
+
+      virtual real_t Eval(ElementTransformation &T, const IntegrationPoint &ip) override
+      {
+        return _jex.Eval(T, ip);
+      }
+
+      virtual real_t Eval()
+      {
+        MFEM_ASSERT(&_jex == &_jex_cc, "ExchangeCurrentCoefficient does not wrap a ConstantCoefficient");
+        return _jex_cc.constant;
+      }
 };
