@@ -3,11 +3,26 @@
 using namespace mfem;
 
 namespace constants {
+    enum PotentialBlock : int {
+        EPP,
+        SPP,
+    };
+
+    enum ConcentrationBlock : int {
+        ECC,
+        SCC
+    };
+
     enum Block : int {
-        EP,
-        EC,
-        SP,
-        SC
+        P = 0,
+        C = 2
+    };
+
+    enum XBlock : int {
+        EP = P + EPP,
+        SP = P + SPP,
+        EC = C + ECC,
+        SC = C + SCC
     };
 
     enum Region : int {
@@ -32,6 +47,10 @@ namespace constants {
     extern const unsigned NNEPAR;
     extern const unsigned NPAR;
     extern const unsigned NR;
+    extern const unsigned NMACROP;
+    extern const unsigned NMACROC;
+    extern const unsigned NMACRO;
+    extern const unsigned NEQS;
 
     extern const real_t LPE;
     extern const real_t LSEP;

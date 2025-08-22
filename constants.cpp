@@ -21,6 +21,10 @@ namespace constants {
     unsigned NNEPAR = 0;
     unsigned NPAR = 0;
     unsigned NR = 10;
+    unsigned NMACROP = 2;
+    unsigned NMACROC = 1;
+    unsigned NMACRO = NMACROP + NMACROC;
+    unsigned NEQS = 0;
 
     real_t LPE  = 0.;
     real_t LSEP = 0.;
@@ -121,5 +125,6 @@ namespace constants {
                 break;
         }
         NPAR = NPEPAR + NNEPAR;
+        NEQS = NMACRO + NPAR;
     }
 }

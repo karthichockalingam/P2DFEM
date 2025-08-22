@@ -3,7 +3,7 @@
 P2DOperator::P2DOperator(ParFiniteElementSpace * &x_fespace, Array<ParFiniteElementSpace *> &r_fespace,
                          const unsigned &ndofs, BlockVector &x)
    : TimeDependentOperator(ndofs, (real_t) 0.0), x_fespace(x_fespace), r_fespace(r_fespace),
-     A(NULL), current_dt(0.0), Solver(x_fespace->GetComm()), file("data.csv")
+     Ac(NULL), Ap(NULL), current_dt(0.0), Solver(x_fespace->GetComm()), file("data.csv")
 {
    const real_t rel_tol = 1e-8;
 
@@ -14,37 +14,41 @@ P2DOperator::P2DOperator(ParFiniteElementSpace * &x_fespace, Array<ParFiniteElem
    Solver.SetPrintLevel(0);
    //Solver.SetPreconditioner(Prec);
 
-   const unsigned nb = SC + NPAR; // 3 macro eqs + 1 micro eq/particle
+   block_trueOffsets.SetSize(NEQS + 1);
+   potential_trueOffsets.SetSize(NMACROP + 1);
+   concentration_trueOffsets.SetSize(NMACROC + NPAR + 1);
 
-   block_offsets.SetSize(nb + 1);
-   block_trueOffsets.SetSize(nb + 1);
-
-   block_offsets[0] = 0;
-   block_offsets[EP + 1] = x_fespace->GetVSize();
-   block_offsets[EC + 1] = x_fespace->GetVSize();
-   block_offsets[SP + 1] = x_fespace->GetVSize();
    block_trueOffsets[0] = 0;
    block_trueOffsets[EP + 1] = x_fespace->GetTrueVSize();
-   block_trueOffsets[EC + 1] = x_fespace->GetTrueVSize();
    block_trueOffsets[SP + 1] = x_fespace->GetTrueVSize();
+   block_trueOffsets[EC + 1] = x_fespace->GetTrueVSize();
+
+   potential_trueOffsets[0] = 0;
+   potential_trueOffsets[EPP + 1] = x_fespace->GetTrueVSize();
+   potential_trueOffsets[SPP + 1] = x_fespace->GetTrueVSize();
+
+   concentration_trueOffsets[0] = 0;
+   concentration_trueOffsets[ECC + 1] = x_fespace->GetTrueVSize();
 
    for (unsigned p = 0; p < NPAR; p++)
    {
-      block_offsets[SC + p + 1] = r_fespace[p]->GetVSize();
-      block_trueOffsets[SC + p + 1] = r_fespace[p]->GetTrueVSize();
+      block_trueOffsets[SC + 1 + p] = r_fespace[p]->GetTrueVSize();
+      concentration_trueOffsets[SCC + 1 + p] = r_fespace[p]->GetTrueVSize();
    }
 
-   block_offsets.PartialSum();
    block_trueOffsets.PartialSum();
+   potential_trueOffsets.PartialSum();
+   concentration_trueOffsets.PartialSum();
 
    if (!Mpi::WorldRank())
    {
-      std::cout << "Variables: " << nb << std::endl;
-      std::cout << "Unknowns (rank 0): " << block_trueOffsets[nb] << std::endl;
+      std::cout << "Variables: " << NEQS << std::endl;
+      std::cout << "Unknowns (rank 0): " << block_trueOffsets[NEQS] << std::endl;
    }
 
    x.Update(block_trueOffsets); x = 0.;
-   b.Update(block_trueOffsets);
+   bp.Update(potential_trueOffsets);
+   bc.Update(concentration_trueOffsets);
 
    ep = new ElectrolytePotential(*x_fespace);
    ec = new ElectrolyteConcentration(*x_fespace);
@@ -76,29 +80,42 @@ void P2DOperator::ImplicitSolve(const real_t dt,
    //   M dx_dt = -K(x + dt*dx_dt) <=> (M + dt K) dx_dt = -Kx
    // for dx_dt, where K is linearized by using x from the previous timestep
 
-   // assemble A
-   A->SetDiagonalBlock(EP, new HypreParMatrix(ep->GetK()));
-   A->SetDiagonalBlock(EC, Add(1, ec->GetM(), dt, ec->GetK()));
-   A->SetDiagonalBlock(SP, new HypreParMatrix(sp->GetK()));
-   b.GetBlock(EP) = ep->GetZ();
-   b.GetBlock(EC) = ec->GetZ();
-   b.GetBlock(SP) = sp->GetZ();
+   Array<int> offsets{block_trueOffsets[P], block_trueOffsets[C], block_trueOffsets[NEQS]};
+   BlockVector dx_dt_blocked(dx_dt, offsets);
+
+   // assemble Ac and bc, create dxc_dt ref
+   Ac->SetDiagonalBlock(ECC, Add(1, ec->GetM(), dt, ec->GetK()));
+   bc.GetBlock(ECC) = ec->GetZ();
    for (unsigned p = 0; p < NPAR; p++)
    {
-      A->SetDiagonalBlock(SC + p, Add(1, sc[p]->GetM(), dt, sc[p]->GetK()));
-      b.GetBlock(SC + p) = sc[p]->GetZ();
+      Ac->SetDiagonalBlock(SCC + p, Add(1, sc[p]->GetM(), dt, sc[p]->GetK()));
+      bc.GetBlock(SCC + p) = sc[p]->GetZ();
    }
+   Vector & dxc_dt(dx_dt_blocked.GetBlock(1));
 
-   Solver.SetOperator(*A);
-   Solver.Mult(b, dx_dt);
+   // solve for dxc_dt (concentrations rate)
+   Solver.SetOperator(*Ac);
+   Solver.Mult(bc, dxc_dt);
+
+   // assemble Ap and bp, create dxp_dt ref
+   Ap->SetDiagonalBlock(EPP, new HypreParMatrix(ep->GetK()));
+   Ap->SetDiagonalBlock(SPP, new HypreParMatrix(sp->GetK()));
+   bp.GetBlock(EPP) = ep->GetZ();
+   bp.GetBlock(SPP) = sp->GetZ();
+   Vector & dxp_dt(dx_dt_blocked.GetBlock(0));
+
+   // solve for dxp_dt (potentials rate)
 }
 
 void P2DOperator::Update(const BlockVector &x, const real_t &dt)
 {
-   // rebuild A
-   delete A;
-   A = new BlockOperator(block_trueOffsets);
-   A->owns_blocks = 1;
+   // rebuild Ap, Ac
+   delete Ap;
+   delete Ac;
+   Ap = new BlockOperator(potential_trueOffsets);
+   Ac = new BlockOperator(concentration_trueOffsets);
+   Ap->owns_blocks = 1;
+   Ac->owns_blocks = 1;
 
    ConstantCoefficient jx = ComputeReactionCurrent(x);
    ep->Update(x, jx, dt);

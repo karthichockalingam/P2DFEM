@@ -3,9 +3,6 @@
 
 void SolidPotential::Update(const BlockVector &x, const Coefficient &j, const real_t &dt)
 {
-   ParGridFunction u_gf(&fespace);
-   u_gf.SetFromTrueDofs(x.GetBlock(SP));
-
    ConstantCoefficient sigma(1.0);
    FunctionCoefficient dummy([](const Vector & x){ return sin(2*M_PI*x(0)); });
    ProductCoefficient source(dummy, const_cast<Coefficient&>(j));

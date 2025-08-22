@@ -23,17 +23,18 @@ protected:
 
    Array<int> ess_tdof_list; // this list remains empty for pure Neumann b.c.
 
-   Array<int> block_offsets;
    Array<int> block_trueOffsets;
+   Array<int> concentration_trueOffsets;
+   Array<int> potential_trueOffsets;
 
-   BlockOperator * A;
+   BlockOperator * Ac, * Ap; // system matrices (LHS)
 
    real_t current_dt;
 
    CGSolver Solver;    // Implicit solver for T = M + dt K
    HypreSmoother Prec; // Preconditioner for the implicit solver
 
-   mutable BlockVector b; // auxiliary vector
+   mutable BlockVector bc, bp; // auxiliary vector (RHS)
 
    std::ofstream file; // file to write temporary data to
 

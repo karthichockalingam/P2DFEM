@@ -116,7 +116,7 @@ int main(int argc, char *argv[])
       return 1;
    }
 
-   // Initialise grid and layout properties dependent on the EC method and FE order
+   // Initialise grid and layout properties dependent on the electrochemical method and FE order
    init_params(method, order);
 
    // 3. Read the serial mesh from the given mesh file on all processors. We can
@@ -153,7 +153,7 @@ int main(int argc, char *argv[])
 
    // 8. Get the total number of dofs in the system (including boundaries)
    {
-      HYPRE_BigInt fe_size_global = SC * x_fespace->GlobalTrueVSize();
+      HYPRE_BigInt fe_size_global = NMACRO * x_fespace->GlobalTrueVSize();
       for (unsigned p = 0; p < NPAR; p++)
          fe_size_global += r_fespace[p]->GlobalTrueVSize();
 
@@ -162,7 +162,7 @@ int main(int argc, char *argv[])
    }
 
    // 8.5 Get the total number of dofs _owned_ by this processor
-   HYPRE_BigInt fe_size_owned = SC * x_fespace->GetTrueVSize();
+   HYPRE_BigInt fe_size_owned = NMACRO * x_fespace->GetTrueVSize();
    for (unsigned p = 0; p < NPAR; p++)
       fe_size_owned += r_fespace[p]->GetTrueVSize();
 
