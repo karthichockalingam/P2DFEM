@@ -38,7 +38,7 @@ class ExchangeCurrentCoefficient: public Coefficient
 
       /// P2D
       ExchangeCurrentCoefficient(
-        const real_t & k /* Probably needs to be a gridfunction too */,
+        const real_t & k /* Probably needs to be a pwcoefficient */,
         const ParGridFunction & sc,
         const ParGridFunction & ec):
         _surface_concentration_gf(sc),

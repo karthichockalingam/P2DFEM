@@ -151,12 +151,11 @@ ConstantCoefficient P2DOperator::ComputeReactionCurrent(const BlockVector &x)
 
 real_t P2DOperator::GetSurfaceConcentration(const Region &r, const BlockVector &x)
 {
-   real_t sc0 = r == PE ? CP0 : r == NE ? CN0 : 0;
+   MFEM_ASSERT(r == PE || r == NE, "Cannot get constant surface concentration, only positive (PE) and negative electrodes (NE) are supported.");
+   real_t sc0 = r == PE ? CP0 : CN0;
    for (unsigned p = 0; p < NPAR; p++)
       if (sc[p]->GetParticleRegion() == r)
          return sc0 + sc[p]->SurfaceConcentration(x);
-
-   mfem_error("Cannot calculate constant surface concentration for the given region. Only positive (PE) and negative electrodes (NE) are supported.");
 }
 
 ParGridFunction P2DOperator::GetSurfaceConcentration(const BlockVector &x)
@@ -167,7 +166,8 @@ ParGridFunction P2DOperator::GetSurfaceConcentration(const BlockVector &x)
    for (unsigned p = 0; p < NPAR; p++)
    {
       Region r = sc[p]->GetParticleRegion();
-      real_t sc0 = r == PE ? CP0 : r == NE ? CN0 : 0;
+      MFEM_ASSERT(r == PE || r == NE, "Particles outside electrodes not supported.");
+      real_t sc0 = r == PE ? CP0 : CN0;
       real_t csurf = sc[p]->SurfaceConcentration(x);
       if (sc[p]->IsParticleOwned())
          sc_gf(sc[p]->GetParticleDof()) = sc0 + csurf;
@@ -181,12 +181,15 @@ ParGridFunction P2DOperator::GetSurfaceConcentration(const BlockVector &x)
 
 real_t P2DOperator::ComputeExchangeCurrent(const Region &r, const BlockVector &x)
 {
+   MFEM_ASSERT(M == SPM || M == SPMe, "Cannot calculate constant exchange current, only SPM and SPMe are supported.");
+   MFEM_ASSERT(r == PE || r == NE, "Cannot calculate constant exchange current, only positive (PE) and negative electrodes (NE) are supported.");
+
    real_t sc = GetSurfaceConcentration(r, x);
-   real_t k = r == PE ? KP : r == NE ? KN : 0;
+   real_t k = r == PE ? KP : KN;
 
    if (M == SPM)
       return ExchangeCurrentCoefficient(k, sc, CE0).Eval();
-   else if (M == SPMe)
+   else
    {
       ParGridFunction ec_gf(x_fespace);
       ec_gf.SetFromTrueDofs(x.GetBlock(EC));
@@ -199,11 +202,9 @@ real_t P2DOperator::ComputeExchangeCurrent(const Region &r, const BlockVector &x
       sum.AddDomainIntegrator(new DomainLFIntegrator(jex), markers);
       sum.Assemble();
 
-      real_t l = r == PE ? LPE : r == NE ? LNE : 0;
+      real_t l = r == PE ? LPE : LNE;
       return x_fespace->GetParMesh()->ReduceInt(sum.Sum()) / l;
    }
-   else
-      mfem_error("Cannot calculate constant exchange current for the given method. Only SPM and SPMe are supported.");
 }
 
 ExchangeCurrentCoefficient P2DOperator::ComputeExchangeCurrent(const BlockVector &x)
@@ -217,7 +218,7 @@ ExchangeCurrentCoefficient P2DOperator::ComputeExchangeCurrent(const BlockVector
 
 real_t P2DOperator::ComputeOpenCircuitPotential(const Region &r, const real_t &x)
 {
-   MFEM_ASSERT(r == PE || r == NE, "Cannot calculate open circuit potential for the given region. Only positive (PE) and negative electrodes (NE) are supported.")
+   MFEM_ASSERT(r == PE || r == NE, "Cannot calculate open circuit potential, only positive (PE) and negative electrodes (NE) are supported.")
    return r == PE ? UP(x) : UN(x);
 }
 
@@ -301,5 +302,5 @@ void P2DOperator::GetParticleDofs(Array<int> & particle_dofs, Array<int> & parti
    MPI_Allgather(&my_particles, 1, MPI_INT, particle_offsets.GetData(), 1, MPI_INT, MPI_COMM_WORLD);
 
    particle_offsets.PartialSum();
-   assert(particle_offsets[Mpi::WorldSize() - 1] == NPAR);
+   MFEM_ASSERT(particle_offsets[Mpi::WorldSize() - 1] == NPAR, "Failed to distribute particles across processors.");
 }
