@@ -217,14 +217,8 @@ ExchangeCurrentCoefficient P2DOperator::ComputeExchangeCurrent(const BlockVector
 
 real_t P2DOperator::ComputeOpenCircuitPotential(const Region &r, const real_t &x)
 {
-   if (r == PE)
-      return -0.8090*x + 4.4875 - 0.0428*tanh(18.5138*(x - 0.5542))
-             - 17.7326*tanh(15.7890*(x - 0.3117)) + 17.5842*tanh(15.9308*(x - 0.3120));
-   else if (r == NE)
-      return 1.97938*exp(-39.3631*x) + 0.2482 - 0.0909*tanh(29.8538*(x - 0.1234))
-             - 0.04478*tanh(14.9159*(x - 0.2769)) - 0.0205*tanh(30.4444*(x - 0.6103));
-   else
-      mfem_error("Cannot calculate open circuit potential for the given region. Only positive (PE) and negative electrodes (NE) are supported.");
+   MFEM_ASSERT(r == PE || r == NE, "Cannot calculate open circuit potential for the given region. Only positive (PE) and negative electrodes (NE) are supported.")
+   return r == PE ? UP(x) : UN(x);
 }
 
 void P2DOperator::ComputeVoltage(const BlockVector &x, real_t t, real_t dt)

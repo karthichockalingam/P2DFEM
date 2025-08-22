@@ -61,5 +61,8 @@ namespace constants {
     extern const real_t tp_scale;
     extern const real_t tn_scale;
 
+    real_t UP(real_t);
+    real_t UN(real_t);
+
     void init_params(Method m, int order);
 }

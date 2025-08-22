@@ -85,6 +85,8 @@ namespace constants {
     real_t I = 1.; // Scaled current.
     real_t T = 1.0; // Scaled temperature.
 
+    real_t UP(real_t ce) { return Up(ce); }
+    real_t UN(real_t ce) { return Un(ce); }
 
     void init_params(Method m, int order) {
         M = m;
