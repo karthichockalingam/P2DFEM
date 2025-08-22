@@ -54,8 +54,8 @@ public:
    ConstantCoefficient ComputeReactionCurrent(const Region &r);
    ConstantCoefficient ComputeReactionCurrent(const BlockVector &x);
 
-   real_t ComputeSurfaceConcentration(const Region &r, const BlockVector &x);
-   ParGridFunction ComputeSurfaceConcentration(const BlockVector &x);
+   real_t GetSurfaceConcentration(const Region &r, const BlockVector &x);
+   ParGridFunction GetSurfaceConcentration(const BlockVector &x);
 
    real_t ComputeExchangeCurrent(const Region &r, const BlockVector &x);
    ExchangeCurrentCoefficient ComputeExchangeCurrent(const BlockVector &x);

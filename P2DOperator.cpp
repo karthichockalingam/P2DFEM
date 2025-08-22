@@ -149,7 +149,7 @@ ConstantCoefficient P2DOperator::ComputeReactionCurrent(const BlockVector &x)
    return ConstantCoefficient();
 }
 
-real_t P2DOperator::ComputeSurfaceConcentration(const Region &r, const BlockVector &x)
+real_t P2DOperator::GetSurfaceConcentration(const Region &r, const BlockVector &x)
 {
    real_t sc0 = r == PE ? CP0 : r == NE ? CN0 : 0;
    for (unsigned p = 0; p < NPAR; p++)
@@ -159,7 +159,7 @@ real_t P2DOperator::ComputeSurfaceConcentration(const Region &r, const BlockVect
    mfem_error("Cannot calculate constant surface concentration for the given region. Only positive (PE) and negative electrodes (NE) are supported.");
 }
 
-ParGridFunction P2DOperator::ComputeSurfaceConcentration(const BlockVector &x)
+ParGridFunction P2DOperator::GetSurfaceConcentration(const BlockVector &x)
 {
    ParGridFunction sc_gf(x_fespace);
    sc_gf = 0;
@@ -181,7 +181,7 @@ ParGridFunction P2DOperator::ComputeSurfaceConcentration(const BlockVector &x)
 
 real_t P2DOperator::ComputeExchangeCurrent(const Region &r, const BlockVector &x)
 {
-   real_t sc = ComputeSurfaceConcentration(r, x);
+   real_t sc = GetSurfaceConcentration(r, x);
    real_t k = r == PE ? KP : r == NE ? KN : 0;
 
    if (M == SPM)
@@ -208,7 +208,7 @@ real_t P2DOperator::ComputeExchangeCurrent(const Region &r, const BlockVector &x
 
 ExchangeCurrentCoefficient P2DOperator::ComputeExchangeCurrent(const BlockVector &x)
 {
-   ParGridFunction sc_gf = ComputeSurfaceConcentration(x);
+   ParGridFunction sc_gf = GetSurfaceConcentration(x);
    ParGridFunction ec_gf(x_fespace);
    ec_gf.SetFromTrueDofs(x.GetBlock(EC));
 
@@ -229,8 +229,8 @@ real_t P2DOperator::ComputeOpenCircuitPotential(const Region &r, const real_t &x
 
 void P2DOperator::ComputeVoltage(const BlockVector &x, real_t t, real_t dt)
 {
-   real_t Up = ComputeOpenCircuitPotential(PE, ComputeSurfaceConcentration(PE, x));
-   real_t Un = ComputeOpenCircuitPotential(NE, ComputeSurfaceConcentration(NE, x));
+   real_t Up = ComputeOpenCircuitPotential(PE, GetSurfaceConcentration(PE, x));
+   real_t Un = ComputeOpenCircuitPotential(NE, GetSurfaceConcentration(NE, x));
 
    real_t jp = ComputeReactionCurrent(PE).constant;
    real_t jn = ComputeReactionCurrent(NE).constant;
@@ -244,7 +244,7 @@ void P2DOperator::ComputeVoltage(const BlockVector &x, real_t t, real_t dt)
    // Definition from JuBat: https://doi.org/10.1016/j.est.2023.107512
    real_t voltage = Up - Un + (eta_p - eta_n) * phi_scale;
 
-   // Temporary printing (a bit miraculous this is working even with ComputeSurfaceConcentration but causes MPI error on termination)
+   // Temporary printing (a bit miraculous this is working even with GetSurfaceConcentration but causes MPI error on termination)
    if (Mpi::Root())
    {
       std::cout << "[Rank " << Mpi::WorldRank() << "]"
@@ -264,8 +264,8 @@ void P2DOperator::ComputeVoltage(const BlockVector &x, real_t t, real_t dt)
 
       // Print data to file.
       file << t << ", \t"
-           << ComputeSurfaceConcentration(PE, x) << ", \t"
-           << ComputeSurfaceConcentration(NE, x) << ", \t"
+           << GetSurfaceConcentration(PE, x) << ", \t"
+           << GetSurfaceConcentration(NE, x) << ", \t"
            << voltage
            << std::endl;
    }
