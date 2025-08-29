@@ -80,7 +80,7 @@ void P2DOperator::ImplicitSolve(const real_t dt,
    //   M dx_dt = -K(x + dt*dx_dt) <=> (M + dt K) dx_dt = -Kx
    // for dx_dt, where K is linearized by using x from the previous timestep
 
-   Array<int> offsets{block_trueOffsets[P], block_trueOffsets[C], block_trueOffsets[NEQS]};
+   Array<int> offsets({block_trueOffsets[P], block_trueOffsets[C], block_trueOffsets[NEQS]});
    BlockVector dx_dt_blocked(dx_dt, offsets);
 
    // assemble Ac and bc, create dxc_dt ref
@@ -105,6 +105,8 @@ void P2DOperator::ImplicitSolve(const real_t dt,
    Vector & dxp_dt(dx_dt_blocked.GetBlock(0));
 
    // solve for dxp_dt (potentials rate)
+   Solver.SetOperator(*Ap);
+   Solver.Mult(bp, dxp_dt);
 }
 
 void P2DOperator::Update(const BlockVector &x, const real_t &dt)
