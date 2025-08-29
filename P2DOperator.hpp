@@ -64,5 +64,15 @@ public:
 
    virtual void GetParticleDofs(Array<int> & particle_dofs, Array<Region> & particle_regions, Array<int> & particle_offsets);
 
-   virtual ~P2DOperator() { file.close(); }
+   virtual ~P2DOperator()
+   {
+      delete ep;
+      delete ec;
+      delete sp;
+      for (unsigned p = 0; p < NPAR; p++)
+         delete sc[p];
+      delete Ac;
+      delete Ap;
+      file.close();
+   }
 };
