@@ -152,6 +152,10 @@ void P2DOperator::Update(const BlockVector &x, const real_t &dt)
    }
 }
 
+//
+// Reaction Current
+//
+
 ConstantCoefficient P2DOperator::ComputeReactionCurrent(const Region &r)
 {
    return ConstantCoefficient(ComputeReactionCurrent()(r));
@@ -167,6 +171,10 @@ ConstantCoefficient P2DOperator::ComputeReactionCurrent(const BlockVector &x)
 {
    return ConstantCoefficient();
 }
+
+//
+// Surface Concentration
+//
 
 real_t P2DOperator::GetSurfaceConcentration(const Region &r, const BlockVector &x)
 {
@@ -199,6 +207,10 @@ ParGridFunction P2DOperator::GetSurfaceConcentration(const BlockVector &x)
 
    return sc_gf;
 }
+
+//
+// Exchange Current
+//
 
 real_t P2DOperator::ComputeExchangeCurrent(const Region &r, const BlockVector &x)
 {
@@ -237,11 +249,19 @@ ExchangeCurrentCoefficient P2DOperator::ComputeExchangeCurrent(const BlockVector
    return ExchangeCurrentCoefficient(1, sc_gf, ec_gf);
 }
 
+//
+// Open Circuit Potential
+//
+
 real_t P2DOperator::ComputeOpenCircuitPotential(const Region &r, const real_t &x)
 {
    MFEM_ASSERT(r == PE || r == NE, "Cannot calculate open circuit potential, only positive (PE) and negative electrodes (NE) are supported.")
    return r == PE ? UP(x) : UN(x);
 }
+
+//
+// Voltage
+//
 
 void P2DOperator::ComputeVoltage(const BlockVector &x, real_t t, real_t dt)
 {
