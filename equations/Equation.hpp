@@ -4,8 +4,6 @@ using namespace mfem;
 #include "../constants.hpp"
 using namespace constants;
 
-using namespace std;
-
 #pragma once
 
 class Equation

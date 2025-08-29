@@ -35,7 +35,6 @@
 #include "P2DOperator.hpp"
 #include <cmath>
 
-using namespace std;
 using namespace mfem;
 
 int main(int argc, char *argv[])
@@ -58,7 +57,7 @@ int main(int argc, char *argv[])
    int vis_steps = 5;
 
    int precision = 8;
-   cout.precision(precision);
+   std::cout.precision(precision);
 
    OptionsParser args(argc, argv);
    args.AddOption(reinterpret_cast<int*>(&method), "-m", "--method",
@@ -84,12 +83,12 @@ int main(int argc, char *argv[])
    args.Parse();
    if (!args.Good())
    {
-      args.PrintUsage(cout);
+      args.PrintUsage(std::cout);
       return 1;
    }
 
    if (Mpi::Root())
-      args.PrintOptions(cout);
+      args.PrintOptions(std::cout);
 
    // 4. Define the ODE solver used for time integration. Several implicit
    //    singly diagonal implicit Runge-Kutta (SDIRK) methods, as well as
@@ -112,7 +111,7 @@ int main(int argc, char *argv[])
       case 23: ode_solver = new SDIRK23Solver; break;
       case 24: ode_solver = new SDIRK34Solver; break;
       default:
-      cout << "Unknown ODE solver type: " << ode_solver_type << '\n';
+      std::cout << "Unknown ODE solver type: " << ode_solver_type << '\n';
       return 1;
    }
 
@@ -158,7 +157,7 @@ int main(int argc, char *argv[])
          fe_size_global += r_fespace[p]->GlobalTrueVSize();
 
       if (Mpi::Root())
-         cout << "Unknowns (total): " << fe_size_global << endl;
+         std::cout << "Unknowns (total): " << fe_size_global << std::endl;
    }
 
    // 8.5 Get the total number of dofs _owned_ by this processor
@@ -168,7 +167,7 @@ int main(int argc, char *argv[])
 
    // 9. Initialize the conduction operator and the VisIt visualization.
    BlockVector x;
-   P2DOperator oper(x_fespace, r_fespace, fe_size_owned, x);
+   P2DOperator oper(x_fespace, r_fespace, fe_size_owned, x, dt);
 
    // X. Visualization for the 0th particle
    ParGridFunction u_gf(r_fespace[0]);
@@ -188,7 +187,7 @@ int main(int argc, char *argv[])
    ode_solver->Init(oper);
    real_t t = 0.0;
 
-   oper.Update(x, dt);
+   oper.Update();
 
    bool last_step = false;
    for (int ti = 1; !last_step; ti++)
@@ -196,12 +195,13 @@ int main(int argc, char *argv[])
       last_step = t + dt >= t_final - dt/2;
 
       ode_solver->Step(x, t, dt);
+      oper.SetGridFunctionsFromTrueVectors();
       oper.ComputeVoltage(x, t, dt);
 
       if (last_step || (ti % vis_steps) == 0)
       {
          if (Mpi::Root())
-            cout << "step " << ti << ", t = " << t << endl;
+            std::cout << "step " << ti << ", t = " << t << std::endl;
 
          // TODO: Stop sim at cutoff voltage
          if (last_step || visualization)
@@ -221,7 +221,7 @@ int main(int argc, char *argv[])
             pd.Save();
          }
       }
-      oper.Update(x, dt);
+      oper.Update();
    }
 
    // 11. Free the used memory.

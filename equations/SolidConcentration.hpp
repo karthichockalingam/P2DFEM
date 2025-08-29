@@ -1,7 +1,6 @@
 #include "mfem.hpp"
 #include "Equation.hpp"
 
-using namespace std;
 using namespace mfem;
 
 

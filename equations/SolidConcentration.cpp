@@ -40,7 +40,7 @@ real_t SolidConcentration::SurfaceConcentration(const BlockVector &x)
    ParGridFunction r_gf(&fespace);
    r_gf.SetFromTrueDofs(x.GetBlock(SC + particle_id));
 
-   real_t csurf = numeric_limits<real_t>::quiet_NaN();
+   real_t csurf = std::numeric_limits<real_t>::quiet_NaN();
    MPI_Request request;
    if (IsSurfaceOwned())
       MPI_Isend(&r_gf[surface_dof], 1, MFEM_MPI_REAL_T, particle_rank, 1, MPI_COMM_WORLD, &request);

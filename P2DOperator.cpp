@@ -1,9 +1,9 @@
 #include "P2DOperator.hpp"
 
 P2DOperator::P2DOperator(ParFiniteElementSpace * &x_fespace, Array<ParFiniteElementSpace *> &r_fespace,
-                         const unsigned &ndofs, BlockVector &x)
+                         const unsigned &ndofs, BlockVector &x, const real_t & dt)
    : TimeDependentOperator(ndofs, (real_t) 0.0), x_fespace(x_fespace), r_fespace(r_fespace),
-     Ac(NULL), Ap(NULL), current_dt(0.0), Solver(x_fespace->GetComm()), file("data.csv")
+     Ac(NULL), Ap(NULL), _x(x), _dt(dt), Solver(x_fespace->GetComm()), file("data.csv")
 {
    const real_t rel_tol = 1e-8;
 
@@ -14,9 +14,16 @@ P2DOperator::P2DOperator(ParFiniteElementSpace * &x_fespace, Array<ParFiniteElem
    Solver.SetPrintLevel(0);
    //Solver.SetPreconditioner(Prec);
 
+   block_offsets.SetSize(NMACRO + 1 + 1);
    block_trueOffsets.SetSize(NEQS + 1);
    potential_trueOffsets.SetSize(NMACROP + 1);
    concentration_trueOffsets.SetSize(NMACROC + NPAR + 1);
+
+   block_offsets[0] = 0;
+   block_offsets[EP + 1] = x_fespace->GetVSize();
+   block_offsets[SP + 1] = x_fespace->GetVSize();
+   block_offsets[EC + 1] = x_fespace->GetVSize();
+   block_offsets[SC + 1] = x_fespace->GetVSize();
 
    block_trueOffsets[0] = 0;
    block_trueOffsets[EP + 1] = x_fespace->GetTrueVSize();
@@ -36,6 +43,7 @@ P2DOperator::P2DOperator(ParFiniteElementSpace * &x_fespace, Array<ParFiniteElem
       concentration_trueOffsets[SCC + 1 + p] = r_fespace[p]->GetTrueVSize();
    }
 
+   block_offsets.PartialSum();
    block_trueOffsets.PartialSum();
    potential_trueOffsets.PartialSum();
    concentration_trueOffsets.PartialSum();
@@ -46,13 +54,24 @@ P2DOperator::P2DOperator(ParFiniteElementSpace * &x_fespace, Array<ParFiniteElem
       std::cout << "Unknowns (rank 0): " << block_trueOffsets[NEQS] << std::endl;
    }
 
-   x.Update(block_trueOffsets); x = 0.;
+   // Set offsets for full dof vector
+   _l.Update(block_offsets); _l = 0.;
+
+   // Initialise gridfunctions to use the appropriate section of the full dof vector _l
+   _ep_gf = ParGridFunction(x_fespace, _l, block_offsets[EP]);
+   _ec_gf = ParGridFunction(x_fespace, _l, block_offsets[SP]);
+   _sp_gf = ParGridFunction(x_fespace, _l, block_offsets[EC]);
+   _sc_gf = ParGridFunction(x_fespace, _l, block_offsets[SC]);
+
+   // Set offsets for solution and rhs (potential and concentration) true vectors
+   _x.Update(block_trueOffsets); _x = 0.;
    bp.Update(potential_trueOffsets);
    bc.Update(concentration_trueOffsets);
 
+   // Construct equation ojects, first the 3 macro equations, then the NPAR micro eqs
    ep = new ElectrolytePotential(*x_fespace);
-   ec = new ElectrolyteConcentration(*x_fespace);
    sp = new SolidPotential(*x_fespace);
+   ec = new ElectrolyteConcentration(*x_fespace);
 
    if (M == SPM || M == SPMe)
    {
@@ -119,7 +138,15 @@ void P2DOperator::ImplicitSolve(const real_t dt,
    }
 }
 
-void P2DOperator::Update(const BlockVector &x, const real_t &dt)
+void P2DOperator::SetGridFunctionsFromTrueVectors()
+{
+   _ep_gf.SetFromTrueDofs(_x.GetBlock(EP));
+   _sp_gf.SetFromTrueDofs(_x.GetBlock(SP));
+   _ec_gf.SetFromTrueDofs(_x.GetBlock(EC));
+   SetSurfaceConcentration();
+}
+
+void P2DOperator::Update()
 {
    // rebuild Ap, Ac
    delete Ap;
@@ -131,16 +158,16 @@ void P2DOperator::Update(const BlockVector &x, const real_t &dt)
 
    if (M == SPM || M == SPMe)
    {
-      ec->Update(x, ComputeReactionCurrent());
+      ec->Update(_x, ComputeReactionCurrent());
       for (unsigned p = 0; p < NPAR; p++)
-         sc[p]->Update(x, ComputeReactionCurrent(sc[p]->GetParticleRegion()));
+         sc[p]->Update(_x, ConstantCoefficient(ComputeReactionCurrent(sc[p]->GetParticleRegion())));
    }
    else if (M == P2D)
    {
-      ConstantCoefficient jx = ComputeReactionCurrent(x);
-      ep->Update(x, jx, dt);
-      sp->Update(x, jx, dt);
-      ec->Update(x, jx, dt);
+      ReactionCurrentCoefficient jx = ComputeReactionCurrent();
+      ep->Update(_x, jx, _dt);
+      sp->Update(_x, jx, _dt);
+      ec->Update(_x, jx, _dt);
       ParGridFunction j(x_fespace);
       j.ProjectCoefficient(jx);
 
@@ -157,36 +184,16 @@ void P2DOperator::Update(const BlockVector &x, const real_t &dt)
          if (sc[p]->IsParticleOwned())
             MPI_Wait(&request, MPI_STATUS_IGNORE);
 
-         sc[p]->Update(x, ConstantCoefficient(jr));
+         sc[p]->Update(_x, ConstantCoefficient(jr));
       }
    }
-}
-
-//
-// Reaction Current
-//
-
-ConstantCoefficient P2DOperator::ComputeReactionCurrent(const Region &r)
-{
-   return ConstantCoefficient(ComputeReactionCurrent()(r));
-}
-
-PWConstCoefficient P2DOperator::ComputeReactionCurrent()
-{
-   Vector c({/* PE */ - I / AP / LPE, /* SEP */ 0., /* NE */ + I / AN / LNE});
-   return PWConstCoefficient(c);
-}
-
-ConstantCoefficient P2DOperator::ComputeReactionCurrent(const BlockVector &x)
-{
-   return ConstantCoefficient();
 }
 
 //
 // Surface Concentration
 //
 
-real_t P2DOperator::GetSurfaceConcentration(const Region &r, const BlockVector &x)
+real_t P2DOperator::GetSurfaceConcentration(const Region &r)
 {
    MFEM_ASSERT(M == SPM || M == SPMe, "Cannot get constant surface concentration, only SPM and SPMe are supported.");
    MFEM_ASSERT(r == PE || r == NE, "Cannot get constant surface concentration, only positive (PE) and negative electrodes (NE) are supported.");
@@ -194,79 +201,99 @@ real_t P2DOperator::GetSurfaceConcentration(const Region &r, const BlockVector &
    real_t csurf = r == PE ? CP0 : CN0;
    for (unsigned p = 0; p < NPAR; p++)
       if (sc[p]->GetParticleRegion() == r)
-         csurf += sc[p]->SurfaceConcentration(x);
+         csurf += sc[p]->SurfaceConcentration(_x);
 
    return csurf;
 }
 
-ParGridFunction P2DOperator::GetSurfaceConcentration(const BlockVector &x)
+void P2DOperator::SetSurfaceConcentration()
 {
-   ParGridFunction sc_gf(x_fespace);
-   sc_gf = 0;
+   if (M == SPM || M == SPMe)
+      return;
 
    for (unsigned p = 0; p < NPAR; p++)
       if (sc[p]->IsParticleOwned())
       {
          real_t csurf0 = sc[p]->GetParticleRegion() == PE ? CP0 : CN0;
-         sc_gf(sc[p]->GetParticleDof()) = csurf0 + sc[p]->SurfaceConcentration(x);
+         _sc_gf(sc[p]->GetParticleDof()) = csurf0 + sc[p]->SurfaceConcentration(_x);
       }
 
    // Apply prolongation after restriction. Might be unnecessary, but guarantees
    // all processors have the right information for all their local dofs.
-   sc_gf.SetFromTrueVector();
+   _sc_gf.SetFromTrueVector();
+}
 
-   return sc_gf;
+//
+// Reaction Current
+//
+
+real_t P2DOperator::ComputeReactionCurrent(const Region &r)
+{
+   MFEM_ASSERT(M == SPM || M == SPMe, "Cannot calculate constant reaction current, only SPM and SPMe are supported.");
+   MFEM_ASSERT(r == PE || r == NE, "Cannot calculate constant reaction current, only positive (PE) and negative electrodes (NE) are supported.")
+   return ComputeReactionCurrent().Eval()(r);
+}
+
+ReactionCurrentCoefficient P2DOperator::ComputeReactionCurrent()
+{
+   switch (M)
+   {
+      case SPM:
+      case SPMe:
+         return ReactionCurrentCoefficient();
+      case P2D:
+         return ReactionCurrentCoefficient(298., _sp_gf, _ep_gf, ComputeExchangeCurrent(), ComputeOpenCircuitPotential());
+   }
+   MFEM_ASSERT(false, "Unreachable.");
 }
 
 //
 // Exchange Current
 //
 
-real_t P2DOperator::ComputeExchangeCurrent(const Region &r, const BlockVector &x)
+real_t P2DOperator::ComputeExchangeCurrent(const Region &r)
 {
    MFEM_ASSERT(M == SPM || M == SPMe, "Cannot calculate constant exchange current, only SPM and SPMe are supported.");
    MFEM_ASSERT(r == PE || r == NE, "Cannot calculate constant exchange current, only positive (PE) and negative electrodes (NE) are supported.");
-
-   real_t sc = GetSurfaceConcentration(r, x);
-   real_t k = r == PE ? KP : KN;
-
-   if (M == SPM)
-      return ExchangeCurrentCoefficient(k, sc, CE0).Eval();
-   else
-   {
-      ParGridFunction ec_gf(x_fespace);
-      ec_gf.SetFromTrueDofs(x.GetBlock(EC));
-
-      ExchangeCurrentCoefficient jex(k, sc, ec_gf);
-
-      Array<int> markers(x_fespace->GetParMesh()->attributes.Max());
-      markers = 0; markers[r-1] = 1;
-      ParLinearForm sum(x_fespace);
-      sum.AddDomainIntegrator(new DomainLFIntegrator(jex), markers);
-      sum.Assemble();
-
-      real_t l = r == PE ? LPE : LNE;
-      return x_fespace->GetParMesh()->ReduceInt(sum.Sum()) / l;
-   }
+   return ComputeExchangeCurrent().Eval()(r);
 }
 
-ExchangeCurrentCoefficient P2DOperator::ComputeExchangeCurrent(const BlockVector &x)
+ExchangeCurrentCoefficient P2DOperator::ComputeExchangeCurrent()
 {
-   ParGridFunction sc_gf = GetSurfaceConcentration(x);
-   ParGridFunction ec_gf(x_fespace);
-   ec_gf.SetFromTrueDofs(x.GetBlock(EC));
-
-   return ExchangeCurrentCoefficient(1, sc_gf, ec_gf);
+   switch (M)
+   {
+      case SPM:
+         return ExchangeCurrentCoefficient(KP, KN, GetSurfaceConcentration(PE), GetSurfaceConcentration(NE), CE0);
+      case SPMe:
+         return ExchangeCurrentCoefficient(KP, KN, GetSurfaceConcentration(PE), GetSurfaceConcentration(NE), _ec_gf);
+      case P2D:
+         return ExchangeCurrentCoefficient(KP, KN, _sc_gf, _ec_gf);
+   }
+   MFEM_ASSERT(false, "Unreachable.");
 }
 
 //
 // Open Circuit Potential
 //
 
-real_t P2DOperator::ComputeOpenCircuitPotential(const Region &r, const real_t &x)
+real_t P2DOperator::ComputeOpenCircuitPotential(const Region &r)
 {
-   MFEM_ASSERT(r == PE || r == NE, "Cannot calculate open circuit potential, only positive (PE) and negative electrodes (NE) are supported.")
-   return r == PE ? UP(x) : UN(x);
+   MFEM_ASSERT(M == SPM || M == SPMe, "Cannot calculate constant open circuit potential, only SPM and SPMe are supported.");
+   MFEM_ASSERT(r == PE || r == NE, "Cannot calculate constant open circuit potential, only positive (PE) and negative electrodes (NE) are supported.")
+   return ComputeOpenCircuitPotential().Eval()(r);
+}
+
+OpenCircuitPotentialCoefficient P2DOperator::ComputeOpenCircuitPotential()
+{
+   switch (M)
+   {
+      case SPM:
+      case SPMe:
+         return OpenCircuitPotentialCoefficient(UP, UN, GetSurfaceConcentration(PE), GetSurfaceConcentration(NE));
+      case P2D:
+         return OpenCircuitPotentialCoefficient(UP, UN, _sc_gf);
+   }
+   MFEM_ASSERT(false, "Unreachable.");
 }
 
 //
@@ -275,14 +302,14 @@ real_t P2DOperator::ComputeOpenCircuitPotential(const Region &r, const real_t &x
 
 void P2DOperator::ComputeVoltage(const BlockVector &x, real_t t, real_t dt)
 {
-   real_t Up = ComputeOpenCircuitPotential(PE, GetSurfaceConcentration(PE, x));
-   real_t Un = ComputeOpenCircuitPotential(NE, GetSurfaceConcentration(NE, x));
+   real_t Up = ComputeOpenCircuitPotential(PE);
+   real_t Un = ComputeOpenCircuitPotential(NE);
 
-   real_t jp = ComputeReactionCurrent(PE).constant;
-   real_t jn = ComputeReactionCurrent(NE).constant;
+   real_t jp = ComputeReactionCurrent(PE);
+   real_t jn = ComputeReactionCurrent(NE);
 
-   real_t j0_p =  ComputeExchangeCurrent(PE, x);
-   real_t j0_n =  ComputeExchangeCurrent(NE, x);
+   real_t j0_p =  ComputeExchangeCurrent(PE);
+   real_t j0_n =  ComputeExchangeCurrent(NE);
 
    real_t eta_p = 2 * T * asinh(jp / 2.0 / j0_p);
    real_t eta_n = 2 * T * asinh(jn / 2.0 / j0_n);
@@ -310,8 +337,8 @@ void P2DOperator::ComputeVoltage(const BlockVector &x, real_t t, real_t dt)
 
       // Print data to file.
       file << t << ", \t"
-           << GetSurfaceConcentration(PE, x) << ", \t"
-           << GetSurfaceConcentration(NE, x) << ", \t"
+           << GetSurfaceConcentration(PE) << ", \t"
+           << GetSurfaceConcentration(NE) << ", \t"
            << voltage
            << std::endl;
    }

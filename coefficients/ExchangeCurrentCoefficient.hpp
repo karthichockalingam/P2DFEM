@@ -1,61 +1,115 @@
 #include "mfem.hpp"
-
-using namespace std;
 using namespace mfem;
 
 class ExchangeCurrentCoefficient: public Coefficient
 {
    private:
-      const ParGridFunction _surface_concentration_gf;
-      const ParGridFunction _electrolyte_concentration_gf;
+      const ParGridFunction & _surface_concentration_gf;
+      const ParGridFunction & _electrolyte_concentration_gf;
 
       GridFunctionCoefficient _surface_concentration_gfc;
       GridFunctionCoefficient _electrolyte_concentration_gfc;
 
-      ConstantCoefficient _jex_cc;
-      TransformedCoefficient _jex_tc;
+      TransformedCoefficient _jex_pe_tc;
+      ConstantCoefficient _jex_sep_cc;
+      TransformedCoefficient _jex_ne_tc;
+
+      Vector _jex_vec;
+      PWConstCoefficient _jex_pwcc;
+      PWCoefficient _jex_pwc;
       Coefficient & _jex;
 
    public:
+      /// Default
+      ExchangeCurrentCoefficient():
+        _surface_concentration_gf(ParGridFunction()),
+        _electrolyte_concentration_gf(ParGridFunction()),
+        _jex_pe_tc(nullptr, nullptr, [](real_t, real_t) { return 0; }),
+        _jex_ne_tc(nullptr, nullptr, [](real_t, real_t) { return 0; }),
+        _jex(_jex_pwcc) {}
+
       /// SPM
       ExchangeCurrentCoefficient(
-        const real_t & k,
-        const real_t & sc,
+        const real_t & kp,
+        const real_t & kn,
+        const real_t & scp,
+        const real_t & scn,
         const real_t & ec):
-        _jex_cc(k * sqrt( sc * ec * (1 - sc) )),
-        _jex_tc(nullptr, nullptr, [](real_t, real_t) { return 0; }),
-        _jex(_jex_cc) {}
+        _surface_concentration_gf(ParGridFunction()),
+        _electrolyte_concentration_gf(ParGridFunction()),
+        _jex_pe_tc(nullptr, nullptr, [](real_t, real_t) { return 0; }),
+        _jex_ne_tc(nullptr, nullptr, [](real_t, real_t) { return 0; }),
+        _jex_vec({kp * sqrt( scp * ec * (1 - scp) ), 0.,  kn * sqrt( scn * ec * (1 - scn) )}),
+        _jex_pwcc(_jex_vec),
+        _jex(_jex_pwcc) {}
 
       /// SPMe
       ExchangeCurrentCoefficient(
-        const real_t & k,
-        const real_t & sc,
+        const real_t & kp,
+        const real_t & kn,
+        const real_t & scp,
+        const real_t & scn,
         const ParGridFunction & ec):
+        _surface_concentration_gf(ParGridFunction()),
         _electrolyte_concentration_gf(ec),
         _electrolyte_concentration_gfc(&_electrolyte_concentration_gf),
-        _jex_tc(&_electrolyte_concentration_gfc, [=](real_t ec) { return k * sqrt( sc * ec * (1 - sc) ); }),
-        _jex(_jex_tc) {}
+        _jex_pe_tc(&_electrolyte_concentration_gfc, [=](real_t ec) { return kp * sqrt( scp * ec * (1 - scp) ); }),
+        _jex_sep_cc(0),
+        _jex_ne_tc(&_electrolyte_concentration_gfc, [=](real_t ec) { return kn * sqrt( scn * ec * (1 - scn) ); }),
+        _jex(_jex_pwcc) {}
 
       /// P2D
       ExchangeCurrentCoefficient(
-        const real_t & k /* Probably needs to be a pwcoefficient */,
+        const real_t & kp,
+        const real_t & kn,
         const ParGridFunction & sc,
         const ParGridFunction & ec):
         _surface_concentration_gf(sc),
         _electrolyte_concentration_gf(ec),
         _surface_concentration_gfc(&_surface_concentration_gf),
         _electrolyte_concentration_gfc(&_electrolyte_concentration_gf),
-        _jex_tc(&_surface_concentration_gfc, &_electrolyte_concentration_gfc, [=](real_t sc, real_t ec) { return k * sqrt( sc * ec * (1 - sc) ); }),
-        _jex(_jex_tc) {}
+        _jex_pe_tc(&_surface_concentration_gfc, &_electrolyte_concentration_gfc, [=](real_t sc, real_t ec) { return kp * sqrt( sc * ec * (1 - sc) ); }),
+        _jex_sep_cc(0),
+        _jex_ne_tc(&_surface_concentration_gfc, &_electrolyte_concentration_gfc, [=](real_t sc, real_t ec) { return kn * sqrt( sc * ec * (1 - sc) ); }),
+        _jex_pwc(Array<int>({PE, SEP, NE}), Array<Coefficient*>({static_cast<Coefficient*>(&_jex_pe_tc), static_cast<Coefficient*>(&_jex_sep_cc), static_cast<Coefficient*>(&_jex_ne_tc)})),
+        _jex(_jex_pwc) {}
 
+      /// SPM(e)
+      virtual PWConstCoefficient Eval()
+      {
+        MFEM_ASSERT(&_jex == &_jex_pwcc, "ExchangeCurrentCoefficient does not wrap a PWConstCoefficient");
+
+        /// SPMe
+        if (!_jex_pwcc.GetNConst())
+        {
+          ParFiniteElementSpace * x_fespace = _electrolyte_concentration_gf.ParFESpace();
+          Array<int> markers(x_fespace->GetParMesh()->attributes.Max());
+
+          // PE
+          markers = 0; markers[PE - 1] = 1;
+          ParLinearForm sum_pe(x_fespace);
+          sum_pe.AddDomainIntegrator(new DomainLFIntegrator(_jex_pe_tc), markers);
+          sum_pe.Assemble();
+
+          // NE
+          markers = 0; markers[NE - 1] = 1;
+          ParLinearForm sum_ne(x_fespace);
+          sum_ne.AddDomainIntegrator(new DomainLFIntegrator(_jex_ne_tc), markers);
+          sum_ne.Assemble();
+
+          Vector c({x_fespace->GetParMesh()->ReduceInt(sum_pe.Sum()) / LPE,
+                    0.,
+                    x_fespace->GetParMesh()->ReduceInt(sum_ne.Sum()) / LNE});
+          _jex_pwcc.UpdateConstants(c);
+        }
+
+        return _jex_pwcc;
+      }
+
+      /// P2D
       virtual real_t Eval(ElementTransformation &T, const IntegrationPoint &ip) override
       {
         return _jex.Eval(T, ip);
       }
 
-      virtual real_t Eval()
-      {
-        MFEM_ASSERT(&_jex == &_jex_cc, "ExchangeCurrentCoefficient does not wrap a ConstantCoefficient");
-        return _jex_cc.constant;
-      }
 };
