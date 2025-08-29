@@ -21,8 +21,6 @@ protected:
    SolidPotential           * sp;
    Array<SolidConcentration *> sc;
 
-   Array<int> ess_tdof_list; // this list remains empty for pure Neumann b.c.
-
    Array<int> block_trueOffsets;
    Array<int> concentration_trueOffsets;
    Array<int> potential_trueOffsets;
@@ -64,7 +62,7 @@ public:
 
    void ComputeVoltage(const BlockVector &x, real_t t, real_t dt);
 
-   virtual void GetParticleDofs(Array<int> & particle_dofs, Array<int> & particle_offsets);
+   virtual void GetParticleDofs(Array<int> & particle_dofs, Array<Region> & particle_regions, Array<int> & particle_offsets);
 
    virtual ~P2DOperator() { file.close(); }
 };

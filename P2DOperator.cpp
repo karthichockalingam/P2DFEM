@@ -55,20 +55,27 @@ P2DOperator::P2DOperator(ParFiniteElementSpace * &x_fespace, Array<ParFiniteElem
    sp = new SolidPotential(*x_fespace);
 
    if (M == SPM || M == SPMe)
-      for (unsigned p = 0; p < NPAR; p++)
-         sc.Append(new SolidConcentration(*r_fespace[p], p, 0));
+   {
+      sc.Append(new SolidConcentration(*r_fespace[0], 0, 0, -1, PE));
+      sc.Append(new SolidConcentration(*r_fespace[1], 1, 0, -1, NE));
+   }
    else
    {
       Array<int> particle_dofs, particle_offsets;
-      GetParticleDofs(particle_dofs, particle_offsets);
+      Array<Region> particle_regions;
+      GetParticleDofs(particle_dofs, particle_regions, particle_offsets);
+
       for (unsigned p = 0; p < NPAR; p++)
       {
-         unsigned rank = std::distance(particle_offsets.begin(),
-            std::find_if(particle_offsets.begin(), particle_offsets.end(), [&](int i){ return p < i; }));
-         unsigned offset = Mpi::WorldRank() > 0 ? particle_offsets[Mpi::WorldRank() - 1] : 0;
-         bool mine = p >= offset && p < offset + particle_dofs.Size();
-         int dof = mine ? particle_dofs[p - offset] : -1;
-         sc.Append(new SolidConcentration(*r_fespace[p], p, rank, dof));
+         auto rank_iter = std::upper_bound(particle_offsets.begin(), particle_offsets.end(), p);
+         unsigned rank = std::distance(particle_offsets.begin(), rank_iter) - 1;
+         bool owned = rank == Mpi::WorldRank();
+
+         unsigned offset = particle_offsets[Mpi::WorldRank()];
+         int dof = owned ? particle_dofs[p - offset] : -1;
+         Region region = owned ? particle_regions[p - offset] : UNKNOWN;
+
+         sc.Append(new SolidConcentration(*r_fespace[p], p, rank, dof, region));
       }
    }
 }
@@ -307,17 +314,27 @@ void P2DOperator::ComputeVoltage(const BlockVector &x, real_t t, real_t dt)
    }
 }
 
-void P2DOperator::GetParticleDofs(Array<int> & particle_dofs, Array<int> & particle_offsets)
+void P2DOperator::GetParticleDofs(Array<int> & particle_dofs, Array<Region> & particle_regions, Array<int> & particle_offsets)
 {
+   std::set<std::pair<int, Region>> electrode_dofs_set;
    std::set<int> sep_gdofs_set;
    for (int e = 0; e < x_fespace->GetNE(); e++)
-      if (x_fespace->GetAttribute(e) == SEP)
+   {
+      Array<int> dofs;
+      x_fespace->GetElementDofs(e, dofs);
+      switch (Region r = Region(x_fespace->GetAttribute(e)))
       {
-         Array<int> dofs;
-         x_fespace->GetElementDofs(e, dofs);
-         for (int d: dofs)
-            sep_gdofs_set.insert(x_fespace->GetGlobalTDofNumber(d));
+         case PE:
+         case NE:
+            for (int d: dofs)
+               electrode_dofs_set.insert({d, r});
+            break;
+         case SEP:
+            for (int d: dofs)
+               sep_gdofs_set.insert(x_fespace->GetGlobalTDofNumber(d));
+            break;
       }
+   }
 
    unsigned max_sep_gdofs = NSEP * x_fespace->GetElementOrder(0) + 1;
    Array<int> sep_gdofs(max_sep_gdofs); sep_gdofs = -1;
@@ -330,18 +347,22 @@ void P2DOperator::GetParticleDofs(Array<int> & particle_dofs, Array<int> & parti
    Array<int> boundary_dofs;
    x_fespace->GetBoundaryTrueDofs(boundary_dofs);
 
-   for (int dof = 0; dof < x_fespace->GetNDofs(); dof++)
+   for (auto [dof, region]: electrode_dofs_set)
    {
       int ltdof = x_fespace->GetLocalTDofNumber(dof);
       int gtdof = x_fespace->GetGlobalTDofNumber(dof);
       if (ltdof != -1 && boundary_dofs.Find(ltdof) == -1 && all_sep_gdofs.Find(gtdof) == -1)
+      {
          particle_dofs.Append(dof);
+         particle_regions.Append(region);
+      }
    }
 
    int my_particles = particle_dofs.Size();
    particle_offsets.SetSize(Mpi::WorldSize());
    MPI_Allgather(&my_particles, 1, MPI_INT, particle_offsets.GetData(), 1, MPI_INT, MPI_COMM_WORLD);
 
+   particle_offsets.Prepend(0);
    particle_offsets.PartialSum();
-   MFEM_ASSERT(particle_offsets[Mpi::WorldSize() - 1] == NPAR, "Failed to distribute particles across processors.");
+   MFEM_ASSERT(particle_offsets[Mpi::WorldSize()] == NPAR, "Failed to distribute particles across processors.");
 }
