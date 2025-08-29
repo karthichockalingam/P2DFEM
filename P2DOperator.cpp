@@ -104,16 +104,19 @@ void P2DOperator::ImplicitSolve(const real_t dt,
    Solver.SetOperator(*Ac);
    Solver.Mult(bc, dxc_dt);
 
-   // assemble Ap and bp, create dxp_dt ref
-   Ap->SetDiagonalBlock(EPP, new HypreParMatrix(ep->GetK()));
-   Ap->SetDiagonalBlock(SPP, new HypreParMatrix(sp->GetK()));
-   bp.GetBlock(EPP) = ep->GetZ();
-   bp.GetBlock(SPP) = sp->GetZ();
-   Vector & dxp_dt(dx_dt_blocked.GetBlock(0));
+   if (M == P2D)
+   {
+      // assemble Ap and bp, create dxp_dt ref
+      Ap->SetDiagonalBlock(EPP, new HypreParMatrix(ep->GetK()));
+      Ap->SetDiagonalBlock(SPP, new HypreParMatrix(sp->GetK()));
+      bp.GetBlock(EPP) = ep->GetZ();
+      bp.GetBlock(SPP) = sp->GetZ();
+      Vector & dxp_dt(dx_dt_blocked.GetBlock(0));
 
-   // solve for dxp_dt (potentials rate)
-   Solver.SetOperator(*Ap);
-   Solver.Mult(bp, dxp_dt);
+      // solve for dxp_dt (potentials rate)
+      Solver.SetOperator(*Ap);
+      Solver.Mult(bp, dxp_dt);
+   }
 }
 
 void P2DOperator::Update(const BlockVector &x, const real_t &dt)
@@ -126,10 +129,6 @@ void P2DOperator::Update(const BlockVector &x, const real_t &dt)
    Ap->owns_blocks = 1;
    Ac->owns_blocks = 1;
 
-   ConstantCoefficient jx = ComputeReactionCurrent(x);
-   ep->Update(x, jx, dt);
-   sp->Update(x, jx, dt);
-
    if (M == SPM || M == SPMe)
    {
       ec->Update(x, ComputeReactionCurrent());
@@ -138,6 +137,10 @@ void P2DOperator::Update(const BlockVector &x, const real_t &dt)
    }
    else if (M == P2D)
    {
+      ConstantCoefficient jx = ComputeReactionCurrent(x);
+      ep->Update(x, jx, dt);
+      sp->Update(x, jx, dt);
+      ec->Update(x, jx, dt);
       ParGridFunction j(x_fespace);
       j.ProjectCoefficient(jx);
 
