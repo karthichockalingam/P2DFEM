@@ -58,10 +58,10 @@ P2DOperator::P2DOperator(ParFiniteElementSpace * &x_fespace, Array<ParFiniteElem
    _l.Update(block_offsets); _l = 0.;
 
    // Initialise gridfunctions to use the appropriate section of the full dof vector _l
-   _ep_gf = ParGridFunction(x_fespace, _l, block_offsets[EP]);
-   _ec_gf = ParGridFunction(x_fespace, _l, block_offsets[SP]);
-   _sp_gf = ParGridFunction(x_fespace, _l, block_offsets[EC]);
-   _sc_gf = ParGridFunction(x_fespace, _l, block_offsets[SC]);
+   _ep_gf = new ParGridFunction(x_fespace, _l, block_offsets[EP]);
+   _ec_gf = new ParGridFunction(x_fespace, _l, block_offsets[SP]);
+   _sp_gf = new ParGridFunction(x_fespace, _l, block_offsets[EC]);
+   _sc_gf = new ParGridFunction(x_fespace, _l, block_offsets[SC]);
 
    // Set offsets for solution and rhs (potential and concentration) true vectors
    _x.Update(block_trueOffsets); _x = 0.;
@@ -140,9 +140,9 @@ void P2DOperator::ImplicitSolve(const real_t dt,
 
 void P2DOperator::SetGridFunctionsFromTrueVectors()
 {
-   _ep_gf.SetFromTrueDofs(_x.GetBlock(EP));
-   _sp_gf.SetFromTrueDofs(_x.GetBlock(SP));
-   _ec_gf.SetFromTrueDofs(_x.GetBlock(EC));
+   _ep_gf->SetFromTrueDofs(_x.GetBlock(EP));
+   _sp_gf->SetFromTrueDofs(_x.GetBlock(SP));
+   _ec_gf->SetFromTrueDofs(_x.GetBlock(EC));
    SetSurfaceConcentration();
 }
 
@@ -215,12 +215,12 @@ void P2DOperator::SetSurfaceConcentration()
       if (sc[p]->IsParticleOwned())
       {
          real_t csurf0 = sc[p]->GetParticleRegion() == PE ? CP0 : CN0;
-         _sc_gf(sc[p]->GetParticleDof()) = csurf0 + sc[p]->SurfaceConcentration(_x);
+         (*_sc_gf)(sc[p]->GetParticleDof()) = csurf0 + sc[p]->SurfaceConcentration(_x);
       }
 
    // Apply prolongation after restriction. Might be unnecessary, but guarantees
    // all processors have the right information for all their local dofs.
-   _sc_gf.SetFromTrueVector();
+   _sc_gf->SetFromTrueVector();
 }
 
 //
@@ -242,7 +242,7 @@ ReactionCurrentCoefficient P2DOperator::ComputeReactionCurrent()
       case SPMe:
          return ReactionCurrentCoefficient();
       case P2D:
-         return ReactionCurrentCoefficient(298., _sp_gf, _ep_gf, ComputeExchangeCurrent(), ComputeOpenCircuitPotential());
+         return ReactionCurrentCoefficient(298., *_sp_gf, *_ep_gf, ComputeExchangeCurrent(), ComputeOpenCircuitPotential());
    }
    MFEM_ASSERT(false, "Unreachable.");
 }
@@ -265,9 +265,9 @@ ExchangeCurrentCoefficient P2DOperator::ComputeExchangeCurrent()
       case SPM:
          return ExchangeCurrentCoefficient(KP, KN, GetSurfaceConcentration(PE), GetSurfaceConcentration(NE), CE0);
       case SPMe:
-         return ExchangeCurrentCoefficient(KP, KN, GetSurfaceConcentration(PE), GetSurfaceConcentration(NE), _ec_gf);
+         return ExchangeCurrentCoefficient(KP, KN, GetSurfaceConcentration(PE), GetSurfaceConcentration(NE), *_ec_gf);
       case P2D:
-         return ExchangeCurrentCoefficient(KP, KN, _sc_gf, _ec_gf);
+         return ExchangeCurrentCoefficient(KP, KN, *_sc_gf, *_ec_gf);
    }
    MFEM_ASSERT(false, "Unreachable.");
 }
@@ -291,7 +291,7 @@ OpenCircuitPotentialCoefficient P2DOperator::ComputeOpenCircuitPotential()
       case SPMe:
          return OpenCircuitPotentialCoefficient(UP, UN, GetSurfaceConcentration(PE), GetSurfaceConcentration(NE));
       case P2D:
-         return OpenCircuitPotentialCoefficient(UP, UN, _sc_gf);
+         return OpenCircuitPotentialCoefficient(UP, UN, *_sc_gf);
    }
    MFEM_ASSERT(false, "Unreachable.");
 }

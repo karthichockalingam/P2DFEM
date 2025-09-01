@@ -23,10 +23,10 @@ protected:
    Array<SolidConcentration *> sc;
 
    /// Gridfunctions defined over x_fespace (3 macro eqs plus _surface_ concentration)
-   ParGridFunction _ep_gf;
-   ParGridFunction _ec_gf;
-   ParGridFunction _sp_gf;
-   ParGridFunction _sc_gf;
+   ParGridFunction * _ep_gf;
+   ParGridFunction * _ec_gf;
+   ParGridFunction * _sp_gf;
+   ParGridFunction * _sc_gf;
 
    /// For the four gridfunctions over x_fespace (3 macro eqs plus _surface_ concentration)
    Array<int> block_offsets;
@@ -97,6 +97,10 @@ public:
       delete sp;
       for (unsigned p = 0; p < NPAR; p++)
          delete sc[p];
+      delete _ep_gf;
+      delete _ec_gf;
+      delete _sp_gf;
+      delete _sc_gf;
       delete Ac;
       delete Ap;
       file.close();
