@@ -37,13 +37,15 @@ void SolidConcentration::Update(const BlockVector &x, const Coefficient &j, cons
 
 real_t SolidConcentration::SurfaceConcentration(const BlockVector &x)
 {
-   ParGridFunction r_gf(&fespace);
-   r_gf.SetFromTrueDofs(x.GetBlock(SC + particle_id));
+   real_t csurf = IsSurfaceOwned() ? x.GetBlock(SC + particle_id)[surface_tdof] :
+                                     std::numeric_limits<real_t>::quiet_NaN();
 
-   real_t csurf = std::numeric_limits<real_t>::quiet_NaN();
+   if (GetParticleRank() == GetSurfaceRank())
+      return csurf;
+
    MPI_Request request;
    if (IsSurfaceOwned())
-      MPI_Isend(&r_gf[surface_dof], 1, MFEM_MPI_REAL_T, particle_rank, 1, MPI_COMM_WORLD, &request);
+      MPI_Isend(&csurf, 1, MFEM_MPI_REAL_T, particle_rank, 1, MPI_COMM_WORLD, &request);
    if (IsParticleOwned())
       MPI_Recv(&csurf, 1, MFEM_MPI_REAL_T, MPI_ANY_SOURCE, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
@@ -53,11 +55,11 @@ real_t SolidConcentration::SurfaceConcentration(const BlockVector &x)
    return csurf;
 }
 
-int SolidConcentration::FindSurfaceDof()
+int SolidConcentration::FindSurfaceTrueDof()
 {
    Array<int> nat_dofs;
-   fespace.GetEssentialVDofs(surface_bdr, nat_dofs);
-   return nat_dofs.Find(-1);
+   fespace.GetEssentialTrueDofs(surface_bdr, nat_dofs);
+   return nat_dofs.IsEmpty() ? -1 : nat_dofs[0];
 }
 
 unsigned SolidConcentration::FindSurfaceRank()
