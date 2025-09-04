@@ -52,8 +52,8 @@ int main(int argc, char *argv[])
    int par_ref_levels = 0;
    int order = 1;
    int ode_solver_type = 3;
-   real_t t_final = 3600.0;
-   real_t dt = 1.0;
+   real_t t_final = 1.0;
+   real_t dt = 1.0/3600.0;
    bool visualization = true;
    int vis_steps = 5;
 
@@ -229,7 +229,7 @@ int main(int argc, char *argv[])
 
             ec_gf.SetFromTrueDofs(x.GetBlock(EC));
 
-            std::cout << "ec(0) = " << ec_gf(0) << std::endl;
+            //std::cout << "ec(0) = " << ec_gf(0) << std::endl;
 
             pd.SetCycle(ti);
             pd.SetTime(t);

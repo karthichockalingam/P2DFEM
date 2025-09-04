@@ -28,7 +28,7 @@ namespace constants {
     real_t T_ref = 298.; // Reference temperature, K
 
     // Scalings
-    real_t t0 = 1.0; // Time scale.
+    real_t t0 = 3600.0; // Time scale.
     real_t r0 = 1e-6;  // Length scale (particle)
     real_t L = positive_electrode_thickness + separator_thickness + negative_electrode_thickness; // Length scale (cell)
 
@@ -38,6 +38,8 @@ namespace constants {
     real_t tn = F * cnmax * cell_area * L / I_typ; // Negative particle time scale.
 
     real_t te = F * ce0 * cell_area * L / I_typ; // Electrolyte "particle" time scale.
+
+    real_t te_scale = te / t0;
 
     real_t Dp_scale = r0 * r0 / t0; // Positive particle diffusion coefficient scale.  Units of m^2/s.
     real_t Dn_scale = r0 * r0 / t0; // Negative particle diffusion coefficient scale.  Units of m^2/s.
@@ -104,7 +106,9 @@ namespace constants {
 
     real_t DE(real_t ce)
     {
-        return De(ce) / De_scale;
+        return De(ce * ce_scale) / De_scale;
+
+        //return 2.1*exp(-ce*1.6);
     }
     
 

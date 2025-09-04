@@ -146,14 +146,14 @@ void P2DOperator::Update(const BlockVector &x, const real_t &dt)
 
 ConstantCoefficient P2DOperator::ComputeReactionCurrent(const Region &r)
 {
-   //std::cout << "r = " << r << " ComputeReactionCurrent = " << ComputeReactionCurrent()(r) << std::endl;
    return ConstantCoefficient(ComputeReactionCurrent()(r));
 }
 
 PWConstCoefficient P2DOperator::ComputeReactionCurrent()
 {
    Vector c({/* PE */ - I / AP / LPE, /* SEP */ 0., /* NE */ + I / AN / LNE});
-   //std::cout << "j_p = " << I / AN / LNE << std::endl;
+   std::cout << "j_n = " << I / AN / LNE << std::endl;
+   std::cout << "j_p = " << - I / AP / LPE << std::endl;
    return PWConstCoefficient(c);
 }
 

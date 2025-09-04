@@ -60,6 +60,7 @@ namespace constants {
     extern const real_t phi_scale;
     extern const real_t tp_scale;
     extern const real_t tn_scale;
+    extern const real_t te_scale;
 
     extern const real_t ce_scale;
 
