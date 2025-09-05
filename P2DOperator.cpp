@@ -341,6 +341,8 @@ void P2DOperator::ComputeVoltage(const BlockVector &x, real_t t, real_t dt)
            << voltage
            << std::endl;
    }
+
+   sc[1]->DebuggingCheck(_x);
 }
 
 void P2DOperator::GetParticleDofs(Array<int> & particle_dofs, Array<Region> & particle_regions, Array<int> & particle_offsets)

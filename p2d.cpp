@@ -169,19 +169,6 @@ int main(int argc, char *argv[])
    BlockVector x;
    P2DOperator oper(x_fespace, r_fespace, fe_size_owned, x, dt);
 
-   // X. Visualization for the 0th particle
-   ParGridFunction u_gf(r_fespace[0]);
-
-   ParaViewDataCollection pd("particle", r_pmesh[0]);
-   pd.SetPrefixPath("ParaView");
-   pd.SetLevelsOfDetail(order);
-   pd.SetHighOrderOutput(true);
-   pd.SetDataFormat(VTKFormat::BINARY);
-   pd.RegisterField("x", &u_gf);
-   pd.SetCycle(0);
-   pd.SetTime(0.0);
-   pd.Save();
-
    // 10. Perform time-integration (looping over the time iterations, ti, with a
    //     time-step dt).
    ode_solver->Init(oper);
@@ -206,19 +193,6 @@ int main(int argc, char *argv[])
          // TODO: Stop sim at cutoff voltage
          if (last_step || visualization)
          {
-            u_gf.SetFromTrueDofs(x.GetBlock(SC + 0));
-            ParLinearForm sum(r_fespace[0]);
-            GridFunctionCoefficient u_gfc(&u_gf);
-            FunctionCoefficient r2([](const Vector & x){ return x(0) * x(0); });
-            ProductCoefficient ur2(u_gfc,r2);
-            sum.AddDomainIntegrator(new DomainLFIntegrator(ur2));
-            sum.Assemble();
-            std::cout << "[Rank " << Mpi::WorldRank() << "]"
-                      << " Total flux accumulated (" << 0 << ") = " << sum.Sum() << std::endl;
-
-            pd.SetCycle(ti);
-            pd.SetTime(t);
-            pd.Save();
          }
       }
       oper.Update();

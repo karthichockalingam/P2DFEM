@@ -41,4 +41,5 @@ class SolidConcentration : public Equation
       int GetParticleDof(){ return particle_dof; }
       int FindSurfaceTrueDof();
       unsigned FindSurfaceRank();
+      void DebuggingCheck(const BlockVector &x);
 };

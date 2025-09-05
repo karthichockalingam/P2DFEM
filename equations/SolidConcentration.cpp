@@ -68,3 +68,16 @@ unsigned SolidConcentration::FindSurfaceRank()
    MPI_Allgather(&surface_owned, 1, MPI_CXX_BOOL, surface_rank.GetData(), 1, MPI_CXX_BOOL, MPI_COMM_WORLD);
    return std::distance(surface_rank.begin(), std::find(surface_rank.begin(), surface_rank.end(), true));
 }
+void SolidConcentration::DebuggingCheck(const BlockVector &x)
+{
+   ParGridFunction u_gf(&fespace);
+   u_gf.SetFromTrueDofs(x.GetBlock(SC + particle_id));
+   ParLinearForm sum(&fespace);
+   GridFunctionCoefficient u_gfc(&u_gf);
+   FunctionCoefficient r2([](const Vector & x){ return x(0) * x(0); });
+   ProductCoefficient ur2(u_gfc, r2);
+   sum.AddDomainIntegrator(new DomainLFIntegrator(ur2));
+   sum.Assemble();
+   std::cout << "[Rank " << Mpi::WorldRank() << "]"
+             << " Total flux accumulated (" << particle_id << ") = " << sum.Sum() << std::endl;
+}
