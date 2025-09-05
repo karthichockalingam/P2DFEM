@@ -90,16 +90,18 @@ class ExchangeCurrentCoefficient: public Coefficient
           ParLinearForm sum_ne(x_fespace);
           sum_ne.AddDomainIntegrator(new DomainLFIntegrator(_jex_ne_tc), markers);
           sum_ne.Assemble();
+          real_t integral_ne = sum_ne.Sum();
+          MPI_Allreduce(MPI_IN_PLACE, &integral_ne, 1, MFEM_MPI_REAL_T, MPI_SUM, MPI_COMM_WORLD);
 
           // PE
           markers = 0; markers[PE - 1] = 1;
           ParLinearForm sum_pe(x_fespace);
           sum_pe.AddDomainIntegrator(new DomainLFIntegrator(_jex_pe_tc), markers);
           sum_pe.Assemble();
+          real_t integral_pe = sum_pe.Sum();
+          MPI_Allreduce(MPI_IN_PLACE, &integral_pe, 1, MFEM_MPI_REAL_T, MPI_SUM, MPI_COMM_WORLD);
 
-          Vector c({x_fespace->GetParMesh()->ReduceInt(sum_ne.Sum()) / LNE,
-                    0.,
-                    x_fespace->GetParMesh()->ReduceInt(sum_pe.Sum()) / LPE});
+          Vector c({integral_ne / NNE * NX, 0., integral_pe / NPE * NX});
           _jex_pwcc.UpdateConstants(c);
         }
 

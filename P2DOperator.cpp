@@ -75,8 +75,8 @@ P2DOperator::P2DOperator(ParFiniteElementSpace * &x_fespace, Array<ParFiniteElem
 
    if (M == SPM || M == SPMe)
    {
-      sc.Append(new SolidConcentration(*r_fespace[1], 0, 0, -1, NE));
-      sc.Append(new SolidConcentration(*r_fespace[0], 1, 0, -1, PE));
+      sc.Append(new SolidConcentration(*r_fespace[0], 0, 0, -1, NE));
+      sc.Append(new SolidConcentration(*r_fespace[1], 1, 0, -1, PE));
    }
    else
    {
