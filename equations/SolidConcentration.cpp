@@ -78,6 +78,8 @@ void SolidConcentration::DebuggingCheck(const BlockVector &x)
    ProductCoefficient ur2(u_gfc, r2);
    sum.AddDomainIntegrator(new DomainLFIntegrator(ur2));
    sum.Assemble();
-   std::cout << "[Rank " << Mpi::WorldRank() << "]"
-             << " Total flux accumulated (" << particle_id << ") = " << sum.Sum() << std::endl;
+   real_t integral = sum.Sum();
+   MPI_Allreduce(MPI_IN_PLACE, &integral, 1, MFEM_MPI_REAL_T, MPI_SUM, MPI_COMM_WORLD);
+   if (!Mpi::WorldRank())
+      std::cout << "Total flux accumulated (" << particle_id << ") = " << integral << std::endl;
 }
