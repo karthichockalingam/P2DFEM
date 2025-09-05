@@ -66,9 +66,9 @@ void ElectrolyteConcentration::Update(const BlockVector &x, const Coefficient &j
 
    // Diffusion coefficient.
    Vector D_scale_vec({
-      /* PE */  De_p_scale, 
-      /* SEP */ De_s_scale, 
-      /* NE */  De_n_scale    });
+      /* PE */  De_p_scale / /* length scaling */ (LPE / NPE * NX),
+      /* SEP */ De_s_scale / /* length scaling */ (LSEP / NSEP * NX),
+      /* NE */  De_n_scale / /* length scaling */ (LNE / NNE * NX)});
 
    DECoefficient D_coeff(u_gf, ce_scale);
    //ConstantCoefficient D_coeff_fixed(0.5);
