@@ -33,9 +33,9 @@ void ElectrolyteConcentration::Update(const BlockVector &x, const Coefficient &j
 
    // Source term.
    Vector source_vec({
-      /* PE */ (1 - TPLUS) * AP,
+      /* PE */ (1 - TPLUS) * AP * /* length scaling */ (LPE / NPE * NX),
       /* SEP */ 0.,
-      /* NE */ (1 - TPLUS) * AN  });
+      /* NE */ (1 - TPLUS) * AN * /* length scaling */ (LNE / NNE * NX)});
 
    Vector j_vec({
       /* PE */ -5.980666,
