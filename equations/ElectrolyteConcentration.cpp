@@ -11,9 +11,9 @@ void ElectrolyteConcentration::Update(const BlockVector &x, const Coefficient &j
 
    // Mass coefficient.
    Vector mass_vec({
-      /* PE */  EPS_P,               
-      /* SEP */ EPS_S,
-      /* NE */  EPS_N   });
+      /* PE */  EPS_P * /* length scaling */ (LPE  / NPE  * NX),
+      /* SEP */ EPS_S * /* length scaling */ (LSEP / NSEP * NX),
+      /* NE */  EPS_N * /* length scaling */ (LNE  / NNE  * NX)});
    PWConstCoefficient mass_part(mass_vec);
    ConstantCoefficient t_scale(te_scale);
    //ConstantCoefficient t_scale(1.0);
