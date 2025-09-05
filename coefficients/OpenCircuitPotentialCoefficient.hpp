@@ -8,9 +8,9 @@ class OpenCircuitPotentialCoefficient: public Coefficient
 
       GridFunctionCoefficient _surface_concentration_gfc;
 
-      TransformedCoefficient _ocp_pe_tc;
-      ConstantCoefficient _ocp_sep_cc;
       TransformedCoefficient _ocp_ne_tc;
+      ConstantCoefficient _ocp_sep_cc;
+      TransformedCoefficient _ocp_pe_tc;
 
       Vector _ocp_vec;
       PWConstCoefficient _ocp_pwcc;
@@ -21,34 +21,34 @@ class OpenCircuitPotentialCoefficient: public Coefficient
       /// Default
       OpenCircuitPotentialCoefficient():
         _surface_concentration_gf(ParGridFunction()),
-        _ocp_pe_tc(nullptr, [](real_t) { return 0; }),
         _ocp_ne_tc(nullptr, [](real_t) { return 0; }),
+        _ocp_pe_tc(nullptr, [](real_t) { return 0; }),
         _ocp(_ocp_pwcc) {}
 
       /// SPM(e)
       OpenCircuitPotentialCoefficient(
-        const std::function<real_t(real_t)> & up,
         const std::function<real_t(real_t)> & un,
-        const real_t & scp,
-        const real_t & scn):
+        const std::function<real_t(real_t)> & up,
+        const real_t & scn,
+        const real_t & scp):
         _surface_concentration_gf(ParGridFunction()),
-        _ocp_pe_tc(nullptr, [](real_t) { return 0; }),
         _ocp_ne_tc(nullptr, [](real_t) { return 0; }),
-        _ocp_vec({up(scp), 0., un(scn)}),
+        _ocp_pe_tc(nullptr, [](real_t) { return 0; }),
+        _ocp_vec({un(scn), 0., up(scp)}),
         _ocp_pwcc(_ocp_vec),
         _ocp(_ocp_pwcc) {}
 
       /// P2D
       OpenCircuitPotentialCoefficient(
-        const std::function<real_t(real_t)> & up,
         const std::function<real_t(real_t)> & un,
+        const std::function<real_t(real_t)> & up,
         const ParGridFunction & sc):
         _surface_concentration_gf(sc),
         _surface_concentration_gfc(&_surface_concentration_gf),
-        _ocp_pe_tc(&_surface_concentration_gfc, up),
-        _ocp_sep_cc(0),
         _ocp_ne_tc(&_surface_concentration_gfc, un),
-        _ocp_pwc(Array<int>({PE, SEP, NE}), Array<Coefficient*>({static_cast<Coefficient*>(&_ocp_pe_tc), static_cast<Coefficient*>(&_ocp_sep_cc), static_cast<Coefficient*>(&_ocp_ne_tc)})),
+        _ocp_sep_cc(0),
+        _ocp_pe_tc(&_surface_concentration_gfc, up),
+        _ocp_pwc(Array<int>({NE, SEP, PE}), Array<Coefficient*>({static_cast<Coefficient*>(&_ocp_ne_tc), static_cast<Coefficient*>(&_ocp_sep_cc), static_cast<Coefficient*>(&_ocp_pe_tc)})),
         _ocp(_ocp_pwc) {}
 
       /// SPM(e)

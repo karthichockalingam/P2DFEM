@@ -28,7 +28,7 @@ class ReactionCurrentCoefficient: public Coefficient
         _electrolyte_potential_gf(ParGridFunction()),
         _dp_sc(0, _solid_potential_gfc),
         _op_sc(0, _solid_potential_gfc),
-        _j_vec({- I / AP / LPE, 0., + I / AN / LNE}),
+        _j_vec({+ I / AN / LNE, 0., - I / AP / LPE}),
         _j_pwcc(_j_vec),
         _j_tc(nullptr, [](real_t) { return 0; }),
         _j(_j_pwcc) {}

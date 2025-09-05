@@ -2,9 +2,9 @@
 
 void SolidConcentration::Update(const BlockVector &x, const Coefficient &j, const real_t &dt)
 {
-   const real_t R = particle_region == PE ? RP : RN;
-   const real_t D = particle_region == PE ? DP : DN;
-   const real_t t_scale = particle_region == PE ? tp_scale : tn_scale;
+   const real_t R = particle_region == NE ? RN : RP;
+   const real_t D = particle_region == NE ? DN : DP;
+   const real_t t_scale = particle_region == NE ? tn_scale : tp_scale;
 
    FunctionCoefficient r2([](const Vector & r){ return r(0) * r(0); });
    ProductCoefficient dr2(D / R / R, r2);
