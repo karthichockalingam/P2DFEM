@@ -87,6 +87,7 @@ public:
    real_t ComputeOpenCircuitPotential(const Region &r);
    OpenCircuitPotentialCoefficient ComputeOpenCircuitPotential();
 
+   real_t ComputeOverPotential(const Region &r);
    OverPotentialCoefficient ComputeOverPotential();
 
    void ComputeVoltage(const BlockVector &x, real_t t, real_t dt);

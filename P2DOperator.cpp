@@ -242,7 +242,7 @@ ReactionCurrentCoefficient P2DOperator::ComputeReactionCurrent()
       case SPMe:
          return ReactionCurrentCoefficient();
       case P2D:
-         return ReactionCurrentCoefficient(298., ComputeExchangeCurrent(), ComputeOverPotential());
+         return ReactionCurrentCoefficient(T, ComputeExchangeCurrent(), ComputeOverPotential());
    }
    MFEM_ASSERT(false, "Unreachable.");
 }
@@ -300,10 +300,24 @@ OpenCircuitPotentialCoefficient P2DOperator::ComputeOpenCircuitPotential()
 // OverPotential
 //
 
+real_t P2DOperator::ComputeOverPotential(const Region &r)
+{
+   MFEM_ASSERT(M == SPM || M == SPMe, "Cannot calculate constant  overpotential, only SPM and SPMe are supported.");
+   MFEM_ASSERT(r == NE || r == PE, "Cannot calculate constant overpotential, only negative (NE) and positive electrodes (PE) are supported.")
+   return ComputeOverPotential().Eval()(r);
+}
+
 OverPotentialCoefficient P2DOperator::ComputeOverPotential()
 {
-   MFEM_ASSERT(M == P2D, "Cannot calculate overpotential, only P2D is supported.");
-   return OverPotentialCoefficient(*_sp_gf, *_ep_gf, ComputeOpenCircuitPotential());
+   switch (M)
+   {
+      case SPM:
+      case SPMe:
+         return OverPotentialCoefficient(T, ComputeExchangeCurrent());
+      case P2D:
+         return OverPotentialCoefficient(*_sp_gf, *_ep_gf, ComputeOpenCircuitPotential());
+   }
+   MFEM_ASSERT(false, "Unreachable.");
 }
 
 //
@@ -315,14 +329,8 @@ void P2DOperator::ComputeVoltage(const BlockVector &x, real_t t, real_t dt)
    real_t Un = ComputeOpenCircuitPotential(NE);
    real_t Up = ComputeOpenCircuitPotential(PE);
 
-   real_t jn = ComputeReactionCurrent(NE);
-   real_t jp = ComputeReactionCurrent(PE);
-
-   real_t j0_n =  ComputeExchangeCurrent(NE);
-   real_t j0_p =  ComputeExchangeCurrent(PE);
-
-   real_t eta_n = 2 * T * asinh(jn / 2.0 / j0_n);
-   real_t eta_p = 2 * T * asinh(jp / 2.0 / j0_p);
+   real_t eta_n = ComputeOverPotential(NE);
+   real_t eta_p = ComputeOverPotential(PE);
 
    // Definition from JuBat: https://doi.org/10.1016/j.est.2023.107512
    real_t voltage = Up - Un + (eta_p - eta_n) * phi_scale;
