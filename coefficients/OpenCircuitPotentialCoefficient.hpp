@@ -9,7 +9,6 @@ class OpenCircuitPotentialCoefficient: public Coefficient
       GridFunctionCoefficient _surface_concentration_gfc;
 
       TransformedCoefficient _ocp_ne_tc;
-      ConstantCoefficient _ocp_sep_cc;
       TransformedCoefficient _ocp_pe_tc;
 
       Vector _ocp_vec;
@@ -46,9 +45,8 @@ class OpenCircuitPotentialCoefficient: public Coefficient
         _surface_concentration_gf(sc),
         _surface_concentration_gfc(&_surface_concentration_gf),
         _ocp_ne_tc(&_surface_concentration_gfc, un),
-        _ocp_sep_cc(0),
         _ocp_pe_tc(&_surface_concentration_gfc, up),
-        _ocp_pwc(Array<int>({NE, SEP, PE}), Array<Coefficient*>({static_cast<Coefficient*>(&_ocp_ne_tc), static_cast<Coefficient*>(&_ocp_sep_cc), static_cast<Coefficient*>(&_ocp_pe_tc)})),
+        _ocp_pwc(Array<int>({NE, PE}), Array<Coefficient*>({static_cast<Coefficient*>(&_ocp_ne_tc), static_cast<Coefficient*>(&_ocp_pe_tc)})),
         _ocp(_ocp_pwc) {}
 
       /// SPM(e)

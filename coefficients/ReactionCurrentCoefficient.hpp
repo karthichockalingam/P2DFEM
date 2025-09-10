@@ -46,7 +46,7 @@ class ReactionCurrentCoefficient: public Coefficient
         _electrolyte_potential_gfc(&_electrolyte_potential_gf),
         _jex(jex),
         _ocp(ocp),
-        _dp_sc(_solid_potential_gfc, _solid_potential_gfc, 1, -1),
+        _dp_sc(_solid_potential_gfc, _electrolyte_potential_gfc, 1, -1),
         _op_sc(_dp_sc, _ocp, 1, -1),
         _j_tc(&_jex, &_op_sc, [=](real_t jex, real_t op) { return 2 * jex * sinh (.5 * op / T); }),
         _j(_j_tc) {}
