@@ -72,14 +72,13 @@ void SolidConcentration::DebuggingCheck(const BlockVector &x)
 {
    ParGridFunction u_gf(&fespace);
    u_gf.SetFromTrueDofs(x.GetBlock(SC + particle_id));
-   ParLinearForm sum(&fespace);
    GridFunctionCoefficient u_gfc(&u_gf);
    FunctionCoefficient r2([](const Vector & x){ return x(0) * x(0); });
    ProductCoefficient ur2(u_gfc, r2);
-   sum.AddDomainIntegrator(new DomainLFIntegrator(ur2));
-   sum.Assemble();
-   real_t integral = sum.Sum();
-   MPI_Allreduce(MPI_IN_PLACE, &integral, 1, MFEM_MPI_REAL_T, MPI_SUM, MPI_COMM_WORLD);
+
+   QuadratureSpace x_qspace(fespace.GetParMesh(), fespace.FEColl()->GetOrder() + 2);
+   real_t integral = x_qspace.Integrate(ur2);
+
    if (!Mpi::WorldRank())
       std::cout << "Total flux accumulated (" << particle_id << ") = " << integral << std::endl;
 }

@@ -11,7 +11,6 @@ class ExchangeCurrentCoefficient: public Coefficient
       GridFunctionCoefficient _electrolyte_concentration_gfc;
 
       TransformedCoefficient _jex_ne_tc;
-      ConstantCoefficient _jex_sep_cc;
       TransformedCoefficient _jex_pe_tc;
 
       Vector _jex_vec;
@@ -54,7 +53,6 @@ class ExchangeCurrentCoefficient: public Coefficient
         _electrolyte_concentration_gf(ec),
         _electrolyte_concentration_gfc(&_electrolyte_concentration_gf),
         _jex_ne_tc(&_electrolyte_concentration_gfc, [=](real_t ec) { return kn * sqrt( scn * ec * (1 - scn) ); }),
-        _jex_sep_cc(0),
         _jex_pe_tc(&_electrolyte_concentration_gfc, [=](real_t ec) { return kp * sqrt( scp * ec * (1 - scp) ); }),
         _jex(_jex_pwcc) {}
 
@@ -69,9 +67,8 @@ class ExchangeCurrentCoefficient: public Coefficient
         _surface_concentration_gfc(&_surface_concentration_gf),
         _electrolyte_concentration_gfc(&_electrolyte_concentration_gf),
         _jex_ne_tc(&_surface_concentration_gfc, &_electrolyte_concentration_gfc, [=](real_t sc, real_t ec) { return kn * sqrt( sc * ec * (1 - sc) ); }),
-        _jex_sep_cc(0),
         _jex_pe_tc(&_surface_concentration_gfc, &_electrolyte_concentration_gfc, [=](real_t sc, real_t ec) { return kp * sqrt( sc * ec * (1 - sc) ); }),
-        _jex_pwc(Array<int>({NE, SEP, PE}), Array<Coefficient*>({static_cast<Coefficient*>(&_jex_ne_tc), static_cast<Coefficient*>(&_jex_sep_cc), static_cast<Coefficient*>(&_jex_pe_tc)})),
+        _jex_pwc(Array<int>({NE, PE}), Array<Coefficient*>({static_cast<Coefficient*>(&_jex_ne_tc), static_cast<Coefficient*>(&_jex_pe_tc)})),
         _jex(_jex_pwc) {}
 
       /// SPM(e)
@@ -83,23 +80,17 @@ class ExchangeCurrentCoefficient: public Coefficient
         if (!_jex_pwcc.GetNConst())
         {
           ParFiniteElementSpace * x_fespace = _electrolyte_concentration_gf.ParFESpace();
-          Array<int> markers(x_fespace->GetParMesh()->attributes.Max());
+          QuadratureSpace x_qspace(x_fespace->GetParMesh(), 2 * x_fespace->FEColl()->GetOrder());
 
-          // NE
-          markers = 0; markers[NE - 1] = 1;
-          ParLinearForm sum_ne(x_fespace);
-          sum_ne.AddDomainIntegrator(new DomainLFIntegrator(_jex_ne_tc), markers);
-          sum_ne.Assemble();
-          real_t integral_ne = sum_ne.Sum();
-          MPI_Allreduce(MPI_IN_PLACE, &integral_ne, 1, MFEM_MPI_REAL_T, MPI_SUM, MPI_COMM_WORLD);
+          /// NE
+          _jex_pwc.UpdateCoefficient(NE, _jex_ne_tc);
+          real_t integral_ne = x_qspace.Integrate(_jex_pwc);
+          _jex_pwc.ZeroCoefficient(NE);
 
-          // PE
-          markers = 0; markers[PE - 1] = 1;
-          ParLinearForm sum_pe(x_fespace);
-          sum_pe.AddDomainIntegrator(new DomainLFIntegrator(_jex_pe_tc), markers);
-          sum_pe.Assemble();
-          real_t integral_pe = sum_pe.Sum();
-          MPI_Allreduce(MPI_IN_PLACE, &integral_pe, 1, MFEM_MPI_REAL_T, MPI_SUM, MPI_COMM_WORLD);
+          /// PE
+          _jex_pwc.UpdateCoefficient(PE, _jex_pe_tc);
+          real_t integral_pe = x_qspace.Integrate(_jex_pwc);
+          _jex_pwc.ZeroCoefficient(PE);
 
           Vector c({integral_ne / NNE * NX, 0., integral_pe / NPE * NX});
           _jex_pwcc.UpdateConstants(c);

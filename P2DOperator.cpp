@@ -369,7 +369,7 @@ void P2DOperator::GetParticleDofs(Array<int> & particle_dofs, Array<Region> & pa
       }
    }
 
-   unsigned max_sep_gdofs = NSEP * x_fespace->GetElementOrder(0) + 1;
+   unsigned max_sep_gdofs = NSEP * x_fespace->FEColl()->GetOrder() + 1;
    Array<int> sep_gdofs(max_sep_gdofs); sep_gdofs = -1;
    std::copy(sep_gdofs_set.begin(), sep_gdofs_set.end(), sep_gdofs.begin());
 
