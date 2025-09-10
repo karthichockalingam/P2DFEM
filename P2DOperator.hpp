@@ -5,6 +5,7 @@
 #include "equations/SolidConcentration.hpp"
 #include "coefficients/ExchangeCurrentCoefficient.hpp"
 #include "coefficients/OpenCircuitPotentialCoefficient.hpp"
+#include "coefficients/OverPotentialCoefficient.hpp"
 #include "coefficients/ReactionCurrentCoefficient.hpp"
 
 using namespace mfem;
@@ -85,6 +86,8 @@ public:
 
    real_t ComputeOpenCircuitPotential(const Region &r);
    OpenCircuitPotentialCoefficient ComputeOpenCircuitPotential();
+
+   OverPotentialCoefficient ComputeOverPotential();
 
    void ComputeVoltage(const BlockVector &x, real_t t, real_t dt);
 

@@ -242,7 +242,7 @@ ReactionCurrentCoefficient P2DOperator::ComputeReactionCurrent()
       case SPMe:
          return ReactionCurrentCoefficient();
       case P2D:
-         return ReactionCurrentCoefficient(298., *_sp_gf, *_ep_gf, ComputeExchangeCurrent(), ComputeOpenCircuitPotential());
+         return ReactionCurrentCoefficient(298., ComputeExchangeCurrent(), ComputeOverPotential());
    }
    MFEM_ASSERT(false, "Unreachable.");
 }
@@ -294,6 +294,16 @@ OpenCircuitPotentialCoefficient P2DOperator::ComputeOpenCircuitPotential()
          return OpenCircuitPotentialCoefficient(UN, UP, *_sc_gf);
    }
    MFEM_ASSERT(false, "Unreachable.");
+}
+
+//
+// OverPotential
+//
+
+OverPotentialCoefficient P2DOperator::ComputeOverPotential()
+{
+   MFEM_ASSERT(M == P2D, "Cannot calculate overpotential, only P2D is supported.");
+   return OverPotentialCoefficient(*_sp_gf, *_ep_gf, ComputeOpenCircuitPotential());
 }
 
 //
