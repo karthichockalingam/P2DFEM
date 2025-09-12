@@ -106,10 +106,28 @@ void P2DOperator::ImplicitSolve(const real_t dt,
    //   M dx_dt = -K(x + dt*dx_dt) <=> (M + dt K) dx_dt = -Kx
    // for dx_dt, where K is linearized by using x from the previous timestep
 
+   // Logically split dx_dt in two parts: potentials and concentrations
    Array<int> offsets({block_trueOffsets[P], block_trueOffsets[C], block_trueOffsets[NEQS]});
    BlockVector dx_dt_blocked(dx_dt, offsets);
+   Vector & dxp_dt(dx_dt_blocked.GetBlock(0));
+   Vector & dxc_dt(dx_dt_blocked.GetBlock(1));
+
+   if (M == P2D)
+   {
+      // assemble Ap and bp, create dxp_dt ref
+      UpdatePotentialEquations();
+      Ap->SetDiagonalBlock(EPP, new HypreParMatrix(ep->GetK()));
+      Ap->SetDiagonalBlock(SPP, new HypreParMatrix(sp->GetK()));
+      bp.GetBlock(EPP) = ep->GetZ();
+      bp.GetBlock(SPP) = sp->GetZ();
+
+      // solve for dxp_dt (potentials rate)
+      Solver.SetOperator(*Ap);
+      Solver.Mult(bp, dxp_dt);
+   }
 
    // assemble Ac and bc, create dxc_dt ref
+   UpdateConcentrationEquations();
    Ac->SetDiagonalBlock(ECC, Add(1, ec->GetM(), dt, ec->GetK()));
    bc.GetBlock(ECC) = ec->GetZ();
    for (unsigned p = 0; p < NPAR; p++)
@@ -117,25 +135,10 @@ void P2DOperator::ImplicitSolve(const real_t dt,
       Ac->SetDiagonalBlock(SCC + p, Add(1, sc[p]->GetM(), dt, sc[p]->GetK()));
       bc.GetBlock(SCC + p) = sc[p]->GetZ();
    }
-   Vector & dxc_dt(dx_dt_blocked.GetBlock(1));
 
    // solve for dxc_dt (concentrations rate)
    Solver.SetOperator(*Ac);
    Solver.Mult(bc, dxc_dt);
-
-   if (M == P2D)
-   {
-      // assemble Ap and bp, create dxp_dt ref
-      Ap->SetDiagonalBlock(EPP, new HypreParMatrix(ep->GetK()));
-      Ap->SetDiagonalBlock(SPP, new HypreParMatrix(sp->GetK()));
-      bp.GetBlock(EPP) = ep->GetZ();
-      bp.GetBlock(SPP) = sp->GetZ();
-      Vector & dxp_dt(dx_dt_blocked.GetBlock(0));
-
-      // solve for dxp_dt (potentials rate)
-      Solver.SetOperator(*Ap);
-      Solver.Mult(bp, dxp_dt);
-   }
 }
 
 void P2DOperator::SetGridFunctionsFromTrueVectors()
@@ -146,47 +149,28 @@ void P2DOperator::SetGridFunctionsFromTrueVectors()
    SetSurfaceConcentration();
 }
 
-void P2DOperator::Update()
+void P2DOperator::UpdatePotentialEquations()
 {
-   // rebuild Ap, Ac
+   // Rebuild Ap, destroys owned (i.e. all) blocks
    delete Ap;
-   delete Ac;
    Ap = new BlockOperator(potential_trueOffsets);
-   Ac = new BlockOperator(concentration_trueOffsets);
    Ap->owns_blocks = 1;
+
+   ep->Update(_x, ComputeReactionCurrent(), _dt);
+   sp->Update(_x, ComputeReactionCurrent(), _dt);
+}
+
+void P2DOperator::UpdateConcentrationEquations()
+{
+   // Rebuild Ac, destroys owned (i.e. all) blocks
+   delete Ac;
+   Ac = new BlockOperator(concentration_trueOffsets);
    Ac->owns_blocks = 1;
 
-   if (M == SPM || M == SPMe)
-   {
-      ec->Update(_x, ComputeReactionCurrent());
-      for (unsigned p = 0; p < NPAR; p++)
-         sc[p]->Update(_x, ConstantCoefficient(ComputeReactionCurrent(sc[p]->GetParticleRegion())));
-   }
-   else if (M == P2D)
-   {
-      ReactionCurrentCoefficient jx = ComputeReactionCurrent();
-      ep->Update(_x, jx, _dt);
-      sp->Update(_x, jx, _dt);
-      ec->Update(_x, jx, _dt);
-      ParGridFunction j(x_fespace);
-      j.ProjectCoefficient(jx);
-
-      for (unsigned p = 0; p < NPAR; p++)
-      {
-         MPI_Request request;
-         real_t jr = sc[p]->IsParticleOwned() ? j(sc[p]->GetParticleDof()) : 0;
-         if (sc[p]->IsParticleOwned())
-            MPI_Isend(&jr, 1, MFEM_MPI_REAL_T, sc[p]->GetSurfaceRank(), 1, MPI_COMM_WORLD, &request);
-
-         if (sc[p]->IsSurfaceOwned())
-            MPI_Recv(&jr, 1, MFEM_MPI_REAL_T, MPI_ANY_SOURCE, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-
-         if (sc[p]->IsParticleOwned())
-            MPI_Wait(&request, MPI_STATUS_IGNORE);
-
-         sc[p]->Update(_x, ConstantCoefficient(jr));
-      }
-   }
+   ec->Update(_x, ComputeReactionCurrent(), _dt);
+   const Array<real_t> & j = ComputeParticleReactionCurrent();
+   for (unsigned p = 0; p < NPAR; p++)
+      sc[p]->Update(_x, ConstantCoefficient(j[p]), _dt);
 }
 
 //
@@ -221,6 +205,49 @@ void P2DOperator::SetSurfaceConcentration()
    // Apply prolongation after restriction. Might be unnecessary, but guarantees
    // all processors have the right information for all their local dofs.
    _sc_gf->SetFromTrueVector();
+}
+
+//
+// Reaction Current for each particle
+//
+
+Array<real_t> P2DOperator::ComputeParticleReactionCurrent()
+{
+   Array<real_t> j(NPAR);
+
+   switch (M)
+   {
+      case SPM:
+      case SPMe:
+         for (unsigned p = 0; p < NPAR; p++)
+            j[p] = ComputeReactionCurrent(sc[p]->GetParticleRegion());
+         break;
+      case P2D:
+         ReactionCurrentCoefficient j_coef = ComputeReactionCurrent();
+         ParGridFunction j_gf(x_fespace);
+         j_gf.ProjectCoefficient(j_coef);
+
+         for (unsigned p = 0; p < NPAR; p++)
+         {
+            j[p] = sc[p]->IsParticleOwned() ? j_gf(sc[p]->GetParticleDof()) : 0;
+
+            if (sc[p]->GetParticleRank() == sc[p]->GetSurfaceRank())
+               continue;
+
+            MPI_Request request;
+            if (sc[p]->IsParticleOwned())
+               MPI_Isend(&j[p], 1, MFEM_MPI_REAL_T, sc[p]->GetSurfaceRank(), 1, MPI_COMM_WORLD, &request);
+
+            if (sc[p]->IsSurfaceOwned())
+               MPI_Recv(&j[p], 1, MFEM_MPI_REAL_T, MPI_ANY_SOURCE, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+
+            if (sc[p]->IsParticleOwned())
+               MPI_Wait(&request, MPI_STATUS_IGNORE);
+         }
+         break;
+   }
+
+   return j;
 }
 
 //

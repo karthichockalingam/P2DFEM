@@ -154,8 +154,6 @@ int main(int argc, char *argv[])
    ode_solver->Init(oper);
    real_t t = 0.0;
 
-   oper.Update();
-
    bool last_step = false;
    for (int ti = 1; !last_step; ti++)
    {
@@ -175,7 +173,6 @@ int main(int argc, char *argv[])
          {
          }
       }
-      oper.Update();
    }
 
    // 11. Free the used memory.

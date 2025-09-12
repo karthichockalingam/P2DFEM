@@ -73,10 +73,13 @@ public:
 
    void SetGridFunctionsFromTrueVectors();
 
-   virtual void Update();
+   virtual void UpdatePotentialEquations();
+   virtual void UpdateConcentrationEquations();
 
    real_t GetSurfaceConcentration(const Region &r);
    void SetSurfaceConcentration();
+
+   Array<real_t> ComputeParticleReactionCurrent();
 
    real_t ComputeReactionCurrent(const Region &r);
    ReactionCurrentCoefficient ComputeReactionCurrent();
