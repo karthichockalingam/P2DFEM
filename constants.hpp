@@ -32,13 +32,13 @@ namespace constants {
         PE
     };
 
-    enum Method : int {
+    enum Model : int {
         SPM,
         SPMe,
         P2D
     };
 
-    extern const Method M;
+    extern const Model M;
 
     extern const unsigned NNE;
     extern const unsigned NSEP;
@@ -86,5 +86,5 @@ namespace constants {
     real_t UN(real_t);
     real_t UP(real_t);
 
-    void init_params(Method m, int order);
+    void init_params(Model m, int order);
 }

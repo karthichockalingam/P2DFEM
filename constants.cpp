@@ -5,13 +5,13 @@ using namespace mfem;
 using namespace LGM50;
 
 namespace constants {
-    enum Method : int {
+    enum Model : int {
         SPM,
         SPMe,
         P2D
     };
 
-    Method M = SPM;
+    Model M = SPM;
 
     unsigned NNE = 0;
     unsigned NSEP = 0;
@@ -94,7 +94,7 @@ namespace constants {
     real_t UN(real_t ce) { return Un(ce); }
     real_t UP(real_t ce) { return Up(ce); }
 
-    void init_params(Method m, int order) {
+    void init_params(Model m, int order) {
         M = m;
 
         switch (M)

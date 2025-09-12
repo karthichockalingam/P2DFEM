@@ -7,7 +7,7 @@
 //
 // Description:  Under active development. No explicit time integration methods
 //               are supported at this time. Use -m or --method to select from
-//               the three electrochemical methods.
+//               the three electrochemical models.
 
 #include "mfem.hpp"
 #include <fstream>
@@ -26,7 +26,7 @@ int main(int argc, char *argv[])
    Hypre::Init();
 
    // 2. Parse command-line options.
-   Method method = SPM;
+   Model model = SPM;
    int ser_ref_levels = 0;
    int par_ref_levels = 0;
    int order = 1;
@@ -40,8 +40,8 @@ int main(int argc, char *argv[])
    std::cout.precision(precision);
 
    OptionsParser args(argc, argv);
-   args.AddOption(reinterpret_cast<int*>(&method), "-m", "--method",
-                  "Electrochemical method: 0) SPM, 1) SPMe, 2) P2D.");
+   args.AddOption(reinterpret_cast<int*>(&model), "-m", "--model",
+                  "Electrochemical model: 0) SPM, 1) SPMe, 2) P2D.");
    args.AddOption(&ser_ref_levels, "-rs", "--refine-serial",
                   "Number of times to refine the mesh uniformly in serial.");
    args.AddOption(&par_ref_levels, "-rp", "--refine-parallel",
@@ -95,8 +95,8 @@ int main(int argc, char *argv[])
       return 1;
    }
 
-   // Initialise grid and layout properties dependent on the electrochemical method and FE order
-   init_params(method, order);
+   // Initialise grid and layout properties dependent on the electrochemical model and FE order
+   init_params(model, order);
 
    // 3. Read the serial mesh from the given mesh file on all processors. We can
    //    handle triangular, quadrilateral, tetrahedral and hexahedral meshes
