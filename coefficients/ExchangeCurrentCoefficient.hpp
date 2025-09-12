@@ -16,7 +16,6 @@ class ExchangeCurrentCoefficient: public Coefficient
       Vector _jex_vec;
       PWConstCoefficient _jex_pwcc;
       PWCoefficient _jex_pwc;
-      bool _constant;
 
    public:
       /// Default
@@ -38,8 +37,7 @@ class ExchangeCurrentCoefficient: public Coefficient
         _jex_ne_tc(nullptr, nullptr, [](real_t, real_t) { return 0; }),
         _jex_pe_tc(nullptr, nullptr, [](real_t, real_t) { return 0; }),
         _jex_vec({kn * sqrt( scn * ec * (1 - scn) ), 0., kp * sqrt( scp * ec * (1 - scp) )}),
-        _jex_pwcc(_jex_vec),
-        _constant(true) {}
+        _jex_pwcc(_jex_vec) {}
 
       /// SPMe
       ExchangeCurrentCoefficient(
@@ -52,8 +50,7 @@ class ExchangeCurrentCoefficient: public Coefficient
         _electrolyte_concentration_gf(ec),
         _electrolyte_concentration_gfc(&_electrolyte_concentration_gf),
         _jex_ne_tc(&_electrolyte_concentration_gfc, [=](real_t ec) { return kn * sqrt( scn * ec * (1 - scn) ); }),
-        _jex_pe_tc(&_electrolyte_concentration_gfc, [=](real_t ec) { return kp * sqrt( scp * ec * (1 - scp) ); }),
-        _constant(true) {}
+        _jex_pe_tc(&_electrolyte_concentration_gfc, [=](real_t ec) { return kp * sqrt( scp * ec * (1 - scp) ); }) {}
 
       /// P2D
       ExchangeCurrentCoefficient(
@@ -67,14 +64,11 @@ class ExchangeCurrentCoefficient: public Coefficient
         _electrolyte_concentration_gfc(&_electrolyte_concentration_gf),
         _jex_ne_tc(&_surface_concentration_gfc, &_electrolyte_concentration_gfc, [=](real_t sc, real_t ec) { return kn * sqrt( sc * ec * (1 - sc) ); }),
         _jex_pe_tc(&_surface_concentration_gfc, &_electrolyte_concentration_gfc, [=](real_t sc, real_t ec) { return kp * sqrt( sc * ec * (1 - sc) ); }),
-        _jex_pwc(Array<int>({NE, PE}), Array<Coefficient*>({static_cast<Coefficient*>(&_jex_ne_tc), static_cast<Coefficient*>(&_jex_pe_tc)})),
-        _constant(false) {}
+        _jex_pwc(Array<int>({NE, PE}), Array<Coefficient*>({static_cast<Coefficient*>(&_jex_ne_tc), static_cast<Coefficient*>(&_jex_pe_tc)})) {}
 
       /// SPM(e)
       virtual PWConstCoefficient Eval()
       {
-        MFEM_ASSERT(_constant, "ExchangeCurrentCoefficient does not wrap a PWConstCoefficient");
-
         /// SPMe
         if (!_jex_pwcc.GetNConst())
         {

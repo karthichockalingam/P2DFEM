@@ -18,7 +18,6 @@ class OverPotentialCoefficient: public Coefficient
       Vector _op_vec;
       PWConstCoefficient _op_pwcc;
       SumCoefficient _op_sc;
-      Coefficient & _op;
 
    public:
       /// Default
@@ -26,8 +25,7 @@ class OverPotentialCoefficient: public Coefficient
         _solid_potential_gf(ParGridFunction()),
         _electrolyte_potential_gf(ParGridFunction()),
         _dp_sc(0, _solid_potential_gfc),
-        _op_sc(0, _solid_potential_gfc),
-        _op(_op_pwcc) {}
+        _op_sc(0, _solid_potential_gfc) {}
 
       /// SPM(e)
       OverPotentialCoefficient(
@@ -39,8 +37,7 @@ class OverPotentialCoefficient: public Coefficient
         _op_sc(0, _solid_potential_gfc),
         _jex(jex),
         _op_vec({2 * T * asinh(+ I / AN / LNE / 2.0 / _jex.Eval()(NE)), 0., 2 * T * asinh(- I / AP / LPE / 2.0 / _jex.Eval()(PE))}),
-        _op_pwcc(_op_vec),
-        _op(_op_pwcc) {}
+        _op_pwcc(_op_vec) {}
 
       /// P2D
       OverPotentialCoefficient(
@@ -53,20 +50,18 @@ class OverPotentialCoefficient: public Coefficient
         _electrolyte_potential_gfc(&_electrolyte_potential_gf),
         _ocp(ocp),
         _dp_sc(_solid_potential_gfc, _electrolyte_potential_gfc, 1, -1),
-        _op_sc(_dp_sc, _ocp, 1, -1),
-        _op(_op_sc) {}
+        _op_sc(_dp_sc, _ocp, 1, -1) {}
 
       /// SPM(e)
       virtual PWConstCoefficient Eval()
       {
-        MFEM_ASSERT(&_op == &_op_pwcc, "OverPotentialCoefficient does not wrap a PWConstCoefficient");
         return _op_pwcc;
       }
 
       /// P2D
       virtual real_t Eval(ElementTransformation &T, const IntegrationPoint &ip) override
       {
-        return _op.Eval(T, ip);
+        return _op_sc.Eval(T, ip);
       }
 
 };
