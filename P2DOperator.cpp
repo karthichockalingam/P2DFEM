@@ -5,7 +5,7 @@ P2DOperator::P2DOperator(ParFiniteElementSpace * &x_fespace, Array<ParFiniteElem
    : TimeDependentOperator(ndofs, (real_t) 0.0), x_fespace(x_fespace), r_fespace(r_fespace),
      Ac(NULL), Ap(NULL), _x(x), _dt(dt), Solver(x_fespace->GetComm()), file("data.csv")
 {
-   const real_t rel_tol = 1e-8;
+   const real_t rel_tol = 1e-16;
 
    Solver.iterative_mode = false;
    Solver.SetRelTol(rel_tol);
