@@ -1,39 +1,19 @@
-//                       MFEM Example 16 - Parallel Version
+// Batree - An MFEM-based SPM, SPMe and P2D solver by the Hartree Centre
 //
-// Compile with: make ex16p
+// Compile with: make batree
 //
-// Sample runs:  mpirun -np 4 ex16p
-//               mpirun -np 4 ex16p -m ../data/inline-tri.mesh
-//               mpirun -np 4 ex16p -m ../data/disc-nurbs.mesh -tf 2
-//               mpirun -np 4 ex16p -s 1 -a 0.0 -k 1.0
-//               mpirun -np 4 ex16p -s 2 -a 1.0 -k 0.0
-//               mpirun -np 8 ex16p -s 3 -a 0.5 -k 0.5 -o 4
-//               mpirun -np 4 ex16p -s 14 -dt 1.0e-4 -tf 4.0e-2 -vs 40
-//               mpirun -np 16 ex16p -m ../data/fichera-q2.mesh
-//               mpirun -np 16 ex16p -m ../data/fichera-mixed.mesh
-//               mpirun -np 16 ex16p -m ../data/escher-p2.mesh
-//               mpirun -np 8 ex16p -m ../data/beam-tet.mesh -tf 10 -dt 0.1
-//               mpirun -np 4 ex16p -m ../data/amr-quad.mesh -o 4 -rs 0 -rp 0
-//               mpirun -np 4 ex16p -m ../data/amr-hex.mesh -o 2 -rs 0 -rp 0
+// Sample runs:  mpirun -np 4 batree -m 0
+//               mpirun -np 4 batree -m 1
 //
-// Description:  This example solves a time dependent nonlinear heat equation
-//               problem of the form du/dt = C(x), with a non-linear diffusion
-//               operator C(x) = \nabla \cdot (\kappa + \alpha x) \nabla x.
-//
-//               The example demonstrates the use of nonlinear operators (the
-//               class EquationOperator defining C(x)), as well as their
-//               implicit time integration. Note that implementing the method
-//               EquationOperator::ImplicitSolve is the only requirement for
-//               high-order implicit (SDIRK) time integration. In this example,
-//               the diffusion operator is linearized by evaluating with the
-//               lagged solution from the previous timestep, so there is only
-//               a linear solve.
+// Description:  Under active development. No explicit time integration methods
+//               are supported at this time. Use -m or --method to select from
+//               the three electrochemical methods.
 
 #include "mfem.hpp"
 #include <fstream>
 #include <iostream>
-#include "P2DOperator.hpp"
 #include <cmath>
+#include "P2DOperator.hpp"
 
 using namespace mfem;
 
