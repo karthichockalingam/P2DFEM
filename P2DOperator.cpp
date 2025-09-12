@@ -114,20 +114,33 @@ void P2DOperator::ImplicitSolve(const real_t dt,
 
    if (M == P2D)
    {
-      // assemble Ap and bp, create dxp_dt ref
-      UpdatePotentialEquations();
-      Ap->SetDiagonalBlock(EPP, new HypreParMatrix(ep->GetK()));
-      Ap->SetDiagonalBlock(SPP, new HypreParMatrix(sp->GetK()));
-      bp.GetBlock(EPP) = ep->GetZ();
-      bp.GetBlock(SPP) = sp->GetZ();
+      dx_dt = 0.;
 
-      // solve for dxp_dt (potentials rate)
-      Solver.SetOperator(*Ap);
-      Solver.Mult(bp, dxp_dt);
+      // for (SCL)
+      {
+         // assemble each individual block of Ap and bp
+         _x.Add(_dt, dx_dt);
+         SetGridFunctionsFromTrueVectors();
+         // compute absolute potentials in dedicated member function
+         UpdatePotentialEquations();
+         _x.Add(-_dt, dx_dt);
+
+         // put Ap and bp together
+         Ap->SetDiagonalBlock(EPP, new HypreParMatrix(ep->GetK()));
+         Ap->SetDiagonalBlock(SPP, new HypreParMatrix(sp->GetK()));
+         bp.GetBlock(EPP) = ep->GetZ();
+         bp.GetBlock(SPP) = sp->GetZ();
+
+         // solve for dxp_dt (potentials rate)
+         Solver.SetOperator(*Ap);
+         Solver.Mult(bp, dxp_dt);
+      }
    }
 
-   // assemble Ac and bc, create dxc_dt ref
+   // assemble each individual block of Ac and bc
    UpdateConcentrationEquations();
+
+   // put Ac and bc together
    Ac->SetDiagonalBlock(ECC, Add(1, ec->GetM(), dt, ec->GetK()));
    bc.GetBlock(ECC) = ec->GetZ();
    for (unsigned p = 0; p < NPAR; p++)
@@ -269,7 +282,7 @@ ReactionCurrentCoefficient P2DOperator::ComputeReactionCurrent()
       case SPMe:
          return ReactionCurrentCoefficient();
       case P2D:
-         return ReactionCurrentCoefficient(T, ComputeExchangeCurrent(), ComputeOverPotential());
+         return ReactionCurrentCoefficient(T, ComputeExchangeCurrent(), ComputeOverPotential()); // TODO: add absolute potentials as inputs
    }
    MFEM_ASSERT(false, "Unreachable.");
 }
