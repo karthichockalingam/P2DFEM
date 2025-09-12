@@ -59,8 +59,8 @@ P2DOperator::P2DOperator(ParFiniteElementSpace * &x_fespace, Array<ParFiniteElem
 
    // Initialise gridfunctions to use the appropriate section of the full dof vector _l
    _ep_gf = new ParGridFunction(x_fespace, _l, block_offsets[EP]);
-   _ec_gf = new ParGridFunction(x_fespace, _l, block_offsets[SP]);
-   _sp_gf = new ParGridFunction(x_fespace, _l, block_offsets[EC]);
+   _sp_gf = new ParGridFunction(x_fespace, _l, block_offsets[SP]);
+   _ec_gf = new ParGridFunction(x_fespace, _l, block_offsets[EC]);
    _sc_gf = new ParGridFunction(x_fespace, _l, block_offsets[SC]);
 
    // Set offsets for solution and rhs (potential and concentration) true vectors
