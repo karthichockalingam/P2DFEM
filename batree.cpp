@@ -2,8 +2,8 @@
 //
 // Compile with: make batree
 //
-// Sample runs:  mpirun -np 4 batree -m 0
-//               mpirun -np 4 batree -m 1
+// Sample runs:  mpirun -np 4 batree -m SPM
+//               mpirun -np 4 batree -m SPMe
 //
 // Description:  Under active development. No explicit time integration methods
 //               are supported at this time. Use -m or --method to select from
@@ -26,7 +26,7 @@ int main(int argc, char *argv[])
    Hypre::Init();
 
    // 2. Parse command-line options.
-   Model model = SPM;
+   std::string model = "SPM";
    int ser_ref_levels = 0;
    int par_ref_levels = 0;
    int order = 1;
@@ -40,8 +40,8 @@ int main(int argc, char *argv[])
    std::cout.precision(precision);
 
    OptionsParser args(argc, argv);
-   args.AddOption(reinterpret_cast<int*>(&model), "-m", "--model",
-                  "Electrochemical model: 0) SPM, 1) SPMe, 2) P2D.");
+   args.AddOption(&model, "-m", "--model",
+                  "Electrochemical model: SPM, SPMe, or P2D.");
    args.AddOption(&ser_ref_levels, "-rs", "--refine-serial",
                   "Number of times to refine the mesh uniformly in serial.");
    args.AddOption(&par_ref_levels, "-rp", "--refine-parallel",

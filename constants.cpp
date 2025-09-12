@@ -94,8 +94,17 @@ namespace constants {
     real_t UN(real_t ce) { return Un(ce); }
     real_t UP(real_t ce) { return Up(ce); }
 
-    void init_params(Model m, int order) {
-        M = m;
+    void init_params(std::string m, int order) {
+        std::transform(m.begin(), m.end(), m.begin(), [](unsigned char c){ return std::tolower(c); });
+
+        if (m == "spm")
+            M = SPM;
+        else if (m == "spme")
+            M = SPMe;
+        else if (m == "p2d" || m == "dfn")
+            M = P2D;
+        else
+            MFEM_ASSERT(false, "Unrecognised model.");
 
         switch (M)
         {

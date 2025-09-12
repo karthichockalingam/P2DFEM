@@ -86,5 +86,5 @@ namespace constants {
     real_t UN(real_t);
     real_t UP(real_t);
 
-    void init_params(Model m, int order);
+    void init_params(std::string m, int order);
 }
