@@ -47,8 +47,14 @@ protected:
    /// Reference to solution true dof vector
    BlockVector & _x;
 
-   /// Constant timestep (as requested by the user, no time adaptivity supported)
-   const real_t & _dt;
+   /// Reference to current time
+   real_t & _t;
+
+   /// Reference to current timestep
+   real_t & _dt;
+
+   /// Reference to the ODE solver we use to integrate in time
+   ODESolver & _ode_solver;
 
    /// Implicit solver for T = M + dt K
    CGSolver _Solver;
@@ -62,8 +68,8 @@ protected:
    std::ofstream _file;
 
 public:
-   P2DOperator(ParFiniteElementSpace * &x_fespace, Array<ParFiniteElementSpace *> &r_fespace,
-               const unsigned &ndofs, BlockVector &x, const real_t & dt);
+   P2DOperator(ParFiniteElementSpace * &x_fespace, Array<ParFiniteElementSpace *> &r_fespace, const unsigned &ndofs,
+               BlockVector &x, real_t & t, real_t & dt, ODESolver & ode_solver);
 
    virtual void Mult(const Vector &x, Vector &dx_dt) const override {};
 
@@ -71,6 +77,7 @@ public:
        This is the only requirement for high-order SDIRK implicit integration.*/
    virtual void ImplicitSolve(const real_t dt, const Vector &x, Vector &k) override;
 
+   void Step();
    void SetGridFunctionsFromTrueVectors();
 
    virtual void UpdatePotentialEquations();
@@ -93,7 +100,7 @@ public:
    real_t ComputeOverPotential(const Region &r);
    OverPotentialCoefficient ComputeOverPotential();
 
-   void ComputeVoltage(const BlockVector &x, real_t t, real_t dt);
+   void ComputeVoltage();
 
    virtual void GetParticleDofs(Array<int> & particle_dofs, Array<Region> & particle_regions, Array<int> & particle_offsets);
 

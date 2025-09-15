@@ -146,33 +146,26 @@ int main(int argc, char *argv[])
       fe_size_owned += r_fespace[p]->GetTrueVSize();
 
    // 9. Initialize the conduction operator and the VisIt visualization.
+   real_t t = 0.0;
    BlockVector x;
-   P2DOperator oper(x_fespace, r_fespace, fe_size_owned, x, dt);
+   P2DOperator oper(x_fespace, r_fespace, fe_size_owned, x, t, dt, *ode_solver);
 
    // 10. Perform time-integration (looping over the time iterations, ti, with a
    //     time-step dt).
    ode_solver->Init(oper);
-   real_t t = 0.0;
 
    bool last_step = false;
    for (int ti = 1; !last_step; ti++)
    {
       last_step = t + dt >= t_final - dt/2;
 
-      ode_solver->Step(x, t, dt);
-      oper.SetGridFunctionsFromTrueVectors();
-      oper.ComputeVoltage(x, t, dt);
+      oper.Step();
+      oper.ComputeVoltage();
+      // TODO: Stop sim at cutoff voltage
 
       if (last_step || (ti % vis_steps) == 0)
-      {
          if (Mpi::Root())
             std::cout << "step " << ti << ", t = " << t << std::endl;
-
-         // TODO: Stop sim at cutoff voltage
-         if (last_step || visualization)
-         {
-         }
-      }
    }
 
    // 11. Free the used memory.

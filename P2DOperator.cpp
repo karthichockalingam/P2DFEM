@@ -1,9 +1,9 @@
 #include "P2DOperator.hpp"
 
-P2DOperator::P2DOperator(ParFiniteElementSpace * &x_fespace, Array<ParFiniteElementSpace *> &r_fespace,
-                         const unsigned &ndofs, BlockVector &x, const real_t & dt)
-   : TimeDependentOperator(ndofs, (real_t) 0.0), _x_fespace(x_fespace), _r_fespace(r_fespace),
-     _Ac(NULL), _Ap(NULL), _x(x), _dt(dt), _Solver(_x_fespace->GetComm()), _file("data.csv")
+P2DOperator::P2DOperator(ParFiniteElementSpace * &x_fespace, Array<ParFiniteElementSpace *> &r_fespace, const unsigned &ndofs,
+                         BlockVector &x, real_t & t, real_t & dt, ODESolver & ode_solver)
+   : TimeDependentOperator(ndofs, (real_t) 0.0), _x_fespace(x_fespace), _r_fespace(r_fespace), _Ac(NULL), _Ap(NULL),
+     _x(x), _t(t), _dt(dt), _ode_solver(ode_solver), _Solver(_x_fespace->GetComm()), _file("data.csv")
 {
    const real_t rel_tol = 1e-16;
 
@@ -152,6 +152,12 @@ void P2DOperator::ImplicitSolve(const real_t dt,
    // solve for dxc_dt (concentrations rate)
    _Solver.SetOperator(*_Ac);
    _Solver.Mult(_bc, dxc_dt);
+}
+
+void P2DOperator::Step()
+{
+   _ode_solver.Step(_x, _t, _dt);
+   SetGridFunctionsFromTrueVectors();
 }
 
 void P2DOperator::SetGridFunctionsFromTrueVectors()
@@ -364,7 +370,7 @@ OverPotentialCoefficient P2DOperator::ComputeOverPotential()
 // Voltage
 //
 
-void P2DOperator::ComputeVoltage(const BlockVector &x, real_t t, real_t dt)
+void P2DOperator::ComputeVoltage()
 {
    real_t Un = ComputeOpenCircuitPotential(NE);
    real_t Up = ComputeOpenCircuitPotential(PE);
@@ -385,7 +391,7 @@ void P2DOperator::ComputeVoltage(const BlockVector &x, real_t t, real_t dt)
       // Print file headings first time function is called.
       static bool writeFileHeadings = true;
       if (writeFileHeadings) {
-         _file << "t" << ", \t"
+         _file << "t"  << ", \t"
                << "cn" << ", \t"
                << "cp" << ", \t"
                << "voltage"
@@ -395,7 +401,7 @@ void P2DOperator::ComputeVoltage(const BlockVector &x, real_t t, real_t dt)
       }
 
       // Print data to file.
-      _file << t << ", \t"
+      _file << _t  << ", \t"
             << scn << ", \t"
             << scp << ", \t"
             << voltage
