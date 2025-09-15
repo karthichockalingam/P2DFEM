@@ -196,34 +196,39 @@ void P2DOperator::UpdateConcentrationEquations()
 // Surface Concentration
 //
 
-real_t P2DOperator::GetSurfaceConcentration(const Region &r)
+const real_t & P2DOperator::GetSurfaceConcentration(const Region &r)
 {
    MFEM_ASSERT(M == SPM || M == SPMe, "Cannot get constant surface concentration, only SPM and SPMe are supported.");
    MFEM_ASSERT(r == NE || r == PE, "Cannot get constant surface concentration, only negative (NE) and positive electrodes (PE) are supported.");
-
-   real_t csurf = r == NE ? CN0 : CP0;
-   for (unsigned p = 0; p < NPAR; p++)
-      if (_sc[p]->GetParticleRegion() == r)
-         csurf += _sc[p]->SurfaceConcentration(_x);
-
-   return csurf;
+   return _sc_array[r];
 }
 
 void P2DOperator::SetSurfaceConcentration()
 {
-   if (M == SPM || M == SPMe)
-      return;
-
-   for (unsigned p = 0; p < NPAR; p++)
-      if (_sc[p]->IsParticleOwned())
-      {
-         real_t csurf0 = _sc[p]->GetParticleRegion() == NE ? CN0 : CP0;
-         (*_sc_gf)(_sc[p]->GetParticleDof()) = csurf0 + _sc[p]->SurfaceConcentration(_x);
-      }
-
-   // Apply prolongation after restriction. Might be unnecessary, but guarantees
-   // all processors have the right information for all their local dofs.
-   _sc_gf->SetFromTrueVector();
+   switch (M)
+   {
+      case SPM:
+      case SPMe:
+         for (unsigned p = 0; p < NPAR; p++)
+         {
+            Region r = _sc[p]->GetParticleRegion();
+            real_t sc = (r == NE ? CN0 : CP0) + _sc[p]->SurfaceConcentration(_x);
+            _sc_array[r] = sc;
+         }
+         break;
+      case P2D:
+         for (unsigned p = 0; p < NPAR; p++)
+         {
+            Region r = _sc[p]->GetParticleRegion();
+            real_t sc = (r == NE ? CN0 : CP0) + _sc[p]->SurfaceConcentration(_x);
+            if (_sc[p]->IsParticleOwned())
+               (*_sc_gf)(_sc[p]->GetParticleDof()) = sc;
+         }
+         // Apply prolongation after restriction. Might be unnecessary, but guarantees
+         // all processors have the right information for all their local dofs.
+         _sc_gf->SetFromTrueVector();
+         break;
+   }
 }
 
 //
@@ -273,7 +278,7 @@ Array<real_t> P2DOperator::GetParticleReactionCurrent()
 // Reaction Current
 //
 
-real_t P2DOperator::GetReactionCurrent(const Region &r)
+const real_t & P2DOperator::GetReactionCurrent(const Region &r)
 {
    MFEM_ASSERT(M == SPM || M == SPMe, "Cannot calculate constant reaction current, only SPM and SPMe are supported.");
    MFEM_ASSERT(r == NE || r == PE, "Cannot calculate constant reaction current, only negative (NE) and positive electrodes (PE) are supported.")
@@ -297,7 +302,7 @@ ReactionCurrentCoefficient P2DOperator::GetReactionCurrent()
 // Exchange Current
 //
 
-real_t P2DOperator::GetExchangeCurrent(const Region &r)
+const real_t & P2DOperator::GetExchangeCurrent(const Region &r)
 {
    MFEM_ASSERT(M == SPM || M == SPMe, "Cannot calculate constant exchange current, only SPM and SPMe are supported.");
    MFEM_ASSERT(r == NE || r == PE, "Cannot calculate constant exchange current, only negative (NE) and positive electrodes (PE) are supported.");
@@ -322,7 +327,7 @@ ExchangeCurrentCoefficient P2DOperator::GetExchangeCurrent()
 // Open Circuit Potential
 //
 
-real_t P2DOperator::GetOpenCircuitPotential(const Region &r)
+const real_t & P2DOperator::GetOpenCircuitPotential(const Region &r)
 {
    MFEM_ASSERT(M == SPM || M == SPMe, "Cannot calculate constant open circuit potential, only SPM and SPMe are supported.");
    MFEM_ASSERT(r == NE || r == PE, "Cannot calculate constant open circuit potential, only negative (NE) and positive electrodes (PE) are supported.")
@@ -346,7 +351,7 @@ OpenCircuitPotentialCoefficient P2DOperator::GetOpenCircuitPotential()
 // OverPotential
 //
 
-real_t P2DOperator::GetOverPotential(const Region &r)
+const real_t & P2DOperator::GetOverPotential(const Region &r)
 {
    MFEM_ASSERT(M == SPM || M == SPMe, "Cannot calculate constant  overpotential, only SPM and SPMe are supported.");
    MFEM_ASSERT(r == NE || r == PE, "Cannot calculate constant overpotential, only negative (NE) and positive electrodes (PE) are supported.")

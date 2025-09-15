@@ -29,6 +29,9 @@ protected:
    ParGridFunction * _ec_gf;
    ParGridFunction * _sc_gf;
 
+   /// Big-enough array for the surface concentrations of the two SPM(e) particles
+   Array<real_t> _sc_array{/* UNKNOWN */ 0., /* NE */ 0., /* SEP */ 0., /* PE */ 0.};
+
    /// For the four gridfunctions over _x_fespace (3 macro eqs plus _surface_ concentration)
    Array<int> _block_offsets;
    /// For solution true vector (3 macros eqs plus NPAR _radial_ concentrations)
@@ -83,21 +86,21 @@ public:
    virtual void UpdatePotentialEquations();
    virtual void UpdateConcentrationEquations();
 
-   real_t GetSurfaceConcentration(const Region &r);
+   const real_t & GetSurfaceConcentration(const Region &r);
    void SetSurfaceConcentration();
 
    Array<real_t> GetParticleReactionCurrent();
 
-   real_t GetReactionCurrent(const Region &r);
+   const real_t & GetReactionCurrent(const Region &r);
    ReactionCurrentCoefficient GetReactionCurrent();
 
-   real_t GetExchangeCurrent(const Region &r);
+   const real_t & GetExchangeCurrent(const Region &r);
    ExchangeCurrentCoefficient GetExchangeCurrent();
 
-   real_t GetOpenCircuitPotential(const Region &r);
+   const real_t & GetOpenCircuitPotential(const Region &r);
    OpenCircuitPotentialCoefficient GetOpenCircuitPotential();
 
-   real_t GetOverPotential(const Region &r);
+   const real_t & GetOverPotential(const Region &r);
    OverPotentialCoefficient GetOverPotential();
 
    real_t GetVoltage();

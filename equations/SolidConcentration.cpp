@@ -37,8 +37,7 @@ void SolidConcentration::Update(const BlockVector &x, const Coefficient &j, cons
 
 real_t SolidConcentration::SurfaceConcentration(const BlockVector &x)
 {
-   real_t csurf = IsSurfaceOwned() ? x.GetBlock(SC + particle_id)[surface_tdof] :
-                                     std::numeric_limits<real_t>::quiet_NaN();
+   real_t csurf = IsSurfaceOwned() ? x.GetBlock(SC + particle_id)[surface_tdof] : 0;
 
    if (GetParticleRank() == GetSurfaceRank())
       return csurf;
