@@ -386,17 +386,21 @@ void P2DOperator::ConstructOverPotential()
 
 real_t P2DOperator::GetVoltage()
 {
-   real_t Un = GetOpenCircuitPotential(NE);
-   real_t Up = GetOpenCircuitPotential(PE);
+   real_t voltage;
 
-   real_t eta_n = GetOverPotential(NE);
-   real_t eta_p = GetOverPotential(PE);
+   switch (M)
+   {
+      case SPM:
+      case SPMe:
+         // Definition from JuBat: https://doi.org/10.1016/j.est.2023.107512
+         voltage = GetOpenCircuitPotential(PE) - GetOpenCircuitPotential(NE) +
+                   (GetOverPotential(PE) - GetOverPotential(NE)) * phi_scale;
+         break;
+      case P2D:
+         voltage = 0.;
+         break;
+   }
 
-   // Definition from JuBat: https://doi.org/10.1016/j.est.2023.107512
-   real_t voltage = Up - Un + (eta_p - eta_n) * phi_scale;
-
-   real_t scn = GetSurfaceConcentration(NE);
-   real_t scp = GetSurfaceConcentration(PE);
    if (Mpi::Root())
    {
       std::cout << "[Rank " << Mpi::WorldRank() << "]"
@@ -415,9 +419,9 @@ real_t P2DOperator::GetVoltage()
       }
 
       // Print data to file.
-      _file << _t  << ", \t"
-            << scn << ", \t"
-            << scp << ", \t"
+      _file << _t                          << ", \t"
+            << GetSurfaceConcentration(NE) << ", \t"
+            << GetSurfaceConcentration(PE) << ", \t"
             << voltage
             << std::endl;
    }
