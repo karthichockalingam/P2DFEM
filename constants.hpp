@@ -45,6 +45,7 @@ namespace constants {
 
     extern const real_t KP;
     extern const real_t KN;
+    extern const real_t KS;
 
     extern const real_t RP;
     extern const real_t RN;
@@ -72,6 +73,8 @@ namespace constants {
     extern real_t DE(real_t ce);
 
     extern real_t EPS_P, EPS_N, EPS_S;
+
+    extern real_t SIGN, SIGP;
 
     void init_params(Method m, int order);
 }

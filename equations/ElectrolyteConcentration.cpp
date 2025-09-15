@@ -19,7 +19,7 @@ void ElectrolyteConcentration::Update(const BlockVector &x, const Coefficient &j
    //ConstantCoefficient t_scale(1.0);
    ProductCoefficient mass(mass_part,t_scale);
 
-   std::cout << " " << std::endl;
+   /*std::cout << " " << std::endl;
    std::cout << "****************" << std::endl;
    std::cout << "MASS TERMS:" << std::endl;
    std::cout << "param.NE.eps = " << EPS_N << std::endl;
@@ -29,7 +29,7 @@ void ElectrolyteConcentration::Update(const BlockVector &x, const Coefficient &j
    std::cout << " " << std::endl;
    std::cout << "Mass (PE, SEP, NE) = " << mass_vec(0)*te_scale << ", " << mass_vec(1)*te_scale << ", " << mass_vec(2)*te_scale << std::endl;
    std::cout << "****************" << std::endl;
-   std::cout << " " << std::endl;
+   std::cout << " " << std::endl;*/
 
    // Source term.
    Vector source_vec({
@@ -49,7 +49,7 @@ void ElectrolyteConcentration::Update(const BlockVector &x, const Coefficient &j
    //ProductCoefficient source_neg(source, neg_one);
 
 
-   std::cout << " " << std::endl;
+   /*std::cout << " " << std::endl;
    std::cout << "****************" << std::endl;
    std::cout << "SOURCE TERMS:" << std::endl;
    std::cout << "tplus = " << TPLUS << std::endl;
@@ -62,7 +62,7 @@ void ElectrolyteConcentration::Update(const BlockVector &x, const Coefficient &j
    std::cout << " " << std::endl;
    std::cout << "Source (PE, SEP, NE) = " << source_vec(0) * -5.980666 << ", " << source_vec(1) << ", " << source_vec(2) * 5.2822535 << std::endl;
    std::cout << "****************" << std::endl;
-   std::cout << " " << std::endl;
+   std::cout << " " << std::endl;*/
 
    // Diffusion coefficient.
    Vector D_scale_vec({
@@ -74,20 +74,20 @@ void ElectrolyteConcentration::Update(const BlockVector &x, const Coefficient &j
    //ConstantCoefficient D_coeff_fixed(0.5);
    FunctionCoefficient D_coeff_func([](const Vector & x){ return DE(1.0); });
    PWConstCoefficient D_scale_coeff(D_scale_vec);
-   ProductCoefficient D(D_scale_coeff, D_coeff_func);
-   //ProductCoefficient D(D_scale_coeff, D_coeff);
+   //ProductCoefficient D(D_scale_coeff, D_coeff_func);
+   ProductCoefficient D(D_scale_coeff, D_coeff);
    //ProductCoefficient negD(D,neg_one);
 
    //std::cout << "D_scale_vec = " << D_scale_vec(0) << ", " << D_scale_vec(1) << ", " << D_scale_vec(2) << std::endl;
    //std::cout << "D(1.5 * ce_scale) = " << DE(1.5 * ce_scale) << std::endl;
-   std::cout << " " << std::endl;
+   /*std::cout << " " << std::endl;
    std::cout << "****************" << std::endl;
    std::cout << "DIFFUSION TERMS:" << std::endl;
    std::cout << "D(1. * ce_scale) * De_p_scale = " << DE(1.) * De_p_scale << std::endl;
    std::cout << "D(1. * ce_scale) * De_s_scale = " << DE(1.) * De_s_scale << std::endl;
    std::cout << "D(1. * ce_scale) * De_n_scale = " << DE(1.) * De_n_scale << std::endl;
    std::cout << "****************" << std::endl;
-   std::cout << " " << std::endl;
+   std::cout << " " << std::endl;*/
 
    delete M;
    M = new ParBilinearForm(&fespace);

@@ -50,6 +50,8 @@ namespace constants {
 
     real_t De_scale = L * L / te;
 
+    // Transport efficiency (inverse MacMullin number). This is B(x) in Planella, and is absorbed into the 
+    // definition of kappa_ne/kappa_pe/kappa_sp in JuBat.
     real_t De_p_scale = pow(eps_p, brugg);
     real_t De_n_scale = pow(eps_n, brugg);
     real_t De_s_scale = pow(eps_s, brugg);
@@ -73,6 +75,10 @@ namespace constants {
 
     real_t ce_scale = ce0;
 
+    real_t sig_scale = L * I_typ / (cell_area * phi_scale); // Electrode conductivity scale.
+
+    real_t kappa_scale = L * I_typ / (cell_area * phi_scale); // Electrolyte conductivity scale.
+
     // Scaled parameters
     real_t DP = Dp / Dp_scale; // Positive particle diffusion coefficient.
     real_t DN = Dn / Dn_scale; // Negative particle diffusion coefficient.
@@ -93,6 +99,9 @@ namespace constants {
     real_t LSEP = separator_thickness / L;          // Scaled separator thickness.
     real_t LNE = negative_electrode_thickness / L;  // Scaled negative electrode thickness.
 
+    real_t SIGP = sig_p / sig_scale; // Scaled positive electrode conductivity.
+    real_t SIGN = sig_n / sig_scale; // Scaled negative electrode conductivity.
+
     // Extras to be properly defined later.
     real_t CE0 = ce0 / ce_scale; // Scaled electrolyte concentration.
     real_t I = 1.; // Scaled current.
@@ -110,7 +119,17 @@ namespace constants {
 
         //return 2.1*exp(-ce*1.6);
     }
+
+    real_t Kappa(real_t x)
+    {
+        return kappa(x * ce_scale) / kappa_scale;
+    }
+
+    real_t KS = Kappa(ce0) / kappa_scale; // Scaled electrolyte conductivity.
     
+    //real_t KP = kappa(CE0) * EPS_P^brugg;
+    //real_t KN = kappa(CE0) * EPS_N^brugg;
+    //real_t KS = kappa(CE0) * EPS_S^brugg;
 
     void init_params(Method m, int order) {
         M = m;
@@ -122,7 +141,7 @@ namespace constants {
                 break;
             case SPMe:
             case P2D:
-                NPE = NSEP = NNE = 5;
+                NPE = NSEP = NNE = 10;
                 break;
         }
         NX = NPE + NSEP + NNE;

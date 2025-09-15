@@ -10,7 +10,7 @@ P2DOperator::P2DOperator(ParFiniteElementSpace * &x_fespace, Array<ParFiniteElem
    Solver.iterative_mode = false;
    Solver.SetRelTol(rel_tol);
    Solver.SetAbsTol(0.0);
-   Solver.SetMaxIter(100);
+   Solver.SetMaxIter(1000);
    Solver.SetPrintLevel(0);
    //Solver.SetPreconditioner(Prec);
 
@@ -152,8 +152,8 @@ ConstantCoefficient P2DOperator::ComputeReactionCurrent(const Region &r)
 PWConstCoefficient P2DOperator::ComputeReactionCurrent()
 {
    Vector c({/* PE */ - I / AP / LPE, /* SEP */ 0., /* NE */ + I / AN / LNE});
-   std::cout << "j_n = " << I / AN / LNE << std::endl;
-   std::cout << "j_p = " << - I / AP / LPE << std::endl;
+   //std::cout << "j_n = " << I / AN / LNE << std::endl;
+   //std::cout << "j_p = " << - I / AP / LPE << std::endl;
    return PWConstCoefficient(c);
 }
 
@@ -280,11 +280,41 @@ void P2DOperator::ComputeVoltage(const BlockVector &x, real_t t, real_t dt)
    real_t Ve = 0.0;
    if (M == SPMe)
    {
-      real_t Ve = 0.0;
+      ParGridFunction ec_gf(x_fespace);
+      ec_gf.SetFromTrueDofs(x.GetBlock(EC));
+
+      GridFunctionCoefficient ec_gfc(&ec_gf);
+      PWCoefficient ce_pwc;
+
+      QuadratureSpace x_qspace(x_fespace->GetParMesh(), 2 * x_fespace->FEColl()->GetOrder());
+
+      ce_pwc.UpdateCoefficient(NE, ec_gfc);
+      real_t ce_ne_int = x_qspace.Integrate(ce_pwc) / LNE;
+      ce_pwc.ZeroCoefficient(NE);
+
+      ce_pwc.UpdateCoefficient(PE, ec_gfc);
+      real_t ce_pe_int = x_qspace.Integrate(ce_pwc) / LPE;
+      ce_pwc.ZeroCoefficient(PE);
+
+      // Remove CE0?
+      real_t eta_c = (2.0 * T / CE0) * (1 - TPLUS) * (ce_ne_int - ce_pe_int);
+
+      real_t sigma_e = KS; // Electrolyte conductivity
+
+      real_t BN = De_n_scale;
+      real_t BP = De_p_scale;
+      real_t BS = De_s_scale;
+
+      real_t dphie = (I / sigma_e) * (LNE / BN / 3.0  + LSEP / BS + LPE / BP / 3.0);
+
+      real_t dphis = I / 3 * (LNE / SIGN + LPE / SIGP);
+      
+      Ve = eta_c + dphie + dphis;
+   
    }
 
    // Definition from JuBat: https://doi.org/10.1016/j.est.2023.107512
-   real_t voltage = Up - Un + (eta_p - eta_n) * phi_scale - Ve;
+   real_t voltage = Up - Un + (eta_p - eta_n - Ve) * phi_scale;
 
    // Temporary printing.
    if (Mpi::Root())

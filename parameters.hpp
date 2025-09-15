@@ -20,6 +20,8 @@ namespace LGM50 {
     extern const real_t Dp = 4.0e-15; // Diffusion coefficient, positive electrode
     extern const real_t Ap = 3 * eps_p_s / rp; // Positive electrode area (m^2).
 
+    extern const real_t sig_p = 0.18; // Positive electrode conductivity (S/m).
+
     // Negative electrode.
     extern const real_t cn0 = 29866.; // Initial concentration, negative electrode, mol/m^3
     extern const real_t cnmax = 33133; // Maximum concentration, negative electrode, mol/m
@@ -35,6 +37,8 @@ namespace LGM50 {
     extern const real_t Dn = 3.3e-14; // Diffusion coefficient, negative electrode
     extern const real_t An = 3 * eps_n_s / rn; // Negative electrode area (m^2).
 
+    extern const real_t sig_n = 215.; // Negative electrode conductivity (S/m).
+
     // Separator.
     extern const real_t separator_thickness = 12e-6;
     extern const real_t ce0 = 1000.0;
@@ -43,6 +47,10 @@ namespace LGM50 {
     extern real_t De(real_t ce)
     {
         return 8.794e-11 * pow(ce / 1000, 2) - 3.972e-10 * (ce / 1000) + 4.862e-10;
+    }
+    extern real_t kappa(real_t x)
+    {
+        return 0.1297 * pow(x / 1000, 3) - 2.51 * pow(x / 1000, 1.5) + 3.329 * (x / 1000);
     }
 
     // Cell parameters.

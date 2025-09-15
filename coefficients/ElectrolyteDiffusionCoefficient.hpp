@@ -14,10 +14,10 @@ public:
 
     virtual double Eval(ElementTransformation &T, const IntegrationPoint &ip) override
     {
-        double u_val = _u_gf.GetValue(T, ip);
+        double u_val = _u_gf.GetValue(T, ip) + CE0;
         //real_t u_val = 0.5;
-        std::cout << "DE(u_val * _ce_scale) = " << DE(u_val * _ce_scale) << std::endl;
+        //std::cout << "DE(u_val * _ce_scale) = " << DE(u_val * _ce_scale) << std::endl;
 
-        return DE(u_val * _ce_scale);
+        return DE(u_val);
     }
 };
