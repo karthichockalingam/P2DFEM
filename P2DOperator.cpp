@@ -97,6 +97,11 @@ P2DOperator::P2DOperator(ParFiniteElementSpace * &x_fespace, Array<ParFiniteElem
          _sc.Append(new SolidConcentration(*_r_fespace[p], p, rank, dof, region));
       }
    }
+
+   ConstructExchangeCurrent();
+   ConstructOpenCircuitPotential();
+   ConstructOverPotential();
+   ConstructReactionCurrent();
 }
 
 void P2DOperator::ImplicitSolve(const real_t dt,
@@ -175,8 +180,8 @@ void P2DOperator::UpdatePotentialEquations()
    _Ap = new BlockOperator(_potential_trueOffsets);
    _Ap->owns_blocks = 1;
 
-   _ep->Update(_x, GetReactionCurrent(), _dt);
-   _sp->Update(_x, GetReactionCurrent(), _dt);
+   _ep->Update(_x, *_j, _dt);
+   _sp->Update(_x, *_j, _dt);
 }
 
 void P2DOperator::UpdateConcentrationEquations()
@@ -186,7 +191,7 @@ void P2DOperator::UpdateConcentrationEquations()
    _Ac = new BlockOperator(_concentration_trueOffsets);
    _Ac->owns_blocks = 1;
 
-   _ec->Update(_x, GetReactionCurrent(), _dt);
+   _ec->Update(_x, *_j, _dt);
    const Array<real_t> & j = GetParticleReactionCurrent();
    for (unsigned p = 0; p < NPAR; p++)
       _sc[p]->Update(_x, ConstantCoefficient(j[p]), _dt);
@@ -247,9 +252,8 @@ Array<real_t> P2DOperator::GetParticleReactionCurrent()
             j[p] = GetReactionCurrent(_sc[p]->GetParticleRegion());
          break;
       case P2D:
-         ReactionCurrentCoefficient j_coef = GetReactionCurrent();
          ParGridFunction j_gf(_x_fespace);
-         j_gf.ProjectCoefficient(j_coef);
+         j_gf.ProjectCoefficient(*_j);
 
          for (unsigned p = 0; p < NPAR; p++)
          {
@@ -282,20 +286,21 @@ const real_t & P2DOperator::GetReactionCurrent(const Region &r)
 {
    MFEM_ASSERT(M == SPM || M == SPMe, "Cannot calculate constant reaction current, only SPM and SPMe are supported.");
    MFEM_ASSERT(r == NE || r == PE, "Cannot calculate constant reaction current, only negative (NE) and positive electrodes (PE) are supported.")
-   return GetReactionCurrent().Eval()(r);
+   return _j->Eval()(r);
 }
 
-ReactionCurrentCoefficient P2DOperator::GetReactionCurrent()
+void P2DOperator::ConstructReactionCurrent()
 {
    switch (M)
    {
       case SPM:
       case SPMe:
-         return ReactionCurrentCoefficient();
+         _j = new ReactionCurrentCoefficient();
+         break;
       case P2D:
-         return ReactionCurrentCoefficient(T, GetExchangeCurrent(), GetOverPotential()); // TODO: add absolute potentials as inputs
+         _j = new ReactionCurrentCoefficient(T, *_jex, *_op); // TODO: add absolute potentials as inputs
+         break;
    }
-   MFEM_ASSERT(false, "Unreachable.");
 }
 
 //
@@ -306,21 +311,23 @@ const real_t & P2DOperator::GetExchangeCurrent(const Region &r)
 {
    MFEM_ASSERT(M == SPM || M == SPMe, "Cannot calculate constant exchange current, only SPM and SPMe are supported.");
    MFEM_ASSERT(r == NE || r == PE, "Cannot calculate constant exchange current, only negative (NE) and positive electrodes (PE) are supported.");
-   return GetExchangeCurrent().Eval()(r);
+   return _jex->Eval()(r);
 }
 
-ExchangeCurrentCoefficient P2DOperator::GetExchangeCurrent()
+void P2DOperator::ConstructExchangeCurrent()
 {
    switch (M)
    {
       case SPM:
-         return ExchangeCurrentCoefficient(KN, KP, GetSurfaceConcentration(NE), GetSurfaceConcentration(PE), CE0);
+         _jex = new ExchangeCurrentCoefficient(KN, KP, GetSurfaceConcentration(NE), GetSurfaceConcentration(PE), CE0);
+         break;
       case SPMe:
-         return ExchangeCurrentCoefficient(KN, KP, GetSurfaceConcentration(NE), GetSurfaceConcentration(PE), *_ec_gf);
+         _jex = new ExchangeCurrentCoefficient(KN, KP, GetSurfaceConcentration(NE), GetSurfaceConcentration(PE), *_ec_gf);
+         break;
       case P2D:
-         return ExchangeCurrentCoefficient(KN, KP, *_sc_gf, *_ec_gf);
+         _jex = new ExchangeCurrentCoefficient(KN, KP, *_sc_gf, *_ec_gf);
+         break;
    }
-   MFEM_ASSERT(false, "Unreachable.");
 }
 
 //
@@ -331,20 +338,21 @@ const real_t & P2DOperator::GetOpenCircuitPotential(const Region &r)
 {
    MFEM_ASSERT(M == SPM || M == SPMe, "Cannot calculate constant open circuit potential, only SPM and SPMe are supported.");
    MFEM_ASSERT(r == NE || r == PE, "Cannot calculate constant open circuit potential, only negative (NE) and positive electrodes (PE) are supported.")
-   return GetOpenCircuitPotential().Eval()(r);
+   return _ocp->Eval()(r);
 }
 
-OpenCircuitPotentialCoefficient P2DOperator::GetOpenCircuitPotential()
+void P2DOperator::ConstructOpenCircuitPotential()
 {
    switch (M)
    {
       case SPM:
       case SPMe:
-         return OpenCircuitPotentialCoefficient(UN, UP, GetSurfaceConcentration(NE), GetSurfaceConcentration(PE));
+         _ocp = new OpenCircuitPotentialCoefficient(UN, UP, GetSurfaceConcentration(NE), GetSurfaceConcentration(PE));
+         break;
       case P2D:
-         return OpenCircuitPotentialCoefficient(UN, UP, *_sc_gf);
+         _ocp = new OpenCircuitPotentialCoefficient(UN, UP, *_sc_gf);
+         break;
    }
-   MFEM_ASSERT(false, "Unreachable.");
 }
 
 //
@@ -355,20 +363,21 @@ const real_t & P2DOperator::GetOverPotential(const Region &r)
 {
    MFEM_ASSERT(M == SPM || M == SPMe, "Cannot calculate constant  overpotential, only SPM and SPMe are supported.");
    MFEM_ASSERT(r == NE || r == PE, "Cannot calculate constant overpotential, only negative (NE) and positive electrodes (PE) are supported.")
-   return GetOverPotential().Eval()(r);
+   return _op->Eval()(r);
 }
 
-OverPotentialCoefficient P2DOperator::GetOverPotential()
+void P2DOperator::ConstructOverPotential()
 {
    switch (M)
    {
       case SPM:
       case SPMe:
-         return OverPotentialCoefficient(T, GetExchangeCurrent());
+         _op = new OverPotentialCoefficient(T, *_jex);
+         break;
       case P2D:
-         return OverPotentialCoefficient(*_sp_gf, *_ep_gf, GetOpenCircuitPotential());
+         _op = new OverPotentialCoefficient(*_sp_gf, *_ep_gf, *_ocp);
+         break;
    }
-   MFEM_ASSERT(false, "Unreachable.");
 }
 
 //

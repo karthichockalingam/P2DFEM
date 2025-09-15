@@ -32,6 +32,12 @@ protected:
    /// Big-enough array for the surface concentrations of the two SPM(e) particles
    Array<real_t> _sc_array{/* UNKNOWN */ 0., /* NE */ 0., /* SEP */ 0., /* PE */ 0.};
 
+   /// Coefficients for derived, i.e. not solved for, quantities
+   ReactionCurrentCoefficient * _j;
+   ExchangeCurrentCoefficient * _jex;
+   OpenCircuitPotentialCoefficient * _ocp;
+   OverPotentialCoefficient * _op;
+
    /// For the four gridfunctions over _x_fespace (3 macro eqs plus _surface_ concentration)
    Array<int> _block_offsets;
    /// For solution true vector (3 macros eqs plus NPAR _radial_ concentrations)
@@ -82,26 +88,25 @@ public:
 
    void Step();
    void SetGridFunctionsFromTrueVectors();
+   void SetSurfaceConcentration();
 
    virtual void UpdatePotentialEquations();
    virtual void UpdateConcentrationEquations();
 
-   const real_t & GetSurfaceConcentration(const Region &r);
-   void SetSurfaceConcentration();
-
    Array<real_t> GetParticleReactionCurrent();
 
+   /// Construct coefficients for derived quantities
+   void ConstructReactionCurrent();
+   void ConstructExchangeCurrent();
+   void ConstructOpenCircuitPotential();
+   void ConstructOverPotential();
+
+   /// SPM(e) helpers
+   const real_t & GetSurfaceConcentration(const Region &r);
    const real_t & GetReactionCurrent(const Region &r);
-   ReactionCurrentCoefficient GetReactionCurrent();
-
    const real_t & GetExchangeCurrent(const Region &r);
-   ExchangeCurrentCoefficient GetExchangeCurrent();
-
    const real_t & GetOpenCircuitPotential(const Region &r);
-   OpenCircuitPotentialCoefficient GetOpenCircuitPotential();
-
    const real_t & GetOverPotential(const Region &r);
-   OverPotentialCoefficient GetOverPotential();
 
    real_t GetVoltage();
 
