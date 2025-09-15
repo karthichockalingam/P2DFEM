@@ -86,21 +86,21 @@ public:
    real_t GetSurfaceConcentration(const Region &r);
    void SetSurfaceConcentration();
 
-   Array<real_t> ComputeParticleReactionCurrent();
+   Array<real_t> GetParticleReactionCurrent();
 
-   real_t ComputeReactionCurrent(const Region &r);
-   ReactionCurrentCoefficient ComputeReactionCurrent();
+   real_t GetReactionCurrent(const Region &r);
+   ReactionCurrentCoefficient GetReactionCurrent();
 
-   real_t ComputeExchangeCurrent(const Region &r);
-   ExchangeCurrentCoefficient ComputeExchangeCurrent();
+   real_t GetExchangeCurrent(const Region &r);
+   ExchangeCurrentCoefficient GetExchangeCurrent();
 
-   real_t ComputeOpenCircuitPotential(const Region &r);
-   OpenCircuitPotentialCoefficient ComputeOpenCircuitPotential();
+   real_t GetOpenCircuitPotential(const Region &r);
+   OpenCircuitPotentialCoefficient GetOpenCircuitPotential();
 
-   real_t ComputeOverPotential(const Region &r);
-   OverPotentialCoefficient ComputeOverPotential();
+   real_t GetOverPotential(const Region &r);
+   OverPotentialCoefficient GetOverPotential();
 
-   real_t ComputeVoltage();
+   real_t GetVoltage();
 
    virtual void GetParticleDofs(Array<int> & particle_dofs, Array<Region> & particle_regions, Array<int> & particle_offsets);
 

@@ -160,7 +160,7 @@ int main(int argc, char *argv[])
       last_step = t + dt >= t_final - dt/2;
 
       oper.Step();
-      oper.ComputeVoltage();
+      oper.GetVoltage();
       // TODO: Stop sim at cutoff voltage
 
       if (last_step || (ti % vis_steps) == 0)

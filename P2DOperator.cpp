@@ -175,8 +175,8 @@ void P2DOperator::UpdatePotentialEquations()
    _Ap = new BlockOperator(_potential_trueOffsets);
    _Ap->owns_blocks = 1;
 
-   _ep->Update(_x, ComputeReactionCurrent(), _dt);
-   _sp->Update(_x, ComputeReactionCurrent(), _dt);
+   _ep->Update(_x, GetReactionCurrent(), _dt);
+   _sp->Update(_x, GetReactionCurrent(), _dt);
 }
 
 void P2DOperator::UpdateConcentrationEquations()
@@ -186,8 +186,8 @@ void P2DOperator::UpdateConcentrationEquations()
    _Ac = new BlockOperator(_concentration_trueOffsets);
    _Ac->owns_blocks = 1;
 
-   _ec->Update(_x, ComputeReactionCurrent(), _dt);
-   const Array<real_t> & j = ComputeParticleReactionCurrent();
+   _ec->Update(_x, GetReactionCurrent(), _dt);
+   const Array<real_t> & j = GetParticleReactionCurrent();
    for (unsigned p = 0; p < NPAR; p++)
       _sc[p]->Update(_x, ConstantCoefficient(j[p]), _dt);
 }
@@ -230,7 +230,7 @@ void P2DOperator::SetSurfaceConcentration()
 // Reaction Current for each particle
 //
 
-Array<real_t> P2DOperator::ComputeParticleReactionCurrent()
+Array<real_t> P2DOperator::GetParticleReactionCurrent()
 {
    Array<real_t> j(NPAR);
 
@@ -239,10 +239,10 @@ Array<real_t> P2DOperator::ComputeParticleReactionCurrent()
       case SPM:
       case SPMe:
          for (unsigned p = 0; p < NPAR; p++)
-            j[p] = ComputeReactionCurrent(_sc[p]->GetParticleRegion());
+            j[p] = GetReactionCurrent(_sc[p]->GetParticleRegion());
          break;
       case P2D:
-         ReactionCurrentCoefficient j_coef = ComputeReactionCurrent();
+         ReactionCurrentCoefficient j_coef = GetReactionCurrent();
          ParGridFunction j_gf(_x_fespace);
          j_gf.ProjectCoefficient(j_coef);
 
@@ -273,14 +273,14 @@ Array<real_t> P2DOperator::ComputeParticleReactionCurrent()
 // Reaction Current
 //
 
-real_t P2DOperator::ComputeReactionCurrent(const Region &r)
+real_t P2DOperator::GetReactionCurrent(const Region &r)
 {
    MFEM_ASSERT(M == SPM || M == SPMe, "Cannot calculate constant reaction current, only SPM and SPMe are supported.");
    MFEM_ASSERT(r == NE || r == PE, "Cannot calculate constant reaction current, only negative (NE) and positive electrodes (PE) are supported.")
-   return ComputeReactionCurrent().Eval()(r);
+   return GetReactionCurrent().Eval()(r);
 }
 
-ReactionCurrentCoefficient P2DOperator::ComputeReactionCurrent()
+ReactionCurrentCoefficient P2DOperator::GetReactionCurrent()
 {
    switch (M)
    {
@@ -288,7 +288,7 @@ ReactionCurrentCoefficient P2DOperator::ComputeReactionCurrent()
       case SPMe:
          return ReactionCurrentCoefficient();
       case P2D:
-         return ReactionCurrentCoefficient(T, ComputeExchangeCurrent(), ComputeOverPotential()); // TODO: add absolute potentials as inputs
+         return ReactionCurrentCoefficient(T, GetExchangeCurrent(), GetOverPotential()); // TODO: add absolute potentials as inputs
    }
    MFEM_ASSERT(false, "Unreachable.");
 }
@@ -297,14 +297,14 @@ ReactionCurrentCoefficient P2DOperator::ComputeReactionCurrent()
 // Exchange Current
 //
 
-real_t P2DOperator::ComputeExchangeCurrent(const Region &r)
+real_t P2DOperator::GetExchangeCurrent(const Region &r)
 {
    MFEM_ASSERT(M == SPM || M == SPMe, "Cannot calculate constant exchange current, only SPM and SPMe are supported.");
    MFEM_ASSERT(r == NE || r == PE, "Cannot calculate constant exchange current, only negative (NE) and positive electrodes (PE) are supported.");
-   return ComputeExchangeCurrent().Eval()(r);
+   return GetExchangeCurrent().Eval()(r);
 }
 
-ExchangeCurrentCoefficient P2DOperator::ComputeExchangeCurrent()
+ExchangeCurrentCoefficient P2DOperator::GetExchangeCurrent()
 {
    switch (M)
    {
@@ -322,14 +322,14 @@ ExchangeCurrentCoefficient P2DOperator::ComputeExchangeCurrent()
 // Open Circuit Potential
 //
 
-real_t P2DOperator::ComputeOpenCircuitPotential(const Region &r)
+real_t P2DOperator::GetOpenCircuitPotential(const Region &r)
 {
    MFEM_ASSERT(M == SPM || M == SPMe, "Cannot calculate constant open circuit potential, only SPM and SPMe are supported.");
    MFEM_ASSERT(r == NE || r == PE, "Cannot calculate constant open circuit potential, only negative (NE) and positive electrodes (PE) are supported.")
-   return ComputeOpenCircuitPotential().Eval()(r);
+   return GetOpenCircuitPotential().Eval()(r);
 }
 
-OpenCircuitPotentialCoefficient P2DOperator::ComputeOpenCircuitPotential()
+OpenCircuitPotentialCoefficient P2DOperator::GetOpenCircuitPotential()
 {
    switch (M)
    {
@@ -346,22 +346,22 @@ OpenCircuitPotentialCoefficient P2DOperator::ComputeOpenCircuitPotential()
 // OverPotential
 //
 
-real_t P2DOperator::ComputeOverPotential(const Region &r)
+real_t P2DOperator::GetOverPotential(const Region &r)
 {
    MFEM_ASSERT(M == SPM || M == SPMe, "Cannot calculate constant  overpotential, only SPM and SPMe are supported.");
    MFEM_ASSERT(r == NE || r == PE, "Cannot calculate constant overpotential, only negative (NE) and positive electrodes (PE) are supported.")
-   return ComputeOverPotential().Eval()(r);
+   return GetOverPotential().Eval()(r);
 }
 
-OverPotentialCoefficient P2DOperator::ComputeOverPotential()
+OverPotentialCoefficient P2DOperator::GetOverPotential()
 {
    switch (M)
    {
       case SPM:
       case SPMe:
-         return OverPotentialCoefficient(T, ComputeExchangeCurrent());
+         return OverPotentialCoefficient(T, GetExchangeCurrent());
       case P2D:
-         return OverPotentialCoefficient(*_sp_gf, *_ep_gf, ComputeOpenCircuitPotential());
+         return OverPotentialCoefficient(*_sp_gf, *_ep_gf, GetOpenCircuitPotential());
    }
    MFEM_ASSERT(false, "Unreachable.");
 }
@@ -370,13 +370,13 @@ OverPotentialCoefficient P2DOperator::ComputeOverPotential()
 // Voltage
 //
 
-real_t P2DOperator::ComputeVoltage()
+real_t P2DOperator::GetVoltage()
 {
-   real_t Un = ComputeOpenCircuitPotential(NE);
-   real_t Up = ComputeOpenCircuitPotential(PE);
+   real_t Un = GetOpenCircuitPotential(NE);
+   real_t Up = GetOpenCircuitPotential(PE);
 
-   real_t eta_n = ComputeOverPotential(NE);
-   real_t eta_p = ComputeOverPotential(PE);
+   real_t eta_n = GetOverPotential(NE);
+   real_t eta_p = GetOverPotential(PE);
 
    // Definition from JuBat: https://doi.org/10.1016/j.est.2023.107512
    real_t voltage = Up - Un + (eta_p - eta_n) * phi_scale;
