@@ -2,81 +2,81 @@
 
 P2DOperator::P2DOperator(ParFiniteElementSpace * &x_fespace, Array<ParFiniteElementSpace *> &r_fespace,
                          const unsigned &ndofs, BlockVector &x, const real_t & dt)
-   : TimeDependentOperator(ndofs, (real_t) 0.0), x_fespace(x_fespace), r_fespace(r_fespace),
-     Ac(NULL), Ap(NULL), _x(x), _dt(dt), Solver(x_fespace->GetComm()), file("data.csv")
+   : TimeDependentOperator(ndofs, (real_t) 0.0), _x_fespace(x_fespace), _r_fespace(r_fespace),
+     _Ac(NULL), _Ap(NULL), _x(x), _dt(dt), _Solver(_x_fespace->GetComm()), _file("data.csv")
 {
    const real_t rel_tol = 1e-16;
 
-   Solver.iterative_mode = false;
-   Solver.SetRelTol(rel_tol);
-   Solver.SetAbsTol(0.0);
-   Solver.SetMaxIter(100);
-   Solver.SetPrintLevel(0);
-   //Solver.SetPreconditioner(Prec);
+   _Solver.iterative_mode = false;
+   _Solver.SetRelTol(rel_tol);
+   _Solver.SetAbsTol(0.0);
+   _Solver.SetMaxIter(100);
+   _Solver.SetPrintLevel(0);
+   //_Solver.SetPreconditioner(_Prec);
 
-   block_offsets.SetSize(NMACRO + 1 + 1);
-   block_trueOffsets.SetSize(NEQS + 1);
-   potential_trueOffsets.SetSize(NMACROP + 1);
-   concentration_trueOffsets.SetSize(NMACROC + NPAR + 1);
+   _block_offsets.SetSize(NMACRO + 1 + 1);
+   _block_trueOffsets.SetSize(NEQS + 1);
+   _potential_trueOffsets.SetSize(NMACROP + 1);
+   _concentration_trueOffsets.SetSize(NMACROC + NPAR + 1);
 
-   block_offsets[0] = 0;
-   block_offsets[EP + 1] = x_fespace->GetVSize();
-   block_offsets[SP + 1] = x_fespace->GetVSize();
-   block_offsets[EC + 1] = x_fespace->GetVSize();
-   block_offsets[SC + 1] = x_fespace->GetVSize();
+   _block_offsets[0] = 0;
+   _block_offsets[EP + 1] = _x_fespace->GetVSize();
+   _block_offsets[SP + 1] = _x_fespace->GetVSize();
+   _block_offsets[EC + 1] = _x_fespace->GetVSize();
+   _block_offsets[SC + 1] = _x_fespace->GetVSize();
 
-   block_trueOffsets[0] = 0;
-   block_trueOffsets[EP + 1] = x_fespace->GetTrueVSize();
-   block_trueOffsets[SP + 1] = x_fespace->GetTrueVSize();
-   block_trueOffsets[EC + 1] = x_fespace->GetTrueVSize();
+   _block_trueOffsets[0] = 0;
+   _block_trueOffsets[EP + 1] = _x_fespace->GetTrueVSize();
+   _block_trueOffsets[SP + 1] = _x_fespace->GetTrueVSize();
+   _block_trueOffsets[EC + 1] = _x_fespace->GetTrueVSize();
 
-   potential_trueOffsets[0] = 0;
-   potential_trueOffsets[EPP + 1] = x_fespace->GetTrueVSize();
-   potential_trueOffsets[SPP + 1] = x_fespace->GetTrueVSize();
+   _potential_trueOffsets[0] = 0;
+   _potential_trueOffsets[EPP + 1] = _x_fespace->GetTrueVSize();
+   _potential_trueOffsets[SPP + 1] = _x_fespace->GetTrueVSize();
 
-   concentration_trueOffsets[0] = 0;
-   concentration_trueOffsets[ECC + 1] = x_fespace->GetTrueVSize();
+   _concentration_trueOffsets[0] = 0;
+   _concentration_trueOffsets[ECC + 1] = _x_fespace->GetTrueVSize();
 
    for (unsigned p = 0; p < NPAR; p++)
    {
-      block_trueOffsets[SC + 1 + p] = r_fespace[p]->GetTrueVSize();
-      concentration_trueOffsets[SCC + 1 + p] = r_fespace[p]->GetTrueVSize();
+      _block_trueOffsets[SC + 1 + p] = _r_fespace[p]->GetTrueVSize();
+      _concentration_trueOffsets[SCC + 1 + p] = _r_fespace[p]->GetTrueVSize();
    }
 
-   block_offsets.PartialSum();
-   block_trueOffsets.PartialSum();
-   potential_trueOffsets.PartialSum();
-   concentration_trueOffsets.PartialSum();
+   _block_offsets.PartialSum();
+   _block_trueOffsets.PartialSum();
+   _potential_trueOffsets.PartialSum();
+   _concentration_trueOffsets.PartialSum();
 
    if (!Mpi::WorldRank())
    {
       std::cout << "Variables: " << NEQS << std::endl;
-      std::cout << "Unknowns (rank 0): " << block_trueOffsets[NEQS] << std::endl;
+      std::cout << "Unknowns (rank 0): " << _block_trueOffsets[NEQS] << std::endl;
    }
 
    // Set offsets for full dof vector
-   _l.Update(block_offsets); _l = 0.;
+   _l.Update(_block_offsets); _l = 0.;
 
    // Initialise gridfunctions to use the appropriate section of the full dof vector _l
-   _ep_gf = new ParGridFunction(x_fespace, _l, block_offsets[EP]);
-   _sp_gf = new ParGridFunction(x_fespace, _l, block_offsets[SP]);
-   _ec_gf = new ParGridFunction(x_fespace, _l, block_offsets[EC]);
-   _sc_gf = new ParGridFunction(x_fespace, _l, block_offsets[SC]);
+   _ep_gf = new ParGridFunction(_x_fespace, _l, _block_offsets[EP]);
+   _sp_gf = new ParGridFunction(_x_fespace, _l, _block_offsets[SP]);
+   _ec_gf = new ParGridFunction(_x_fespace, _l, _block_offsets[EC]);
+   _sc_gf = new ParGridFunction(_x_fespace, _l, _block_offsets[SC]);
 
    // Set offsets for solution and rhs (potential and concentration) true vectors
-   _x.Update(block_trueOffsets); _x = 0.;
-   bp.Update(potential_trueOffsets);
-   bc.Update(concentration_trueOffsets);
+   _x.Update(_block_trueOffsets); _x = 0.;
+   _bp.Update(_potential_trueOffsets);
+   _bc.Update(_concentration_trueOffsets);
 
    // Construct equation ojects, first the 3 macro equations, then the NPAR micro eqs
-   ep = new ElectrolytePotential(*x_fespace);
-   sp = new SolidPotential(*x_fespace);
-   ec = new ElectrolyteConcentration(*x_fespace);
+   _ep = new ElectrolytePotential(*_x_fespace);
+   _sp = new SolidPotential(*_x_fespace);
+   _ec = new ElectrolyteConcentration(*_x_fespace);
 
    if (M == SPM || M == SPMe)
    {
-      sc.Append(new SolidConcentration(*r_fespace[0], 0, 0, -1, NE));
-      sc.Append(new SolidConcentration(*r_fespace[1], 1, 0, -1, PE));
+      _sc.Append(new SolidConcentration(*_r_fespace[0], 0, 0, -1, NE));
+      _sc.Append(new SolidConcentration(*_r_fespace[1], 1, 0, -1, PE));
    }
    else
    {
@@ -94,7 +94,7 @@ P2DOperator::P2DOperator(ParFiniteElementSpace * &x_fespace, Array<ParFiniteElem
          int dof = owned ? particle_dofs[p - offset] : -1;
          Region region = owned ? particle_regions[p - offset] : UNKNOWN;
 
-         sc.Append(new SolidConcentration(*r_fespace[p], p, rank, dof, region));
+         _sc.Append(new SolidConcentration(*_r_fespace[p], p, rank, dof, region));
       }
    }
 }
@@ -107,7 +107,7 @@ void P2DOperator::ImplicitSolve(const real_t dt,
    // for dx_dt, where K is linearized by using x from the previous timestep
 
    // Logically split dx_dt in two parts: potentials and concentrations
-   Array<int> offsets({block_trueOffsets[P], block_trueOffsets[C], block_trueOffsets[NEQS]});
+   Array<int> offsets({_block_trueOffsets[P], _block_trueOffsets[C], _block_trueOffsets[NEQS]});
    BlockVector dx_dt_blocked(dx_dt, offsets);
    Vector & dxp_dt(dx_dt_blocked.GetBlock(0));
    Vector & dxc_dt(dx_dt_blocked.GetBlock(1));
@@ -118,40 +118,40 @@ void P2DOperator::ImplicitSolve(const real_t dt,
 
       // for (SCL)
       {
-         // assemble each individual block of Ap and bp
+         // assemble each individual block of _Ap and _bp
          _x.Add(_dt, dx_dt);
          SetGridFunctionsFromTrueVectors();
          // compute absolute potentials in dedicated member function
          UpdatePotentialEquations();
          _x.Add(-_dt, dx_dt);
 
-         // put Ap and bp together
-         Ap->SetDiagonalBlock(EPP, new HypreParMatrix(ep->GetK()));
-         Ap->SetDiagonalBlock(SPP, new HypreParMatrix(sp->GetK()));
-         bp.GetBlock(EPP) = ep->GetZ();
-         bp.GetBlock(SPP) = sp->GetZ();
+         // put _Ap and _bp together
+         _Ap->SetDiagonalBlock(EPP, new HypreParMatrix(_ep->GetK()));
+         _Ap->SetDiagonalBlock(SPP, new HypreParMatrix(_sp->GetK()));
+         _bp.GetBlock(EPP) = _ep->GetZ();
+         _bp.GetBlock(SPP) = _sp->GetZ();
 
          // solve for dxp_dt (potentials rate)
-         Solver.SetOperator(*Ap);
-         Solver.Mult(bp, dxp_dt);
+         _Solver.SetOperator(*_Ap);
+         _Solver.Mult(_bp, dxp_dt);
       }
    }
 
-   // assemble each individual block of Ac and bc
+   // assemble each individual block of _Ac and _bc
    UpdateConcentrationEquations();
 
-   // put Ac and bc together
-   Ac->SetDiagonalBlock(ECC, Add(1, ec->GetM(), dt, ec->GetK()));
-   bc.GetBlock(ECC) = ec->GetZ();
+   // put _Ac and _bc together
+   _Ac->SetDiagonalBlock(ECC, Add(1, _ec->GetM(), dt, _ec->GetK()));
+   _bc.GetBlock(ECC) = _ec->GetZ();
    for (unsigned p = 0; p < NPAR; p++)
    {
-      Ac->SetDiagonalBlock(SCC + p, Add(1, sc[p]->GetM(), dt, sc[p]->GetK()));
-      bc.GetBlock(SCC + p) = sc[p]->GetZ();
+      _Ac->SetDiagonalBlock(SCC + p, Add(1, _sc[p]->GetM(), dt, _sc[p]->GetK()));
+      _bc.GetBlock(SCC + p) = _sc[p]->GetZ();
    }
 
    // solve for dxc_dt (concentrations rate)
-   Solver.SetOperator(*Ac);
-   Solver.Mult(bc, dxc_dt);
+   _Solver.SetOperator(*_Ac);
+   _Solver.Mult(_bc, dxc_dt);
 }
 
 void P2DOperator::SetGridFunctionsFromTrueVectors()
@@ -164,26 +164,26 @@ void P2DOperator::SetGridFunctionsFromTrueVectors()
 
 void P2DOperator::UpdatePotentialEquations()
 {
-   // Rebuild Ap, destroys owned (i.e. all) blocks
-   delete Ap;
-   Ap = new BlockOperator(potential_trueOffsets);
-   Ap->owns_blocks = 1;
+   // Rebuild _Ap, destroys owned (i.e. all) blocks
+   delete _Ap;
+   _Ap = new BlockOperator(_potential_trueOffsets);
+   _Ap->owns_blocks = 1;
 
-   ep->Update(_x, ComputeReactionCurrent(), _dt);
-   sp->Update(_x, ComputeReactionCurrent(), _dt);
+   _ep->Update(_x, ComputeReactionCurrent(), _dt);
+   _sp->Update(_x, ComputeReactionCurrent(), _dt);
 }
 
 void P2DOperator::UpdateConcentrationEquations()
 {
-   // Rebuild Ac, destroys owned (i.e. all) blocks
-   delete Ac;
-   Ac = new BlockOperator(concentration_trueOffsets);
-   Ac->owns_blocks = 1;
+   // Rebuild _Ac, destroys owned (i.e. all) blocks
+   delete _Ac;
+   _Ac = new BlockOperator(_concentration_trueOffsets);
+   _Ac->owns_blocks = 1;
 
-   ec->Update(_x, ComputeReactionCurrent(), _dt);
+   _ec->Update(_x, ComputeReactionCurrent(), _dt);
    const Array<real_t> & j = ComputeParticleReactionCurrent();
    for (unsigned p = 0; p < NPAR; p++)
-      sc[p]->Update(_x, ConstantCoefficient(j[p]), _dt);
+      _sc[p]->Update(_x, ConstantCoefficient(j[p]), _dt);
 }
 
 //
@@ -197,8 +197,8 @@ real_t P2DOperator::GetSurfaceConcentration(const Region &r)
 
    real_t csurf = r == NE ? CN0 : CP0;
    for (unsigned p = 0; p < NPAR; p++)
-      if (sc[p]->GetParticleRegion() == r)
-         csurf += sc[p]->SurfaceConcentration(_x);
+      if (_sc[p]->GetParticleRegion() == r)
+         csurf += _sc[p]->SurfaceConcentration(_x);
 
    return csurf;
 }
@@ -209,10 +209,10 @@ void P2DOperator::SetSurfaceConcentration()
       return;
 
    for (unsigned p = 0; p < NPAR; p++)
-      if (sc[p]->IsParticleOwned())
+      if (_sc[p]->IsParticleOwned())
       {
-         real_t csurf0 = sc[p]->GetParticleRegion() == NE ? CN0 : CP0;
-         (*_sc_gf)(sc[p]->GetParticleDof()) = csurf0 + sc[p]->SurfaceConcentration(_x);
+         real_t csurf0 = _sc[p]->GetParticleRegion() == NE ? CN0 : CP0;
+         (*_sc_gf)(_sc[p]->GetParticleDof()) = csurf0 + _sc[p]->SurfaceConcentration(_x);
       }
 
    // Apply prolongation after restriction. Might be unnecessary, but guarantees
@@ -233,28 +233,28 @@ Array<real_t> P2DOperator::ComputeParticleReactionCurrent()
       case SPM:
       case SPMe:
          for (unsigned p = 0; p < NPAR; p++)
-            j[p] = ComputeReactionCurrent(sc[p]->GetParticleRegion());
+            j[p] = ComputeReactionCurrent(_sc[p]->GetParticleRegion());
          break;
       case P2D:
          ReactionCurrentCoefficient j_coef = ComputeReactionCurrent();
-         ParGridFunction j_gf(x_fespace);
+         ParGridFunction j_gf(_x_fespace);
          j_gf.ProjectCoefficient(j_coef);
 
          for (unsigned p = 0; p < NPAR; p++)
          {
-            j[p] = sc[p]->IsParticleOwned() ? j_gf(sc[p]->GetParticleDof()) : 0;
+            j[p] = _sc[p]->IsParticleOwned() ? j_gf(_sc[p]->GetParticleDof()) : 0;
 
-            if (sc[p]->GetParticleRank() == sc[p]->GetSurfaceRank())
+            if (_sc[p]->GetParticleRank() == _sc[p]->GetSurfaceRank())
                continue;
 
             MPI_Request request;
-            if (sc[p]->IsParticleOwned())
-               MPI_Isend(&j[p], 1, MFEM_MPI_REAL_T, sc[p]->GetSurfaceRank(), 1, MPI_COMM_WORLD, &request);
+            if (_sc[p]->IsParticleOwned())
+               MPI_Isend(&j[p], 1, MFEM_MPI_REAL_T, _sc[p]->GetSurfaceRank(), 1, MPI_COMM_WORLD, &request);
 
-            if (sc[p]->IsSurfaceOwned())
+            if (_sc[p]->IsSurfaceOwned())
                MPI_Recv(&j[p], 1, MFEM_MPI_REAL_T, MPI_ANY_SOURCE, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
-            if (sc[p]->IsParticleOwned())
+            if (_sc[p]->IsParticleOwned())
                MPI_Wait(&request, MPI_STATUS_IGNORE);
          }
          break;
@@ -385,35 +385,35 @@ void P2DOperator::ComputeVoltage(const BlockVector &x, real_t t, real_t dt)
       // Print file headings first time function is called.
       static bool writeFileHeadings = true;
       if (writeFileHeadings) {
-         file << "t" << ", \t"
-           << "cn" << ", \t"
-           << "cp" << ", \t"
-           << "voltage"
-           << std::endl;
+         _file << "t" << ", \t"
+               << "cn" << ", \t"
+               << "cp" << ", \t"
+               << "voltage"
+               << std::endl;
 
          writeFileHeadings = false;
       }
 
       // Print data to file.
-      file << t << ", \t"
-           << scn << ", \t"
-           << scp << ", \t"
-           << voltage
-           << std::endl;
+      _file << t << ", \t"
+            << scn << ", \t"
+            << scp << ", \t"
+            << voltage
+            << std::endl;
    }
 
-   sc[1]->DebuggingCheck(_x);
+   _sc[1]->DebuggingCheck(_x);
 }
 
 void P2DOperator::GetParticleDofs(Array<int> & particle_dofs, Array<Region> & particle_regions, Array<int> & particle_offsets)
 {
    std::set<std::pair<int, Region>> electrode_dofs_set;
    std::set<int> sep_gdofs_set;
-   for (int e = 0; e < x_fespace->GetNE(); e++)
+   for (int e = 0; e < _x_fespace->GetNE(); e++)
    {
       Array<int> dofs;
-      x_fespace->GetElementDofs(e, dofs);
-      switch (Region r = Region(x_fespace->GetAttribute(e)))
+      _x_fespace->GetElementDofs(e, dofs);
+      switch (Region r = Region(_x_fespace->GetAttribute(e)))
       {
          case NE:
          case PE:
@@ -422,12 +422,12 @@ void P2DOperator::GetParticleDofs(Array<int> & particle_dofs, Array<Region> & pa
             break;
          case SEP:
             for (int d: dofs)
-               sep_gdofs_set.insert(x_fespace->GetGlobalTDofNumber(d));
+               sep_gdofs_set.insert(_x_fespace->GetGlobalTDofNumber(d));
             break;
       }
    }
 
-   unsigned max_sep_gdofs = NSEP * x_fespace->FEColl()->GetOrder() + 1;
+   unsigned max_sep_gdofs = NSEP * _x_fespace->FEColl()->GetOrder() + 1;
    Array<int> sep_gdofs(max_sep_gdofs); sep_gdofs = -1;
    std::copy(sep_gdofs_set.begin(), sep_gdofs_set.end(), sep_gdofs.begin());
 
@@ -436,12 +436,12 @@ void P2DOperator::GetParticleDofs(Array<int> & particle_dofs, Array<Region> & pa
                  all_sep_gdofs.GetData(), max_sep_gdofs, MPI_INT, MPI_COMM_WORLD);
 
    Array<int> boundary_dofs;
-   x_fespace->GetBoundaryTrueDofs(boundary_dofs);
+   _x_fespace->GetBoundaryTrueDofs(boundary_dofs);
 
    for (auto [dof, region]: electrode_dofs_set)
    {
-      int ltdof = x_fespace->GetLocalTDofNumber(dof);
-      int gtdof = x_fespace->GetGlobalTDofNumber(dof);
+      int ltdof = _x_fespace->GetLocalTDofNumber(dof);
+      int gtdof = _x_fespace->GetGlobalTDofNumber(dof);
       if (ltdof != -1 && boundary_dofs.Find(ltdof) == -1 && all_sep_gdofs.Find(gtdof) == -1)
       {
          particle_dofs.Append(dof);
