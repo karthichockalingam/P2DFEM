@@ -100,7 +100,7 @@ public:
    real_t ComputeOverPotential(const Region &r);
    OverPotentialCoefficient ComputeOverPotential();
 
-   void ComputeVoltage();
+   real_t ComputeVoltage();
 
    virtual void GetParticleDofs(Array<int> & particle_dofs, Array<Region> & particle_regions, Array<int> & particle_offsets);
 

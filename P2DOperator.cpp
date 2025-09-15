@@ -370,7 +370,7 @@ OverPotentialCoefficient P2DOperator::ComputeOverPotential()
 // Voltage
 //
 
-void P2DOperator::ComputeVoltage()
+real_t P2DOperator::ComputeVoltage()
 {
    real_t Un = ComputeOpenCircuitPotential(NE);
    real_t Up = ComputeOpenCircuitPotential(PE);
@@ -409,6 +409,8 @@ void P2DOperator::ComputeVoltage()
    }
 
    _sc[1]->DebuggingCheck(_x);
+
+   return voltage;
 }
 
 void P2DOperator::GetParticleDofs(Array<int> & particle_dofs, Array<Region> & particle_regions, Array<int> & particle_offsets)
