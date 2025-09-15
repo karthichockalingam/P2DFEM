@@ -8,10 +8,15 @@ class OpenCircuitPotentialCoefficient: public Coefficient
 
       GridFunctionCoefficient _surface_concentration_gfc;
 
+      const std::function<real_t(real_t)> _un;
+      const std::function<real_t(real_t)> _up;
+
+      const real_t & _scn;
+      const real_t & _scp;
+
       TransformedCoefficient _ocp_ne_tc;
       TransformedCoefficient _ocp_pe_tc;
 
-      Vector _ocp_vec;
       PWConstCoefficient _ocp_pwcc;
       PWCoefficient _ocp_pwc;
 
@@ -19,8 +24,10 @@ class OpenCircuitPotentialCoefficient: public Coefficient
       /// Default
       OpenCircuitPotentialCoefficient():
         _surface_concentration_gf(ParGridFunction()),
-        _ocp_ne_tc(nullptr, [](real_t) { return 0; }),
-        _ocp_pe_tc(nullptr, [](real_t) { return 0; }) {}
+        _scn(0),
+        _scp(0),
+        _ocp_ne_tc(nullptr, _un),
+        _ocp_pe_tc(nullptr, _up) {}
 
       /// SPM(e)
       OpenCircuitPotentialCoefficient(
@@ -29,10 +36,13 @@ class OpenCircuitPotentialCoefficient: public Coefficient
         const real_t & scn,
         const real_t & scp):
         _surface_concentration_gf(ParGridFunction()),
-        _ocp_ne_tc(nullptr, [](real_t) { return 0; }),
-        _ocp_pe_tc(nullptr, [](real_t) { return 0; }),
-        _ocp_vec({un(scn), 0., up(scp)}),
-        _ocp_pwcc(_ocp_vec) {}
+        _un(un),
+        _up(up),
+        _scn(scn),
+        _scp(scp),
+        _ocp_ne_tc(nullptr, _un),
+        _ocp_pe_tc(nullptr, _up),
+        _ocp_pwcc(3) {}
 
       /// P2D
       OpenCircuitPotentialCoefficient(
@@ -41,13 +51,19 @@ class OpenCircuitPotentialCoefficient: public Coefficient
         const ParGridFunction & sc):
         _surface_concentration_gf(sc),
         _surface_concentration_gfc(&_surface_concentration_gf),
-        _ocp_ne_tc(&_surface_concentration_gfc, un),
-        _ocp_pe_tc(&_surface_concentration_gfc, up),
+        _un(un),
+        _up(up),
+        _scn(0),
+        _scp(0),
+        _ocp_ne_tc(&_surface_concentration_gfc, _un),
+        _ocp_pe_tc(&_surface_concentration_gfc, _up),
         _ocp_pwc(Array<int>({NE, PE}), Array<Coefficient*>({static_cast<Coefficient*>(&_ocp_ne_tc), static_cast<Coefficient*>(&_ocp_pe_tc)})) {}
 
       /// SPM(e)
       virtual PWConstCoefficient & Eval()
       {
+        _ocp_pwcc(NE) = _un(_scn);
+        _ocp_pwcc(PE) = _up(_scp);
         return _ocp_pwcc;
       }
 

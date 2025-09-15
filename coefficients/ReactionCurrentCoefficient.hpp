@@ -4,8 +4,8 @@ using namespace mfem;
 class ReactionCurrentCoefficient: public Coefficient
 {
    private:
-      ExchangeCurrentCoefficient _jex;
-      OverPotentialCoefficient _op;
+      ExchangeCurrentCoefficient * _jex;
+      OverPotentialCoefficient * _op;
 
       Vector _j_vec;
       PWConstCoefficient _j_pwcc;
@@ -21,14 +21,14 @@ class ReactionCurrentCoefficient: public Coefficient
       /// P2D
       ReactionCurrentCoefficient(
         const real_t & T,
-        const ExchangeCurrentCoefficient & jex,
-        const OverPotentialCoefficient & op):
-        _jex(jex),
-        _op(op),
-        _j_tc(&_jex, &_op, [=](real_t jex, real_t op) { return 2 * jex * sinh (.5 * op / T); }) {}
+        ExchangeCurrentCoefficient & jex,
+        OverPotentialCoefficient & op):
+        _jex(&jex),
+        _op(&op),
+        _j_tc(_jex, _op, [=](real_t jex, real_t op) { return 2 * jex * sinh (.5 * op / T); }) {}
 
       /// SPM(e)
-      virtual PWConstCoefficient Eval()
+      virtual PWConstCoefficient & Eval()
       {
         return _j_pwcc;
       }

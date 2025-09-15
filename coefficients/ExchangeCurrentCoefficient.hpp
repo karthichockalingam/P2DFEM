@@ -10,6 +10,9 @@ class ExchangeCurrentCoefficient: public Coefficient
       GridFunctionCoefficient _surface_concentration_gfc;
       GridFunctionCoefficient _electrolyte_concentration_gfc;
 
+      const real_t & _scn;
+      const real_t & _scp;
+
       TransformedCoefficient _jex_ne_tc;
       TransformedCoefficient _jex_pe_tc;
 
@@ -22,8 +25,10 @@ class ExchangeCurrentCoefficient: public Coefficient
       ExchangeCurrentCoefficient():
         _surface_concentration_gf(ParGridFunction()),
         _electrolyte_concentration_gf(ParGridFunction()),
-        _jex_ne_tc(nullptr, nullptr, [](real_t, real_t) { return 0; }),
-        _jex_pe_tc(nullptr, nullptr, [](real_t, real_t) { return 0; }) {}
+        _scn(0),
+        _scp(0),
+        _jex_ne_tc(nullptr, [](real_t) { return 0; }),
+        _jex_pe_tc(nullptr, [](real_t) { return 0; }) {}
 
       /// SPM
       ExchangeCurrentCoefficient(
@@ -34,10 +39,12 @@ class ExchangeCurrentCoefficient: public Coefficient
         const real_t & ec):
         _surface_concentration_gf(ParGridFunction()),
         _electrolyte_concentration_gf(ParGridFunction()),
-        _jex_ne_tc(nullptr, nullptr, [](real_t, real_t) { return 0; }),
-        _jex_pe_tc(nullptr, nullptr, [](real_t, real_t) { return 0; }),
-        _jex_vec({kn * sqrt( scn * ec * (1 - scn) ), 0., kp * sqrt( scp * ec * (1 - scp) )}),
-        _jex_pwcc(_jex_vec) {}
+        _scn(scn),
+        _scp(scp),
+        _jex_ne_tc(nullptr, [](real_t) { return 0; }),
+        _jex_pe_tc(nullptr, [](real_t) { return 0; }),
+        _jex_vec({kn * sqrt( ec ), 0., kp * sqrt( ec )}),
+        _jex_pwcc(3) {}
 
       /// SPMe
       ExchangeCurrentCoefficient(
@@ -49,8 +56,10 @@ class ExchangeCurrentCoefficient: public Coefficient
         _surface_concentration_gf(ParGridFunction()),
         _electrolyte_concentration_gf(ec),
         _electrolyte_concentration_gfc(&_electrolyte_concentration_gf),
-        _jex_ne_tc(&_electrolyte_concentration_gfc, [=](real_t ec) { return kn * sqrt( scn * ec * (1 - scn) ); }),
-        _jex_pe_tc(&_electrolyte_concentration_gfc, [=](real_t ec) { return kp * sqrt( scp * ec * (1 - scp) ); }) {}
+        _scn(scn),
+        _scp(scp),
+        _jex_ne_tc(&_electrolyte_concentration_gfc, [=](real_t ec) { return kn * sqrt( _scn * ec * (1 - _scn) ); }),
+        _jex_pe_tc(&_electrolyte_concentration_gfc, [=](real_t ec) { return kp * sqrt( _scp * ec * (1 - _scp) ); }) {}
 
       /// P2D
       ExchangeCurrentCoefficient(
@@ -62,15 +71,17 @@ class ExchangeCurrentCoefficient: public Coefficient
         _electrolyte_concentration_gf(ec),
         _surface_concentration_gfc(&_surface_concentration_gf),
         _electrolyte_concentration_gfc(&_electrolyte_concentration_gf),
+        _scn(0),
+        _scp(0),
         _jex_ne_tc(&_surface_concentration_gfc, &_electrolyte_concentration_gfc, [=](real_t sc, real_t ec) { return kn * sqrt( sc * ec * (1 - sc) ); }),
         _jex_pe_tc(&_surface_concentration_gfc, &_electrolyte_concentration_gfc, [=](real_t sc, real_t ec) { return kp * sqrt( sc * ec * (1 - sc) ); }),
         _jex_pwc(Array<int>({NE, PE}), Array<Coefficient*>({static_cast<Coefficient*>(&_jex_ne_tc), static_cast<Coefficient*>(&_jex_pe_tc)})) {}
 
       /// SPM(e)
-      virtual PWConstCoefficient Eval()
+      virtual PWConstCoefficient & Eval()
       {
         /// SPMe
-        if (!_jex_pwcc.GetNConst())
+        if (_electrolyte_concentration_gfc.GetGridFunction())
         {
           ParFiniteElementSpace * x_fespace = _electrolyte_concentration_gf.ParFESpace();
           QuadratureSpace x_qspace(x_fespace->GetParMesh(), 2 * x_fespace->FEColl()->GetOrder());
@@ -87,6 +98,12 @@ class ExchangeCurrentCoefficient: public Coefficient
 
           Vector c({integral_ne / NNE * NX, 0., integral_pe / NPE * NX});
           _jex_pwcc.UpdateConstants(c);
+        }
+        /// SPM
+        else
+        {
+          _jex_pwcc(NE) = _jex_vec(NE - 1) * sqrt( _scn * (1 - _scn) );
+          _jex_pwcc(PE) = _jex_vec(PE - 1) * sqrt( _scp * (1 - _scp) );
         }
 
         return _jex_pwcc;
