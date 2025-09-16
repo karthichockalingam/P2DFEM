@@ -9,8 +9,8 @@ private:
     double _ce_scale;             
 
 public:
-    DECoefficient(const GridFunction &u_gf, double ce_scale)
-        : _u_gf(u_gf), _ce_scale(ce_scale) {}
+    DECoefficient(const GridFunction &u_gf)
+        : _u_gf(u_gf) {}
 
     virtual double Eval(ElementTransformation &T, const IntegrationPoint &ip) override
     {

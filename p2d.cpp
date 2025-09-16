@@ -130,10 +130,15 @@ int main(int argc, char *argv[])
    int numnodes = (*vert_coord).Size();
 
    MFEM_ASSERT(numnodes == order * NX + 1, "Total number of nodes in x_mesh is wrong");
-              
+
+   //Vector jubat_mesh({0.0, 0.049305555555555554, 0.09861111111111111, 0.14791666666666664, 0.19722222222222222, 0.24652777777777776, 0.2958333333333333, 0.34513888888888883, 0.39444444444444443, 0.44375, 0.4930555555555555, 0.5, 0.5069444444444444, 0.5138888888888888, 0.5208333333333333, 0.5277777777777778, 0.5347222222222222, 0.5416666666666666, 0.5486111111111112, 0.5555555555555556, 0.5625, 0.60625, 0.65, 0.69375, 0.7375, 0.78125, 0.825, 0.8687499999999999, 0.9125000000000001, 0.95625, 1.0});
+   /*Vector jubat_mesh({0.0,    0.0437,    0.0875,    0.1313,    0.1750,    0.2188,    0.2625,    0.3063,    0.3500,   0.3938,    0.4375,    0.4444,    0.4514,    0.4583,    0.4653,    0.4722,   0.4792,    0.4861,    0.4931,    0.5000,    0.5069,    0.5562,    0.6056,    0.6549,    0.7042,    0.7535,    0.8028,    0.8521,    0.9014,    0.9507,    1.0000});
    for (int i = 0; i < numnodes; i++)
-      (*vert_coord)(i) = (*vert_coord)(i); //RHS has changed to be changed with right coordinates
-  
+   {
+      std::cout << "jubat_mesh(" << i << ") = " << jubat_mesh(i) << std::endl;
+      (*vert_coord)(i) = jubat_mesh(i); // RHS has to be changed with right coordinatess
+   }*/
+
    for (unsigned i = 0; i < NX; i++)
       x_smesh.SetAttribute(i, i < NPE ? PE : i < NPE + NSEP ? SEP : NE);
    x_smesh.SetAttributes();
@@ -215,6 +220,8 @@ int main(int argc, char *argv[])
    bool last_step = false;
    for (int ti = 1; !last_step; ti++)
    {
+      std::cout << "---------------- Time step " << ti << ", t = " << t
+                << " ----------------" << std::endl;
       last_step = t + dt >= t_final - dt/2;
 
       ode_solver->Step(x, t, dt);

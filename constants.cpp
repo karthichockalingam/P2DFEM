@@ -52,9 +52,9 @@ namespace constants {
 
     // Transport efficiency (inverse MacMullin number). This is B(x) in Planella, and is absorbed into the 
     // definition of kappa_ne/kappa_pe/kappa_sp in JuBat.
-    real_t De_p_scale = pow(eps_p, brugg);
-    real_t De_n_scale = pow(eps_n, brugg);
-    real_t De_s_scale = pow(eps_s, brugg);
+    real_t BPE = pow(eps_p, brugg);
+    real_t BNE = pow(eps_n, brugg);
+    real_t BSEP = pow(eps_s, brugg);
 
 
     real_t j_scale = I_typ / a0 / L / cell_area;
@@ -125,7 +125,7 @@ namespace constants {
         return kappa(x * ce_scale) / kappa_scale;
     }
 
-    real_t KS = Kappa(ce0) / kappa_scale; // Scaled electrolyte conductivity.
+    real_t KS = Kappa(CE0);// / kappa_scale; // Scaled electrolyte conductivity.
     
     //real_t KP = kappa(CE0) * EPS_P^brugg;
     //real_t KN = kappa(CE0) * EPS_N^brugg;

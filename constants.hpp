@@ -66,9 +66,9 @@ namespace constants {
     extern const real_t ce_scale;
 
     extern const real_t TPLUS;
-    extern real_t De_p_scale;
-    extern real_t De_n_scale;
-    extern real_t De_s_scale;
+    extern real_t BPE;
+    extern real_t BNE;
+    extern real_t BSEP;
 
     extern real_t DE(real_t ce);
 

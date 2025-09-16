@@ -289,33 +289,35 @@ void P2DOperator::ComputeVoltage(const BlockVector &x, real_t t, real_t dt)
       QuadratureSpace x_qspace(x_fespace->GetParMesh(), 2 * x_fespace->FEColl()->GetOrder());
 
       ce_pwc.UpdateCoefficient(NE, ec_gfc);
-      real_t ce_ne_int = x_qspace.Integrate(ce_pwc) / LNE;
+      real_t ce_ne_int = x_qspace.Integrate(ce_pwc) * (NX / NNE) + CE0;
       ce_pwc.ZeroCoefficient(NE);
 
       ce_pwc.UpdateCoefficient(PE, ec_gfc);
-      real_t ce_pe_int = x_qspace.Integrate(ce_pwc) / LPE;
+      real_t ce_pe_int = x_qspace.Integrate(ce_pwc) * (NX / NPE) + CE0;
       ce_pwc.ZeroCoefficient(PE);
 
       // Remove CE0?
+      std::cout << "T = " << T << ", CE0 = " << CE0 << ", tplus = " << TPLUS << std::endl;
+      std::cout << "ce_ne_int = " << ce_ne_int << ", ce_pe_int = " << ce_pe_int << std::endl;
       real_t eta_c = (2.0 * T / CE0) * (1 - TPLUS) * (ce_ne_int - ce_pe_int);
 
       real_t sigma_e = KS; // Electrolyte conductivity
 
-      real_t BN = De_n_scale;
-      real_t BP = De_p_scale;
-      real_t BS = De_s_scale;
+      real_t dphie = (I / sigma_e) * (LNE / BNE / 3.0  + LSEP / BSEP + LPE / BPE / 3.0);
 
-      real_t dphie = (I / sigma_e) * (LNE / BN / 3.0  + LSEP / BS + LPE / BP / 3.0);
-
+      std::cout << "sigma_e = " << sigma_e << std::endl;
       real_t dphis = I / 3 * (LNE / SIGN + LPE / SIGP);
       
       Ve = eta_c + dphie + dphis;
+
+      std::cout << "eta_c = " << eta_c << ", dphie = " << dphie << ", dphis = " << dphis << std::endl;
    
    }
 
    // Definition from JuBat: https://doi.org/10.1016/j.est.2023.107512
    real_t voltage = Up - Un + (eta_p - eta_n - Ve) * phi_scale;
 
+   std::cout << "phi_scale = " << phi_scale << std::endl;
    // Temporary printing.
    if (Mpi::Root())
    {
