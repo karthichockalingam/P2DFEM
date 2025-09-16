@@ -237,6 +237,22 @@ void P2DOperator::SetSurfaceConcentration()
 }
 
 //
+// Partial Reaction Current for each electrode
+//
+
+real_t P2DOperator::GetElectrodeReactionCurrent(const Region &r, const int &sign)
+{
+   MFEM_ASSERT(r == NE || r == PE, "Cannot get partial electrode reaction current, only negative (NE) and positive electrodes (PE) are supported.");
+
+   Vector amask({r == NE ? AN : 0., 0., r == PE ? AP : 0.});
+   PWConstCoefficient a(amask);
+   ProductCoefficient ajex(a, *_jex);
+   TransformedCoefficient I(&ajex, _op, [=](real_t ajex, real_t op) { return ajex * exp( sign * 0.5 * op ); });
+   QuadratureSpace x_qspace(_x_fespace->GetParMesh(), 2 * _x_fespace->FEColl()->GetOrder());
+   return x_qspace.Integrate(I);
+}
+
+//
 // Reaction Current for each particle
 //
 

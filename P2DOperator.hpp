@@ -93,6 +93,7 @@ public:
    virtual void UpdatePotentialEquations();
    virtual void UpdateConcentrationEquations();
 
+   real_t GetElectrodeReactionCurrent(const Region &r, const int &sign);
    Array<real_t> GetParticleReactionCurrent();
 
    /// Construct coefficients for derived quantities
