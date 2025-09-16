@@ -123,6 +123,17 @@ int main(int argc, char *argv[])
    //    handle triangular, quadrilateral, tetrahedral and hexahedral meshes
    //    with the same code.
    Mesh x_smesh = Mesh::MakeCartesian1D(NX);
+ 
+   x_smesh.EnsureNodes();
+   GridFunction *vert_coord = x_smesh.GetNodes();
+
+   int numnodes = (*vert_coord).Size();
+
+   MFEM_ASSERT(numnodes == order * NX + 1, "Total number of nodes in x_mesh is wrong");
+              
+   for (int i = 0; i < numnodes; i++)
+      (*vert_coord)(i) = (*vert_coord)(i); //RHS has changed to be changed with right coordinates
+  
    for (unsigned i = 0; i < NX; i++)
       x_smesh.SetAttribute(i, i < NPE ? PE : i < NPE + NSEP ? SEP : NE);
    x_smesh.SetAttributes();
