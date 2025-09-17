@@ -128,6 +128,15 @@ void P2DOperator::ImplicitSolve(const real_t dt,
          SetGridFunctionsFromTrueVectors();
          // compute absolute potentials in dedicated member function
          UpdatePotentialEquations();
+
+         real_t Inp = GetElectrodeReactionCurrent(NE,  1.0);
+         real_t Inn = GetElectrodeReactionCurrent(NE,  1.0);
+         real_t Ipp = GetElectrodeReactionCurrent(PE, -1.0);
+         real_t Ipn = GetElectrodeReactionCurrent(PE, -1.0);
+
+         real_t phi_eo = -2.0 * log(I + sqrt(4.0 * Inp * Inn + I * I)/(2.0 * Inp));
+         real_t phi_po = phi_eo + 2.0 * log(-I + sqrt(4.0 * Ipp * Ipn + I * I)/(2.0 * Ipp));
+
          _x.Add(-_dt, dx_dt);
 
          // put _Ap and _bp together
