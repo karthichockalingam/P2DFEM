@@ -224,10 +224,12 @@ real_t P2DOperator::ComputeExchangeCurrent(const Region &r, const BlockVector &x
 
       MPI_Allreduce(MPI_IN_PLACE, &reduction_result, 1, MFEM_MPI_REAL_T, MPI_SUM, MPI_COMM_WORLD);
 
+      real_t length_scale = r == PE ? LPE / NPE * NX : r == NE ? LNE / NNE * NX : 0;
+
       //std::cout << "CEC: r = " << r << " reduction_result = " << reduction_result << std::endl;
       real_t l = r == PE ? LPE : r == NE ? LNE : 0;
       //std::cout << "CEC: " << "l = " << l << std::endl;
-      return reduction_result / l;
+      return reduction_result * length_scale / l;
    }
    else if (M == P2D)
    {
@@ -264,6 +266,9 @@ void P2DOperator::ComputeVoltage(const BlockVector &x, real_t t, real_t dt)
    real_t Up = ComputeOpenCircuitPotential(PE, ComputeSurfaceConcentration(PE, x));
    real_t Un = ComputeOpenCircuitPotential(NE, ComputeSurfaceConcentration(NE, x));
 
+   std::cout << "ComputeSurfaceConcentration(PE, x) = " << ComputeSurfaceConcentration(PE, x) << std::endl;
+   std::cout << "ComputeSurfaceConcentration(NE, x) = " << ComputeSurfaceConcentration(NE, x) << std::endl;
+
    real_t jp = ComputeReactionCurrent(PE).constant;
    real_t jn = ComputeReactionCurrent(NE).constant;
 
@@ -272,6 +277,12 @@ void P2DOperator::ComputeVoltage(const BlockVector &x, real_t t, real_t dt)
 
    real_t eta_p = 2 * T * asinh(jp / 2.0 / j0_p);
    real_t eta_n = 2 * T * asinh(jn / 2.0 / j0_n);
+
+   std::cout << "jn = " << jn << std::endl;
+   std::cout << "jp = " << jp << std::endl;
+   std::cout << "j0_n = " << j0_n << std::endl;
+   std::cout << "j0_p = " << j0_p << std::endl;
+   
 
    // Beginning of implementation of Ve.  Seems to differ from JuBat's paper...
    //real_t dphi_S =  I_app / 3 * (param.NE.thickness / param.NE.sig + param.PE.thickness / param.PE.sig)
@@ -310,11 +321,16 @@ void P2DOperator::ComputeVoltage(const BlockVector &x, real_t t, real_t dt)
       
       Ve = eta_c + dphie + dphis;
 
-      std::cout << "eta_c = " << eta_c << ", dphie = " << dphie << ", dphis = " << dphis << std::endl;
+      std::cout << "eta_c = " << eta_c* phi_scale << ", dphie = " << dphie* phi_scale << ", dphis = " << dphis* phi_scale << std::endl;
+      std::cout << "Ve = " << Ve * phi_scale << std::endl;
    
    }
 
    // Definition from JuBat: https://doi.org/10.1016/j.est.2023.107512
+   std::cout << "Up = " << Up << std::endl;
+   std::cout << "Un = " << Un << std::endl;
+   std::cout << "eta_p = " << eta_p << std::endl;
+   std::cout << "eta_n = " << eta_n << std::endl;
    real_t voltage = Up - Un + (eta_p - eta_n - Ve) * phi_scale;
 
    std::cout << "phi_scale = " << phi_scale << std::endl;
