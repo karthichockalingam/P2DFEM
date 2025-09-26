@@ -120,10 +120,17 @@ public:
       delete _ec;
       for (unsigned p = 0; p < NPAR; p++)
          delete _sc[p];
+
       delete _ep_gf;
       delete _sp_gf;
       delete _ec_gf;
       delete _sc_gf;
+
+      delete _j;
+      delete _jex;
+      delete _ocp;
+      delete _op;
+
       delete _Ac;
       delete _Ap;
       _file.close();
