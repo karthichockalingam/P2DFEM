@@ -26,10 +26,11 @@ namespace constants {
     };
 
     enum Region : int {
-        UNKNOWN,
+        E,
         NE,
         SEP,
-        PE
+        PE,
+        UNKNOWN
     };
 
     enum Model : int {

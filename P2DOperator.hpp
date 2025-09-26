@@ -30,7 +30,10 @@ protected:
    ParGridFunction * _sc_gf;
 
    /// Big-enough array for the surface concentrations of the two SPM(e) particles
-   Array<real_t> _sc_array{/* UNKNOWN */ 0., /* NE */ 0., /* SEP */ 0., /* PE */ 0.};
+   Array<real_t> _sc_array{/* E */ 0., /* NE */ 0., /* SEP */ 0., /* PE */ 0.};
+
+   /// Big-enough array for the reference potentials
+   Array<real_t> _rp_array{/* E */ 0., /* NE */ 0., /* SEP */ 0., /* PE */ 0.};
 
    /// Coefficients for derived, i.e. not solved for, quantities
    ReactionCurrentCoefficient * _j;
@@ -73,6 +76,9 @@ protected:
    /// Auxiliary rhs vectors for concentrations and potential eqs
    mutable BlockVector _bc, _bp;
 
+   /// Self-consistency loop L2 error threshold
+   const real_t _threshold = 1e-9;
+
    /// File to write temporary data to
    std::ofstream _file;
 
@@ -89,9 +95,10 @@ public:
    void Step();
    void SetGridFunctionsFromTrueVectors();
    void SetSurfaceConcentration();
+   void SetReferencePotential();
 
-   virtual void UpdatePotentialEquations();
-   virtual void UpdateConcentrationEquations();
+   void UpdatePotentialEquations();
+   void UpdateConcentrationEquations();
 
    real_t GetElectrodeReactionCurrent(const Region &r, const int &sign);
    Array<real_t> GetParticleReactionCurrent();
@@ -102,8 +109,9 @@ public:
    void ConstructOpenCircuitPotential();
    void ConstructOverPotential();
 
-   /// SPM(e) helpers
+   /// Helpers for quantities which are constant within a region
    const real_t & GetSurfaceConcentration(const Region &r);
+   const real_t & GetReferencePotential(const Region &r);
    const real_t & GetReactionCurrent(const Region &r);
    const real_t & GetExchangeCurrent(const Region &r);
    const real_t & GetOpenCircuitPotential(const Region &r);

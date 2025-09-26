@@ -13,7 +13,12 @@ class OverPotentialCoefficient: public Coefficient
       ExchangeCurrentCoefficient * _jex;
       OpenCircuitPotentialCoefficient * _ocp;
 
-      SumCoefficient _dp_sc;
+      FunctionCoefficient _rp_ne_fc;
+      FunctionCoefficient _rp_pe_fc;
+      PWCoefficient _rp_pwc;
+
+      SumCoefficient _rel_se_sc;
+      SumCoefficient _abs_se_sc;
 
       PWConstCoefficient _op_pwcc;
       SumCoefficient _op_sc;
@@ -23,7 +28,10 @@ class OverPotentialCoefficient: public Coefficient
       OverPotentialCoefficient():
         _solid_potential_gf(ParGridFunction()),
         _electrolyte_potential_gf(ParGridFunction()),
-        _dp_sc(0, _solid_potential_gfc),
+        _rp_ne_fc([](const Vector &) { return 0; }),
+        _rp_pe_fc([](const Vector &) { return 0; }),
+        _rel_se_sc(0, _solid_potential_gfc),
+        _abs_se_sc(0, _solid_potential_gfc),
         _op_sc(0, _solid_potential_gfc) {}
 
       /// SPM(e)
@@ -32,13 +40,18 @@ class OverPotentialCoefficient: public Coefficient
         ExchangeCurrentCoefficient & jex):
         _solid_potential_gf(ParGridFunction()),
         _electrolyte_potential_gf(ParGridFunction()),
-        _dp_sc(0, _solid_potential_gfc),
+        _rp_ne_fc([](const Vector &) { return 0; }),
+        _rp_pe_fc([](const Vector &) { return 0; }),
+        _rel_se_sc(0, _solid_potential_gfc),
+        _abs_se_sc(0, _solid_potential_gfc),
         _op_sc(0, _solid_potential_gfc),
         _jex(&jex),
         _op_pwcc(3) {}
 
       /// P2D
       OverPotentialCoefficient(
+        const real_t & rpe,
+        const real_t & rpp,
         const ParGridFunction & sp,
         const ParGridFunction & ep,
         OpenCircuitPotentialCoefficient & ocp):
@@ -47,8 +60,12 @@ class OverPotentialCoefficient: public Coefficient
         _solid_potential_gfc(&_solid_potential_gf),
         _electrolyte_potential_gfc(&_electrolyte_potential_gf),
         _ocp(&ocp),
-        _dp_sc(_solid_potential_gfc, _electrolyte_potential_gfc, 1, -1),
-        _op_sc(_dp_sc, *_ocp, 1, -1) {}
+        _rp_ne_fc([=](const Vector &){ return 0   - rpe; }),
+        _rp_pe_fc([=](const Vector &){ return rpp - rpe; }),
+        _rp_pwc(Array<int>({NE, PE}), Array<Coefficient*>({static_cast<Coefficient*>(&_rp_ne_fc), static_cast<Coefficient*>(&_rp_pe_fc)})),
+        _rel_se_sc(_solid_potential_gfc, _electrolyte_potential_gfc, 1, -1),
+        _abs_se_sc(_rel_se_sc, _rp_pwc),
+        _op_sc(_abs_se_sc, *_ocp, 1, -1) {}
 
       /// SPM(e)
       virtual PWConstCoefficient & Eval()
