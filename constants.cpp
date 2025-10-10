@@ -71,25 +71,25 @@ namespace constants {
     real_t tp_scale = tp / t0;
 
     // Scaled parameters
-    real_t DN = Dn / Dn_scale; // Negative particle diffusion coefficient.
-    real_t DP = Dp / Dp_scale; // Positive particle diffusion coefficient.
+    real_t DN = Dn / Dn_scale; // Diffusion coefficient of each Negative particle
+    real_t DP = Dp / Dp_scale; // Diffusion coefficient of each Negative particle
 
-    real_t AN = An / a0; // Scaled negative electrode area.
-    real_t AP = Ap / a0; // Scaled positive electrode area.
+    real_t AN = An / a0; // scaled surface Area of each Negative particle // later SAN!
+    real_t AP = Ap / a0; // scaled surface Area of each Positive particle
 
-    real_t KN = kn_dim / kn_scale; // Scaled negative electrode reaction rate.
-    real_t KP = kp_dim / kp_scale; // Scaled positive electrode reaction rate.
+    real_t KN = kn_dim / kn_scale; // scaled reaction rate of each Negative particle
+    real_t KP = kp_dim / kp_scale; // scaled reaction rate of each Positive particle
 
-    real_t CN0 = cn0 / cnmax; // Scaled initial concentration, negative electrode.
-    real_t CP0 = cp0 / cpmax; // Scaled initial concentration, positive electrode.
+    real_t CN0 = cn0 / cnmax;  // scaled initial Concentration of Negative particle
+    real_t CP0 = cp0 / cpmax; // scaled initial Concentration of Positive particle
 
-    real_t RN = rn / r0; // Scaled negative particle radius.
-    real_t RP = rp / r0; // Scaled positive particle radius.
+    real_t RN = rn / r0; // scaled Radius of Negative particle 
+    real_t RP = rp / r0; // scaled Radius of Positive particle 
 
     // Extras to be properly defined later.
-    real_t CE0 = 1.; // Scaled electrolyte concentration.
-    real_t I = 1.; // Scaled current.
-    real_t T = 1.0; // Scaled temperature.
+    real_t CE0 = 1.; // scaled initial Concentration of Electrolyte
+    real_t I = 1.; // scaled external current
+    real_t T = 1.0; // scaled Temperature.
 
     real_t UN(real_t ce) { return Un(ce); }
     real_t UP(real_t ce) { return Up(ce); }

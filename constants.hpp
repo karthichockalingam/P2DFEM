@@ -4,85 +4,85 @@ using namespace mfem;
 
 namespace constants {
     enum PotentialBlock : int {
-        EPP,
-        SPP,
+        EPP,                       // Electrolyte Potential 
+        SPP,                       // Solid Potential (Postive and Negative Electrode region)
     };
 
     enum ConcentrationBlock : int {
-        ECC,
-        SCC
+        ECC,                       // Electrolyte Concentration
+        SCC                        // Solid Concentration
     };
 
     enum Block : int {
-        P = 0,
-        C = 2
+        P = 0,                    // Potential
+        C = 2                     // Concentration
     };
 
-    enum XBlock : int {
-        EP = P + EPP,
-        SP = P + SPP,
-        EC = C + ECC,
-        SC = C + SCC
+    enum XBlock : int { 
+        EP = P + EPP,             // Electrolyte Potential
+        SP = P + SPP,             // Solid Potential
+        EC = C + ECC,             // Electrolyte Concentration
+        SC = C + SCC              // Solid Concentration 
     };
-
+                     
     enum Region : int {
-        E,
-        NE,
-        SEP,
-        PE,
+        NE,                       // Negative Electrode
+        E,                        // Electrolyte
+        SEP,                      // Separator
+        PE,                       // Positive Electrode
         UNKNOWN
     };
 
     enum Model : int {
-        SPM,
+        SPM, 
         SPMe,
         P2D
     };
 
     extern const Model M;
 
-    extern const unsigned NNE;
-    extern const unsigned NSEP;
-    extern const unsigned NPE;
-    extern const unsigned NX;
-    extern const unsigned NR;
+    extern const unsigned NNE;     // Number of elements in the Negative Electrode 
+    extern const unsigned NSEP;    // Number of elements in the Separator 
+    extern const unsigned NPE;     // Number of elements in the Positive Electrode 
+    extern const unsigned NX;      // Number of elements in the X-dimension (i.e Electrolye) (Sum of the above three)
+    extern const unsigned NR;      // Number of elements in the R-dimension (i.e Particle)
 
-    extern const unsigned NNEPAR;
-    extern const unsigned NPEPAR;
-    extern const unsigned NPAR;
+    extern const unsigned NNEPAR;  // Number of Negative Electrode PARticle
+    extern const unsigned NPEPAR;  // Number of Positive Electrode PARticle
+    extern const unsigned NPAR;    // Total number of  PARticles (Sum of the above two)
 
-    extern const unsigned NMACROP;
-    extern const unsigned NMACROC;
-    extern const unsigned NMACRO;
-    extern const unsigned NEQS;
+    extern const unsigned NMACROP; // Number of Macro Potential equations //later change to NMACROPEQS!
+    extern const unsigned NMACROC; // Number of Macro Concentration equations
+    extern const unsigned NMACRO;  // Total Number of Macro Equations (Sum of the above two)
+    extern const unsigned NEQS;    // Total Number of Equations in the System
 
-    extern const real_t LNE;
-    extern const real_t LSEP;
-    extern const real_t LPE;
+    extern const real_t LSEP;      // Length of Separator
+    extern const real_t LPE;       // Length of Positive Electrode
+    extern const real_t LNE;       // Length of Negative Electrode
 
-    extern const real_t AN;
-    extern const real_t AP;
+    extern const real_t AN;        // scaled surface Area of each Negative particle // later SAN!
+    extern const real_t AP;        // scaled surface Area of each Positive particle
 
-    extern const real_t DN;
-    extern const real_t DP;
+    extern const real_t DN;        // scaled Diffusion coefficient of each Negative particle
+    extern const real_t DP;        // scaled Diffusion coefficient of each Positive particle
 
-    extern const real_t KN;
-    extern const real_t KP;
+    extern const real_t KN;        // scaled reaction rate of each Negative particle
+    extern const real_t KP;        // scaled reaction rate of each Positive particle
 
-    extern const real_t RN;
-    extern const real_t RP;
+    extern const real_t RN;        // scaled Radius of Negative particle 
+    extern const real_t RP;        // scaled Radius of Positive particle 
 
-    extern const real_t CN0;
-    extern const real_t CP0;
+    extern const real_t CN0;       // scaled initial Concentration of Negative particle
+    extern const real_t CP0;       // scaled initial Concentration of Positive particle
 
-    extern const real_t CE0;
+    extern const real_t CE0;       // scaled initial Concentration of Electrolyte
 
-    extern const real_t I;
-    extern const real_t T;
+    extern const real_t I;         // scaled external current
+    extern const real_t T;         // scaled Temperature.
 
-    extern const real_t phi_scale;
-    extern const real_t tn_scale;
-    extern const real_t tp_scale;
+    extern const real_t phi_scale; // potential scale
+    extern const real_t tn_scale;  // time scale of negative electrode
+    extern const real_t tp_scale;  // time scale of positive electrode
 
     real_t UN(real_t);
     real_t UP(real_t);
