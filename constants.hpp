@@ -26,8 +26,8 @@ namespace constants {
     };
                      
     enum Region : int {
-        NE,                       // Negative Electrode
         E,                        // Electrolyte
+        NE,                       // Negative Electrode
         SEP,                      // Separator
         PE,                       // Positive Electrode
         UNKNOWN
