@@ -10,7 +10,7 @@ P2DOperator::P2DOperator(ParFiniteElementSpace * &x_fespace, Array<ParFiniteElem
    _Solver.iterative_mode = false;
    _Solver.SetRelTol(rel_tol);
    _Solver.SetAbsTol(0.0);
-   _Solver.SetMaxIter(100);
+   _Solver.SetMaxIter(500);
    _Solver.SetPrintLevel(0);
    //_Solver.SetPreconditioner(_Prec);
 
@@ -64,7 +64,7 @@ P2DOperator::P2DOperator(ParFiniteElementSpace * &x_fespace, Array<ParFiniteElem
    _sc_gf = new ParGridFunction(_x_fespace, _l, _block_offsets[SC]);
 
    // Set offsets for solution and rhs (potential and concentration) true vectors
-   _x.Update(_block_trueOffsets); _x = 0.;
+   _x.Update(_block_trueOffsets); _x = 0.; _x.GetBlock(EC) = CE0;
    _bp.Update(_potential_trueOffsets);
    _bc.Update(_concentration_trueOffsets);
 
@@ -444,9 +444,11 @@ void P2DOperator::ConstructOverPotential()
 
 real_t P2DOperator::GetVoltage()
 {
+   real_t Ve = (M == SPMe) ? GetVoltageMarquisCorrection() : 0;
+
    // Definition from JuBat: https://doi.org/10.1016/j.est.2023.107512
    real_t V = GetOpenCircuitPotential(PE) - GetOpenCircuitPotential(NE) +
-              (GetOverPotential(PE) - GetOverPotential(NE)) * phi_scale;
+              (GetOverPotential(PE) - GetOverPotential(NE) - Ve) * phi_scale;
 
    if (Mpi::Root())
    {
@@ -476,6 +478,28 @@ real_t P2DOperator::GetVoltage()
    _sc[1]->DebuggingCheck(_x);
 
    return V;
+}
+
+real_t P2DOperator::GetVoltageMarquisCorrection()
+{
+   GridFunctionCoefficient ec_gfc(_ec_gf);
+   PWCoefficient ce_pwc;
+
+   QuadratureSpace x_qspace(_x_fespace->GetParMesh(), 2 * _x_fespace->FEColl()->GetOrder());
+
+   ce_pwc.UpdateCoefficient(NE, ec_gfc);
+   real_t ce_ne_int = x_qspace.Integrate(ce_pwc) * (NX / NNE);
+   ce_pwc.ZeroCoefficient(NE);
+
+   ce_pwc.UpdateCoefficient(PE, ec_gfc);
+   real_t ce_pe_int = x_qspace.Integrate(ce_pwc) * (NX / NPE);
+   ce_pwc.ZeroCoefficient(PE);
+
+   real_t eta_c = (2.0 * T / CE0) * (1 - TPLUS) * (ce_ne_int - ce_pe_int);
+   real_t dphie = (I / KS) * (LNE / BNE / 3.0  + LSEP / BSEP + LPE / BPE / 3.0);
+   real_t dphis = I / 3 * (LNE / SIGN + LPE / SIGP);
+
+   return eta_c + dphie + dphis;
 }
 
 void P2DOperator::GetParticleDofs(Array<int> & particle_dofs, Array<Region> & particle_regions, Array<int> & particle_offsets)

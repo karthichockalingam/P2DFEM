@@ -19,6 +19,8 @@ namespace LGM50 {
     const real_t Dn = 3.3e-14; // Diffusion coefficient, negative electrode
     const real_t An = 3 * eps_n_s / rn; // Negative electrode area (m^2).
 
+    const real_t sig_n = 215.; // Negative electrode conductivity (S/m).
+
     real_t Un(real_t cs) // Open circuit potential (V)
     {
         return 1.97938*exp(-39.3631*cs) + 0.2482 - 0.0909*tanh(29.8538*(cs - 0.1234))
@@ -40,6 +42,8 @@ namespace LGM50 {
     const real_t Dp = 4.0e-15; // Diffusion coefficient, positive electrode
     const real_t Ap = 3 * eps_p_s / rp; // Positive electrode area (m^2).
 
+    const real_t sig_p = 0.18; // Positive electrode conductivity (S/m).
+
     real_t Up(real_t cs) // Open circuit potential (V)
     {
         return -0.8090*cs + 4.4875 - 0.0428*tanh(18.5138*(cs - 0.5542))
@@ -48,9 +52,19 @@ namespace LGM50 {
 
     // Separator.
     const real_t separator_thickness = 12e-6;
+    const real_t tplus = 0.2594;
+    const real_t eps_s = 0.47;
 
     // Electrolyte.
     const real_t ce0 = 1000.0;
+    real_t De(real_t ce)
+    {
+        return 8.794e-11 * pow(ce / 1000, 2) - 3.972e-10 * (ce / 1000) + 4.862e-10;
+    }
+    real_t kappa(real_t x)
+    {
+        return 0.1297 * pow(x / 1000, 3) - 2.51 * pow(x / 1000, 1.5) + 3.329 * (x / 1000);
+    }
 
     // Cell parameters.
     const real_t cell_length = 1.58;
@@ -59,4 +73,6 @@ namespace LGM50 {
     const real_t cell_area = cell_width * cell_length * cell_no_layers;
 
     const real_t I_typ = 5.0;    // Or I1C in Jubat.
+
+    const real_t brugg = 1.5; // Currently the same in each region, may need to vary later.
 }

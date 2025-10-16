@@ -118,6 +118,7 @@ public:
    const real_t & GetOverPotential(const Region &r);
 
    real_t GetVoltage();
+   real_t GetVoltageMarquisCorrection();
 
    virtual void GetParticleDofs(Array<int> & particle_dofs, Array<Region> & particle_regions, Array<int> & particle_offsets);
 

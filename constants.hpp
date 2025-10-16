@@ -65,9 +65,11 @@ namespace constants {
 
     extern const real_t DN;        // scaled Diffusion coefficient of each Negative particle
     extern const real_t DP;        // scaled Diffusion coefficient of each Positive particle
+    extern real_t DE(real_t ce);
 
     extern const real_t KN;        // scaled reaction rate of each Negative particle
     extern const real_t KP;        // scaled reaction rate of each Positive particle
+    extern const real_t KS;
 
     extern const real_t RN;        // scaled Radius of Negative particle
     extern const real_t RP;        // scaled Radius of Positive particle
@@ -83,6 +85,17 @@ namespace constants {
     extern const real_t phi_scale; // potential scale
     extern const real_t tn_scale;  // time scale of negative electrode
     extern const real_t tp_scale;  // time scale of positive electrode
+    extern const real_t te_scale;
+
+    extern const real_t ce_scale;
+
+    extern const real_t TPLUS;
+    extern real_t BPE;
+    extern real_t BNE;
+    extern real_t BSEP;
+
+    extern real_t EPS_P, EPS_N, EPS_S;
+    extern real_t SIGN, SIGP;
 
     real_t UN(real_t);
     real_t UP(real_t);
