@@ -2,6 +2,7 @@
 
 #include "mfem.hpp"
 #include "Equation.hpp"
+#include "../coefficients/ElectrolyteDiffusionCoefficient.hpp"
 
 using namespace mfem;
 

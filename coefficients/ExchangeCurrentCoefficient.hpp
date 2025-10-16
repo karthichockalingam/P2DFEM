@@ -58,8 +58,8 @@ class ExchangeCurrentCoefficient: public Coefficient
         _electrolyte_concentration_gfc(&_electrolyte_concentration_gf),
         _scn(scn),
         _scp(scp),
-        _jex_ne_tc(&_electrolyte_concentration_gfc, [=](real_t ec) { return kn * sqrt( _scn * ec * (1 - _scn) ); }),
-        _jex_pe_tc(&_electrolyte_concentration_gfc, [=](real_t ec) { return kp * sqrt( _scp * ec * (1 - _scp) ); }) {}
+        _jex_ne_tc(&_electrolyte_concentration_gfc, [=](real_t ec) { return kn * sqrt( _scn * (ec + CE0) * (1 - _scn) ); }),
+        _jex_pe_tc(&_electrolyte_concentration_gfc, [=](real_t ec) { return kp * sqrt( _scp * (ec + CE0) * (1 - _scp) ); }) {}
 
       /// P2D
       ExchangeCurrentCoefficient(
@@ -73,8 +73,8 @@ class ExchangeCurrentCoefficient: public Coefficient
         _electrolyte_concentration_gfc(&_electrolyte_concentration_gf),
         _scn(0),
         _scp(0),
-        _jex_ne_tc(&_surface_concentration_gfc, &_electrolyte_concentration_gfc, [=](real_t sc, real_t ec) { return kn * sqrt( sc * ec * (1 - sc) ); }),
-        _jex_pe_tc(&_surface_concentration_gfc, &_electrolyte_concentration_gfc, [=](real_t sc, real_t ec) { return kp * sqrt( sc * ec * (1 - sc) ); }),
+        _jex_ne_tc(&_surface_concentration_gfc, &_electrolyte_concentration_gfc, [=](real_t sc, real_t ec) { return kn * sqrt( sc * (ec + CE0) * (1.0 - sc) ); }),
+        _jex_pe_tc(&_surface_concentration_gfc, &_electrolyte_concentration_gfc, [=](real_t sc, real_t ec) { return kp * sqrt( sc * (ec + CE0) * (1.0 - sc) ); }),
         _jex_pwc(Array<int>({NE, PE}), Array<Coefficient*>({static_cast<Coefficient*>(&_jex_ne_tc), static_cast<Coefficient*>(&_jex_pe_tc)})) {}
 
       /// SPM(e)

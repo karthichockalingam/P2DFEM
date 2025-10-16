@@ -10,7 +10,7 @@ P2DOperator::P2DOperator(ParFiniteElementSpace * &x_fespace, Array<ParFiniteElem
    _Solver.iterative_mode = false;
    _Solver.SetRelTol(rel_tol);
    _Solver.SetAbsTol(0.0);
-   _Solver.SetMaxIter(100);
+   _Solver.SetMaxIter(1000);
    _Solver.SetPrintLevel(0);
    //_Solver.SetPreconditioner(_Prec);
 
@@ -444,15 +444,61 @@ void P2DOperator::ConstructOverPotential()
 
 real_t P2DOperator::GetVoltage()
 {
-   real_t voltage;
+   real_t voltage, Ve;
+
+   ParGridFunction ec_gf(_x_fespace);
+   ec_gf.SetFromTrueDofs(_x.GetBlock(EC));
+
+   GridFunctionCoefficient ec_gfc(&ec_gf);
+   PWCoefficient ce_pwc;
+
+   QuadratureSpace x_qspace(_x_fespace->GetParMesh(), 2 * _x_fespace->FEColl()->GetOrder());
+
+   ce_pwc.UpdateCoefficient(NE, ec_gfc);
+   real_t ce_ne_int = x_qspace.Integrate(ce_pwc) * (NX / NNE) + CE0;
+   ce_pwc.ZeroCoefficient(NE);
+
+   ce_pwc.UpdateCoefficient(PE, ec_gfc);
+   real_t ce_pe_int = x_qspace.Integrate(ce_pwc) * (NX / NPE) + CE0;
+   ce_pwc.ZeroCoefficient(PE);
+
+   std::cout << "T = " << T << ", CE0 = " << CE0 << ", tplus = " << TPLUS << std::endl;
+   std::cout << "ce_ne_int = " << ce_ne_int << ", ce_pe_int = " << ce_pe_int << std::endl;
+
+   real_t eta_c = (2.0 * T / CE0) * (1 - TPLUS) * (ce_ne_int - ce_pe_int);
+
+   real_t sigma_e = KS; // Electrolyte conductivity
+
+   real_t dphie = (I / sigma_e) * (LNE / BNE / 3.0  + LSEP / BSEP + LPE / BPE / 3.0);
+
+   std::cout << "sigma_e = " << sigma_e << std::endl;
+   real_t dphis = I / 3 * (LNE / SIGN + LPE / SIGP);
+   
+   Ve = eta_c + dphie + dphis;
+
+   std::cout << "eta_c = " << eta_c * phi_scale << ", dphie = " << dphie * phi_scale << ", dphis = " << dphis * phi_scale << std::endl;
+   std::cout << "Ve = " << Ve * phi_scale << std::endl;
+
+   std::cout << "Up, GetOpenCircuitPotential(PE) = " << GetOpenCircuitPotential(PE) << std::endl;
+   std::cout << "Un, GetOpenCircuitPotential(NE) = " << GetOpenCircuitPotential(NE) << std::endl;
+   std::cout << "eta_p, GetOverPotential(PE) = " << GetOverPotential(PE) << std::endl;
+   std::cout << "eta_n, GetOverPotential(NE) = " << GetOverPotential(NE) << std::endl;
+
+   std::cout << "sc(NE) = " << GetSurfaceConcentration(NE) << std::endl;
+   std::cout << "sc(PE) = " << GetSurfaceConcentration(PE) << std::endl;
 
    switch (M)
    {
       case SPM:
-      case SPMe:
          // Definition from JuBat: https://doi.org/10.1016/j.est.2023.107512
          voltage = GetOpenCircuitPotential(PE) - GetOpenCircuitPotential(NE) +
                    (GetOverPotential(PE) - GetOverPotential(NE)) * phi_scale;
+         break;
+      case SPMe:
+         // Definition from JuBat: https://doi.org/10.1016/j.est.2023.107512
+         // This option is being picked when running with case SPM.
+         voltage = GetOpenCircuitPotential(PE) - GetOpenCircuitPotential(NE) +
+                   (GetOverPotential(PE) - GetOverPotential(NE) - Ve) * phi_scale;
          break;
       case P2D:
          voltage = 0.;

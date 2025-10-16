@@ -31,8 +31,8 @@ int main(int argc, char *argv[])
    int par_ref_levels = 0;
    int order = 1;
    int ode_solver_type = 1;
-   real_t t_final = 3600.0;
-   real_t dt = 1.0;
+   real_t t_final = 1.0;
+   real_t dt = 1.0 / 3600.0;
    bool visualization = true;
    int vis_steps = 5;
 
@@ -150,6 +150,18 @@ int main(int argc, char *argv[])
    BlockVector x;
    P2DOperator oper(x_fespace, r_fespace, fe_size_owned, x, t, dt, *ode_solver);
 
+   // Visualisation for the electrolyte
+   ParGridFunction ec_gf(x_fespace);
+   ParaViewDataCollection pd_e("electrolyte", x_pmesh);
+   pd_e.SetPrefixPath("ParaView");
+   pd_e.SetLevelsOfDetail(order);
+   pd_e.SetHighOrderOutput(true);
+   pd_e.SetDataFormat(VTKFormat::BINARY);
+   pd_e.RegisterField("ec", &ec_gf);
+   pd_e.SetCycle(0);
+   pd_e.SetTime(0.0);
+   pd_e.Save();
+
    // 10. Perform time-integration (looping over the time iterations, ti, with a
    //     time-step dt).
    ode_solver->Init(oper);
@@ -162,6 +174,12 @@ int main(int argc, char *argv[])
       oper.Step();
       oper.GetVoltage();
       // TODO: Stop sim at cutoff voltage
+
+      ec_gf.SetFromTrueDofs(x.GetBlock(EC));
+
+      pd_e.SetCycle(ti);
+      pd_e.SetTime(t);
+      pd_e.Save();
 
       if (last_step || (ti % vis_steps) == 0)
          if (Mpi::Root())

@@ -70,6 +70,8 @@ class OverPotentialCoefficient: public Coefficient
       /// SPM(e)
       virtual PWConstCoefficient & Eval()
       {
+        std::cout << "j_ex->Eval()(NE) = " << _jex->Eval()(NE) << ", j_ex->Eval()(PE) = " << _jex->Eval()(PE) << std::endl;
+
         _op_pwcc(NE) = 2 * T * asinh(+ I / AN / LNE / 2.0 / _jex->Eval()(NE));
         _op_pwcc(PE) = 2 * T * asinh(- I / AP / LPE / 2.0 / _jex->Eval()(PE));
         return _op_pwcc;
