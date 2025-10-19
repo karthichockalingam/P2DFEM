@@ -104,7 +104,6 @@ int main(int argc, char *argv[])
    Mesh x_smesh = Mesh::MakeCartesian1D(NX);
    for (unsigned i = 0; i < NX; i++)
       x_smesh.SetAttribute(i, i < NNE ? NE : i < NNE + NSEP ? SEP : PE);
-   x_smesh.SetAttributes();
 
    Mesh r_smesh[NPAR];
    for (unsigned p = 0; p < NPAR; p++)
