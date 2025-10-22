@@ -444,25 +444,14 @@ void P2DOperator::ConstructOverPotential()
 
 real_t P2DOperator::GetVoltage()
 {
-   real_t voltage;
-
-   switch (M)
-   {
-      case SPM:
-      case SPMe:
-         // Definition from JuBat: https://doi.org/10.1016/j.est.2023.107512
-         voltage = GetOpenCircuitPotential(PE) - GetOpenCircuitPotential(NE) +
-                   (GetOverPotential(PE) - GetOverPotential(NE)) * phi_scale;
-         break;
-      case P2D:
-         voltage = 0.;
-         break;
-   }
+   // Definition from JuBat: https://doi.org/10.1016/j.est.2023.107512
+   real_t V = GetOpenCircuitPotential(PE) - GetOpenCircuitPotential(NE) +
+              (GetOverPotential(PE) - GetOverPotential(NE)) * phi_scale;
 
    if (Mpi::Root())
    {
       std::cout << "[Rank " << Mpi::WorldRank() << "]"
-                << " Voltage = " << voltage << std::endl;
+                << " Voltage = " << V << std::endl;
 
       // Print file headings first time function is called.
       static bool writeFileHeadings = true;
@@ -480,13 +469,13 @@ real_t P2DOperator::GetVoltage()
       _file << _t                          << ", \t"
             << GetSurfaceConcentration(NE) << ", \t"
             << GetSurfaceConcentration(PE) << ", \t"
-            << voltage
+            << V
             << std::endl;
    }
 
    _sc[1]->DebuggingCheck(_x);
 
-   return voltage;
+   return V;
 }
 
 void P2DOperator::GetParticleDofs(Array<int> & particle_dofs, Array<Region> & particle_regions, Array<int> & particle_offsets)
