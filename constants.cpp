@@ -83,8 +83,8 @@ namespace constants {
     real_t CN0 = cn0 / cnmax;  // scaled initial Concentration of Negative particle
     real_t CP0 = cp0 / cpmax; // scaled initial Concentration of Positive particle
 
-    real_t RN = rn / r0; // scaled Radius of Negative particle 
-    real_t RP = rp / r0; // scaled Radius of Positive particle 
+    real_t RN = rn / r0; // scaled Radius of Negative particle
+    real_t RP = rp / r0; // scaled Radius of Positive particle
 
     // Extras to be properly defined later.
     real_t CE0 = 1.; // scaled initial Concentration of Electrolyte

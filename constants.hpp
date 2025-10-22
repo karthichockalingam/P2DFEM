@@ -4,7 +4,7 @@ using namespace mfem;
 
 namespace constants {
     enum PotentialBlock : int {
-        EPP,                       // Electrolyte Potential 
+        EPP,                       // Electrolyte Potential
         SPP,                       // Solid Potential (Postive and Negative Electrode region)
     };
 
@@ -18,11 +18,11 @@ namespace constants {
         C = 2                     // Concentration
     };
 
-    enum XBlock : int { 
+    enum XBlock : int {
         EP = P + EPP,             // Electrolyte Potential
         SP = P + SPP,             // Solid Potential
         EC = C + ECC,             // Electrolyte Concentration
-        SC = C + SCC              // Solid Concentration 
+        SC = C + SCC              // Solid Concentration
     };
                      
     enum Region : int {
@@ -34,16 +34,16 @@ namespace constants {
     };
 
     enum Model : int {
-        SPM, 
+        SPM,
         SPMe,
         P2D
     };
 
     extern const Model M;
 
-    extern const unsigned NNE;     // Number of elements in the Negative Electrode 
-    extern const unsigned NSEP;    // Number of elements in the Separator 
-    extern const unsigned NPE;     // Number of elements in the Positive Electrode 
+    extern const unsigned NNE;     // Number of elements in the Negative Electrode
+    extern const unsigned NSEP;    // Number of elements in the Separator
+    extern const unsigned NPE;     // Number of elements in the Positive Electrode
     extern const unsigned NX;      // Number of elements in the X-dimension (i.e Electrolye) (Sum of the above three)
     extern const unsigned NR;      // Number of elements in the R-dimension (i.e Particle)
 
@@ -69,8 +69,8 @@ namespace constants {
     extern const real_t KN;        // scaled reaction rate of each Negative particle
     extern const real_t KP;        // scaled reaction rate of each Positive particle
 
-    extern const real_t RN;        // scaled Radius of Negative particle 
-    extern const real_t RP;        // scaled Radius of Positive particle 
+    extern const real_t RN;        // scaled Radius of Negative particle
+    extern const real_t RP;        // scaled Radius of Positive particle
 
     extern const real_t CN0;       // scaled initial Concentration of Negative particle
     extern const real_t CP0;       // scaled initial Concentration of Positive particle
