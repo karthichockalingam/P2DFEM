@@ -127,11 +127,16 @@ void P2DOperator::ImplicitSolve(const real_t dt,
          // save previous iteration reaction current
          j_gf.ProjectCoefficient(*_j);
 
+         // restore solution true dof vector; this is paramount to guarantee we
+         // use the old timestep in the rhs (which appears as a consequence of
+         // our rate formulation); note, however, that any coefficients
+         // dependent on the potentials should use the gridfunctions set below,
+         // which are on the new timestep, just like _j, NOT any gridfunctions
+         // obtained afresh from true vector _x which is now on the old timestep
+         _x.Add(-_dt, dx_dt);
+
          // assemble each individual block of _Ap and _bp
          UpdatePotentialEquations();
-
-         // restore solution true dof vector
-         _x.Add(-_dt, dx_dt);
 
          // put _Ap and _bp together
          _Ap->SetDiagonalBlock(EPP, new HypreParMatrix(_ep->GetK()));
