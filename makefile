@@ -19,8 +19,8 @@ MFEM_LIB_FILE = mfem_is_not_built
 -include $(CONFIG_MK)
 
 EXECUTABLES = batree
-EQ_SRC_FILES = SolidConcentration.cpp ElectrolyteConcentration.cpp SolidPotential.cpp ElectrolytePotential.cpp
-EQ_INC_FILES = SolidConcentration.hpp ElectrolyteConcentration.hpp SolidPotential.hpp ElectrolytePotential.hpp Equation.hpp
+EQ_SRC_FILES = SolidConcentration.cpp ElectrolyteConcentration.cpp SolidPotential.cpp ElectrolytePotential.cpp HeatOperator.cpp
+EQ_INC_FILES = SolidConcentration.hpp ElectrolyteConcentration.hpp SolidPotential.hpp ElectrolytePotential.hpp Equation.hpp HeatOperator.hpp
 COEFF_INC_FILES = ExchangeCurrentCoefficient.hpp ReactionCurrentCoefficient.hpp OpenCircuitPotentialCoefficient.hpp OverPotentialCoefficient.hpp
 SRC_FILES = $(addprefix equations/, $(EQ_SRC_FILES)) P2DOperator.cpp constants.cpp batree.cpp
 INC_FILES = $(addprefix equations/, $(EQ_INC_FILES)) $(addprefix coefficients/, $(COEFF_INC_FILES)) parameters.hpp P2DOperator.hpp constants.hpp
