@@ -1,4 +1,4 @@
-#include "SolidConcentration.hpp"
+#include "equations/SolidConcentration.hpp"
 
 void SolidConcentration::Update(const BlockVector &x, const Coefficient &j, const real_t &dt)
 {

@@ -12,7 +12,7 @@ using namespace mfem;
 
 #pragma once
 
-class P2DOperator : public TimeDependentOperator
+class EChemOperator : public TimeDependentOperator
 {
 protected:
    ParFiniteElementSpace * &_x_fespace;
@@ -83,8 +83,8 @@ protected:
    std::ofstream _file;
 
 public:
-   P2DOperator(ParFiniteElementSpace * &x_fespace, Array<ParFiniteElementSpace *> &r_fespace, const unsigned &ndofs,
-               BlockVector &x, real_t & t, real_t & dt, ODESolver & ode_solver);
+   EChemOperator(ParFiniteElementSpace * &x_fespace, Array<ParFiniteElementSpace *> &r_fespace, const unsigned &ndofs,
+                 BlockVector &x, real_t & t, real_t & dt, ODESolver & ode_solver);
 
    virtual void Mult(const Vector &x, Vector &dx_dt) const override {};
 
@@ -122,7 +122,7 @@ public:
 
    virtual void GetParticleDofs(Array<int> & particle_dofs, Array<Region> & particle_regions, Array<int> & particle_offsets);
 
-   virtual ~P2DOperator()
+   virtual ~EChemOperator()
    {
       delete _ep;
       delete _sp;

@@ -1,7 +1,7 @@
-#include "P2DOperator.hpp"
+#include "operators/EChemOperator.hpp"
 
-P2DOperator::P2DOperator(ParFiniteElementSpace * &x_fespace, Array<ParFiniteElementSpace *> &r_fespace, const unsigned &ndofs,
-                         BlockVector &x, real_t & t, real_t & dt, ODESolver & ode_solver)
+EChemOperator::EChemOperator(ParFiniteElementSpace * &x_fespace, Array<ParFiniteElementSpace *> &r_fespace, const unsigned &ndofs,
+                             BlockVector &x, real_t & t, real_t & dt, ODESolver & ode_solver)
    : TimeDependentOperator(ndofs, (real_t) 0.0), _x_fespace(x_fespace), _r_fespace(r_fespace), _Ac(NULL), _Ap(NULL),
      _x(x), _t(t), _dt(dt), _ode_solver(ode_solver), _Solver(_x_fespace->GetComm()), _file("data.csv")
 {
@@ -104,7 +104,7 @@ P2DOperator::P2DOperator(ParFiniteElementSpace * &x_fespace, Array<ParFiniteElem
    ConstructReactionCurrent();
 }
 
-void P2DOperator::ImplicitSolve(const real_t dt,
+void EChemOperator::ImplicitSolve(const real_t dt,
                                 const Vector &x, Vector &dx_dt)
 {
    // Solve the equation:
@@ -175,13 +175,13 @@ void P2DOperator::ImplicitSolve(const real_t dt,
    _Solver.Mult(_bc, dxc_dt);
 }
 
-void P2DOperator::Step()
+void EChemOperator::Step()
 {
    _ode_solver.Step(_x, _t, _dt);
    SetGridFunctionsFromTrueVectors();
 }
 
-void P2DOperator::SetGridFunctionsFromTrueVectors()
+void EChemOperator::SetGridFunctionsFromTrueVectors()
 {
    _ep_gf->SetFromTrueDofs(_x.GetBlock(EP));
    _sp_gf->SetFromTrueDofs(_x.GetBlock(SP));
@@ -190,7 +190,7 @@ void P2DOperator::SetGridFunctionsFromTrueVectors()
    SetReferencePotential();
 }
 
-void P2DOperator::UpdatePotentialEquations()
+void EChemOperator::UpdatePotentialEquations()
 {
    // Rebuild _Ap, destroys owned (i.e. all) blocks
    delete _Ap;
@@ -201,7 +201,7 @@ void P2DOperator::UpdatePotentialEquations()
    _sp->Update(_x, *_j, _dt);
 }
 
-void P2DOperator::UpdateConcentrationEquations()
+void EChemOperator::UpdateConcentrationEquations()
 {
    // Rebuild _Ac, destroys owned (i.e. all) blocks
    delete _Ac;
@@ -218,14 +218,14 @@ void P2DOperator::UpdateConcentrationEquations()
 // Surface Concentration
 //
 
-const real_t & P2DOperator::GetSurfaceConcentration(const Region &r)
+const real_t & EChemOperator::GetSurfaceConcentration(const Region &r)
 {
    MFEM_ASSERT(M == SPM || M == SPMe, "Cannot get surface concentration, only SPM and SPMe are supported.");
    MFEM_ASSERT(r == NE || r == PE, "Cannot get surface concentration, only negative (NE) and positive electrodes (PE) are supported.");
    return _sc_array[r];
 }
 
-void P2DOperator::SetSurfaceConcentration()
+void EChemOperator::SetSurfaceConcentration()
 {
    switch (M)
    {
@@ -257,14 +257,14 @@ void P2DOperator::SetSurfaceConcentration()
 // Reference Potential
 //
 
-const real_t & P2DOperator::GetReferencePotential(const Region &r)
+const real_t & EChemOperator::GetReferencePotential(const Region &r)
 {
    MFEM_ASSERT(M == P2D, "Cannot get reference potential, only P2D is supported.");
    MFEM_ASSERT(r == E || r == NE || r == PE, "Cannot get reference potential, only electrolyte (E), negative (NE) and positive electrodes (PE) are supported.");
    return _rp_array[r];
 }
 
-void P2DOperator::SetReferencePotential()
+void EChemOperator::SetReferencePotential()
 {
     switch (M)
    {
@@ -287,7 +287,7 @@ void P2DOperator::SetReferencePotential()
 // Partial Reaction Current for each electrode
 //
 
-real_t P2DOperator::GetElectrodeReactionCurrent(const Region &r, const int &sign)
+real_t EChemOperator::GetElectrodeReactionCurrent(const Region &r, const int &sign)
 {
    MFEM_ASSERT(r == NE || r == PE, "Cannot get partial electrode reaction current, only negative (NE) and positive electrodes (PE) are supported.");
 
@@ -303,7 +303,7 @@ real_t P2DOperator::GetElectrodeReactionCurrent(const Region &r, const int &sign
 // Reaction Current for each particle
 //
 
-Array<real_t> P2DOperator::GetParticleReactionCurrent()
+Array<real_t> EChemOperator::GetParticleReactionCurrent()
 {
    Array<real_t> j(NPAR);
 
@@ -345,14 +345,14 @@ Array<real_t> P2DOperator::GetParticleReactionCurrent()
 // Reaction Current
 //
 
-const real_t & P2DOperator::GetReactionCurrent(const Region &r)
+const real_t & EChemOperator::GetReactionCurrent(const Region &r)
 {
    MFEM_ASSERT(M == SPM || M == SPMe, "Cannot get constant reaction current, only SPM and SPMe are supported.");
    MFEM_ASSERT(r == NE || r == PE, "Cannot get constant reaction current, only negative (NE) and positive electrodes (PE) are supported.");
    return _j->Eval()(r);
 }
 
-void P2DOperator::ConstructReactionCurrent()
+void EChemOperator::ConstructReactionCurrent()
 {
    switch (M)
    {
@@ -370,14 +370,14 @@ void P2DOperator::ConstructReactionCurrent()
 // Exchange Current
 //
 
-const real_t & P2DOperator::GetExchangeCurrent(const Region &r)
+const real_t & EChemOperator::GetExchangeCurrent(const Region &r)
 {
    MFEM_ASSERT(M == SPM || M == SPMe, "Cannot get constant exchange current, only SPM and SPMe are supported.");
    MFEM_ASSERT(r == NE || r == PE, "Cannot get constant exchange current, only negative (NE) and positive electrodes (PE) are supported.");
    return _jex->Eval()(r);
 }
 
-void P2DOperator::ConstructExchangeCurrent()
+void EChemOperator::ConstructExchangeCurrent()
 {
    switch (M)
    {
@@ -397,14 +397,14 @@ void P2DOperator::ConstructExchangeCurrent()
 // Open Circuit Potential
 //
 
-const real_t & P2DOperator::GetOpenCircuitPotential(const Region &r)
+const real_t & EChemOperator::GetOpenCircuitPotential(const Region &r)
 {
    MFEM_ASSERT(M == SPM || M == SPMe, "Cannot get constant open circuit potential, only SPM and SPMe are supported.");
    MFEM_ASSERT(r == NE || r == PE, "Cannot get constant open circuit potential, only negative (NE) and positive electrodes (PE) are supported.");
    return _ocp->Eval()(r);
 }
 
-void P2DOperator::ConstructOpenCircuitPotential()
+void EChemOperator::ConstructOpenCircuitPotential()
 {
    switch (M)
    {
@@ -422,14 +422,14 @@ void P2DOperator::ConstructOpenCircuitPotential()
 // OverPotential
 //
 
-const real_t & P2DOperator::GetOverPotential(const Region &r)
+const real_t & EChemOperator::GetOverPotential(const Region &r)
 {
    MFEM_ASSERT(M == SPM || M == SPMe, "Cannot get constant overpotential, only SPM and SPMe are supported.");
    MFEM_ASSERT(r == NE || r == PE, "Cannot get constant overpotential, only negative (NE) and positive electrodes (PE) are supported.");
    return _op->Eval()(r);
 }
 
-void P2DOperator::ConstructOverPotential()
+void EChemOperator::ConstructOverPotential()
 {
    switch (M)
    {
@@ -447,7 +447,7 @@ void P2DOperator::ConstructOverPotential()
 // Voltage
 //
 
-real_t P2DOperator::GetVoltage()
+real_t EChemOperator::GetVoltage()
 {
    real_t Ve = (M == SPMe) ? GetVoltageMarquisCorrection() : 0;
 
@@ -485,7 +485,7 @@ real_t P2DOperator::GetVoltage()
    return V;
 }
 
-real_t P2DOperator::GetVoltageMarquisCorrection()
+real_t EChemOperator::GetVoltageMarquisCorrection()
 {
    GridFunctionCoefficient ec_gfc(_ec_gf);
    PWCoefficient ce_pwc;
@@ -507,7 +507,7 @@ real_t P2DOperator::GetVoltageMarquisCorrection()
    return eta_c + dphie + dphis;
 }
 
-void P2DOperator::GetParticleDofs(Array<int> & particle_dofs, Array<Region> & particle_regions, Array<int> & particle_offsets)
+void EChemOperator::GetParticleDofs(Array<int> & particle_dofs, Array<Region> & particle_regions, Array<int> & particle_offsets)
 {
    std::set<std::pair<int, Region>> electrode_dofs_set;
    std::set<int> sep_gdofs_set;

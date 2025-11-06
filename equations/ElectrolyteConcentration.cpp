@@ -1,5 +1,5 @@
 
-#include "ElectrolyteConcentration.hpp"
+#include "equations/ElectrolyteConcentration.hpp"
 
 void ElectrolyteConcentration::Update(const BlockVector &x, const Coefficient &j, const real_t &dt)
 {

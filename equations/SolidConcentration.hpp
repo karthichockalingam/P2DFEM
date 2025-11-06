@@ -1,5 +1,5 @@
 #include "mfem.hpp"
-#include "Equation.hpp"
+#include "equations/Equation.hpp"
 
 using namespace mfem;
 

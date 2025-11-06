@@ -1,5 +1,5 @@
 
-#include "SolidPotential.hpp"
+#include "equations/SolidPotential.hpp"
 
 void SolidPotential::Update(const BlockVector &x, const Coefficient &j, const real_t &dt)
 {

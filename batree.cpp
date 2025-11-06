@@ -13,7 +13,7 @@
 #include <fstream>
 #include <iostream>
 #include <cmath>
-#include "P2DOperator.hpp"
+#include "operators/EChemOperator.hpp"
 
 using namespace mfem;
 
@@ -147,7 +147,7 @@ int main(int argc, char *argv[])
    // 9. Initialize the conduction operator and the VisIt visualization.
    real_t t = 0.0;
    BlockVector x;
-   P2DOperator oper(x_fespace, r_fespace, fe_size_owned, x, t, dt, *ode_solver);
+   EChemOperator oper(x_fespace, r_fespace, fe_size_owned, x, t, dt, *ode_solver);
 
    // 10. Perform time-integration (looping over the time iterations, ti, with a
    //     time-step dt).

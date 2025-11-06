@@ -1,5 +1,5 @@
 
-#include "ElectrolytePotential.hpp"
+#include "equations/ElectrolytePotential.hpp"
 
 void ElectrolytePotential::Update(const BlockVector &x, const Coefficient &j, const real_t &dt)
 {

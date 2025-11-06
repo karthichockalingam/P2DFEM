@@ -1,7 +1,7 @@
 #include "mfem.hpp"
 using namespace mfem;
 
-#include "../constants.hpp"
+#include "constants.hpp"
 using namespace constants;
 
 #pragma once

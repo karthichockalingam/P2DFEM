@@ -19,11 +19,13 @@ MFEM_LIB_FILE = mfem_is_not_built
 -include $(CONFIG_MK)
 
 EXECUTABLES = batree
+OP_SRC_FILES = EChemOperator.cpp
+OP_INC_FILES = EChemOperator.hpp
 EQ_SRC_FILES = SolidConcentration.cpp ElectrolyteConcentration.cpp SolidPotential.cpp ElectrolytePotential.cpp
 EQ_INC_FILES = SolidConcentration.hpp ElectrolyteConcentration.hpp SolidPotential.hpp ElectrolytePotential.hpp Equation.hpp
-COEFF_INC_FILES = ExchangeCurrentCoefficient.hpp ReactionCurrentCoefficient.hpp OpenCircuitPotentialCoefficient.hpp OverPotentialCoefficient.hpp
-SRC_FILES = $(addprefix equations/, $(EQ_SRC_FILES)) P2DOperator.cpp constants.cpp batree.cpp
-INC_FILES = $(addprefix equations/, $(EQ_INC_FILES)) $(addprefix coefficients/, $(COEFF_INC_FILES)) parameters.hpp P2DOperator.hpp constants.hpp
+CF_INC_FILES = ExchangeCurrentCoefficient.hpp ReactionCurrentCoefficient.hpp OpenCircuitPotentialCoefficient.hpp OverPotentialCoefficient.hpp
+SRC_FILES = $(addprefix equations/, $(EQ_SRC_FILES)) $(addprefix operators/, $(OP_SRC_FILES)) constants.cpp batree.cpp
+INC_FILES = $(addprefix equations/, $(EQ_INC_FILES)) $(addprefix operators/, $(OP_INC_FILES)) $(addprefix coefficients/, $(CF_INC_FILES)) parameters.hpp constants.hpp
 
 .PHONY: all clean
 
@@ -33,7 +35,7 @@ all: $(EXECUTABLES)
 %: %.cpp
 
 batree: $(SRC_FILES) $(INC_FILES) $(MFEM_LIB_FILE) $(CONFIG_MK)
-	$(MFEM_CXX) $(MFEM_FLAGS) $(SRC_FILES) -o $@ $(MFEM_LIBS)
+	$(MFEM_CXX) $(MFEM_FLAGS) -I. $(SRC_FILES) -o $@ $(MFEM_LIBS)
 
 # Replace the default implicit rule for *.cpp files
 %: %.cpp $(MFEM_LIB_FILE) $(CONFIG_MK)
