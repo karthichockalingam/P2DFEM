@@ -117,18 +117,10 @@ namespace constants {
 
     real_t TPLUS = tplus;
 
-    real_t UN(real_t ce) { return Un(ce); }
-    real_t UP(real_t ce) { return Up(ce); }
-
-    real_t DE(real_t ce)
-    {
-        return De(ce * ce_scale) / De_scale;
-    }
-
-    real_t Kappa(real_t x)
-    {
-        return kappa(x * ce_scale) / kappa_scale;
-    }
+    real_t UN(real_t ce) { return Un(ce) / phi_scale; }
+    real_t UP(real_t ce) { return Up(ce) / phi_scale; }
+    real_t DE(real_t ce) { return De(ce * ce_scale) / De_scale; }
+    real_t Kappa(real_t x) { return kappa(x * ce_scale) / kappa_scale; }
 
     real_t KS = Kappa(CE0);// / kappa_scale; // Scaled electrolyte conductivity.
 

@@ -452,8 +452,8 @@ real_t EChemOperator::GetVoltage()
    real_t Ve = (M == SPMe) ? GetVoltageMarquisCorrection() : 0;
 
    // Definition from JuBat: https://doi.org/10.1016/j.est.2023.107512
-   real_t V = GetOpenCircuitPotential(PE) - GetOpenCircuitPotential(NE) +
-              (GetOverPotential(PE) - GetOverPotential(NE) - Ve) * phi_scale;
+   real_t V = (GetOpenCircuitPotential(PE) - GetOpenCircuitPotential(NE) +
+               GetOverPotential(PE) - GetOverPotential(NE) - Ve) * phi_scale;
 
    if (Mpi::Root())
    {
