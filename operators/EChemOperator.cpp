@@ -124,8 +124,12 @@ void EChemOperator::ImplicitSolve(const real_t dt,
 
       do
       {
+         j_gf.ProjectCoefficient(*_jex);
+         std::cout << "jex_gf" << std::endl; j_gf.Print();
+
          // save previous iteration reaction current
          j_gf.ProjectCoefficient(*_j);
+         std::cout << "j_gf" << std::endl; j_gf.Print();
 
          // restore solution true dof vector; this is paramount to guarantee we
          // use the old timestep in the rhs (which appears as a consequence of
@@ -150,6 +154,8 @@ void EChemOperator::ImplicitSolve(const real_t dt,
 
          // temporarily advance solution true dof vector to set gridfunctions
          _x.Add(_dt, dx_dt);
+         std::cout << "SP" << std::endl; _x.GetBlock(SP).Print();
+         std::cout << "EP" << std::endl;  _x.GetBlock(EP).Print();
          SetGridFunctionsFromTrueVectors();
       }
       while (j_gf.ComputeL2Error(*_j) > _threshold);
@@ -187,6 +193,8 @@ void EChemOperator::SetGridFunctionsFromTrueVectors()
    _sp_gf->SetFromTrueDofs(_x.GetBlock(SP));
    _ec_gf->SetFromTrueDofs(_x.GetBlock(EC));
    SetSurfaceConcentration();
+   std::cout << "Surf concentration: " << std::endl;
+   _sc_gf->Print();
    SetReferencePotential();
 }
 
@@ -272,13 +280,14 @@ void EChemOperator::SetReferencePotential()
       case SPMe:
          break;
       case P2D:
-         real_t Inp = GetElectrodeReactionCurrent(NE,  1.0);
-         real_t Inn = GetElectrodeReactionCurrent(NE, -1.0);
-         real_t Ipp = GetElectrodeReactionCurrent(PE,  1.0);
-         real_t Ipn = GetElectrodeReactionCurrent(PE, -1.0);
+         real_t Inp = GetElectrodeReactionCurrent(NE,  1.0); std::cout << Inp << std::endl;
+         real_t Inn = GetElectrodeReactionCurrent(NE, -1.0); std::cout << Inn << std::endl;
+         real_t Ipp = GetElectrodeReactionCurrent(PE,  1.0); std::cout << Ipp << std::endl;
+         real_t Ipn = GetElectrodeReactionCurrent(PE, -1.0); std::cout << Ipn << std::endl;
 
          _rp_array[E] = -2.0 * T * log(( I + sqrt(4.0 * Inp * Inn + I * I))/(2.0 * Inp));
          _rp_array[PE] = 2.0 * T * log((-I + sqrt(4.0 * Ipp * Ipn + I * I))/(2.0 * Ipp)) + _rp_array[E];
+         std::cout << "Ref pots: " << _rp_array[E] << " " << _rp_array[PE] << std::endl;
          break;
    }
 }
