@@ -280,6 +280,10 @@ void EChemOperator::SetReferencePotential()
       case SPMe:
          break;
       case P2D:
+         (*_sc_gf)[0] = CN0;
+         (*_sc_gf)[10] = CN0;
+         (*_sc_gf)[20] = CP0;
+         (*_sc_gf)[30] = CP0;
          real_t Inp = GetElectrodeReactionCurrent(NE,  1.0); std::cout << Inp << std::endl;
          real_t Inn = GetElectrodeReactionCurrent(NE, -1.0); std::cout << Inn << std::endl;
          real_t Ipp = GetElectrodeReactionCurrent(PE,  1.0); std::cout << Ipp << std::endl;
