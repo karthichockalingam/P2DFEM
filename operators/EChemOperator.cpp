@@ -105,7 +105,7 @@ EChemOperator::EChemOperator(ParFiniteElementSpace * &x_fespace, Array<ParFinite
 }
 
 void EChemOperator::ImplicitSolve(const real_t dt,
-                                const Vector &x, Vector &dx_dt)
+                                  const Vector &x, Vector &dx_dt)
 {
    // Solve the equation:
    //   M dx_dt = -K(x + dt*dx_dt) <=> (M + dt K) dx_dt = -Kx
