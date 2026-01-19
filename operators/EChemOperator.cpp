@@ -105,6 +105,18 @@ EChemOperator::EChemOperator(ParFiniteElementSpace * &x_h1space, Array<ParFinite
    ConstructOpenCircuitPotential();
    ConstructOverPotential();
    ConstructReactionCurrent();
+
+   if (M == P2D)
+   {
+      // Construct space for discontinuous functions like the reaction current j (I'm leaking the collection)
+      _x_l2space = new ParFiniteElementSpace(_x_h1space->GetParMesh(),
+                   new L2_FECollection(_scl_ir.GetNPoints() - 1, 1));
+
+      // Build special integration rule to be used only for self-consistency loop
+      for (size_t i = 0; i < _scl_ir.GetNPoints(); i++)
+         _scl_ir.IntPoint(i).weight = 1.;
+      _scl_irs[Geometry::Type::SEGMENT] = &_scl_ir;
+   }
 }
 
 void EChemOperator::ImplicitSolve(const real_t dt,
@@ -123,7 +135,9 @@ void EChemOperator::ImplicitSolve(const real_t dt,
    if (M == P2D)
    {
       dx_dt = 0.;
-      ParGridFunction j_gf(_x_h1space);
+
+      ParGridFunction j_gf(_x_l2space);
+      ConstantCoefficient zero(0.);
 
       do
       {
@@ -155,7 +169,7 @@ void EChemOperator::ImplicitSolve(const real_t dt,
          _x.Add(_dt, dx_dt);
          SetGridFunctionsFromTrueVectors();
       }
-      while (j_gf.ComputeL2Error(*_j) > _threshold);
+      while (j_gf.ComputeL2Error(*_j, _scl_irs) > _scl_threshold * j_gf.ComputeL2Error(zero, _scl_irs));
 
       // restore solution true dof vector
       _x.Add(-_dt, dx_dt);

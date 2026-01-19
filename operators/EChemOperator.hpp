@@ -15,8 +15,9 @@ using namespace mfem;
 class EChemOperator : public TimeDependentOperator
 {
 protected:
-   ParFiniteElementSpace * &_x_h1space;
-   Array<ParFiniteElementSpace *> &_r_h1space;
+   ParFiniteElementSpace * & _x_h1space;
+   ParFiniteElementSpace * _x_l2space;
+   Array<ParFiniteElementSpace *> & _r_h1space;
 
    ElectrolytePotential     *  _ep;
    SolidPotential           *  _sp;
@@ -76,8 +77,12 @@ protected:
    /// Auxiliary rhs vectors for concentrations and potential eqs
    mutable BlockVector _bc, _bp;
 
-   /// Self-consistency loop L2 error threshold
-   const real_t _threshold = 1e-9;
+   /// Self-consistency loop "L2" error threshold
+   const real_t _scl_threshold = 1e-9;
+
+   /// Self-consistency loop 4-point integration rule
+   IntegrationRule _scl_ir = IntegrationRules().Get(Geometry::Type::SEGMENT, 7);
+   const IntegrationRule * _scl_irs[Geometry::Type::NUM_GEOMETRIES];
 
    /// File to write temporary data to
    std::ofstream _file;
