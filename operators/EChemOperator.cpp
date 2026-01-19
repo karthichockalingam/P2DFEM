@@ -266,12 +266,15 @@ const real_t & EChemOperator::GetReferencePotential(const Region &r)
 
 void EChemOperator::SetReferencePotential()
 {
-    switch (M)
+   switch (M)
    {
       case SPM:
       case SPMe:
          break;
       case P2D:
+         _rp_array[E] = 0.;
+         _rp_array[PE] = 0.;
+
          real_t Inp = GetElectrodeReactionCurrent(NE,  1.0);
          real_t Inn = GetElectrodeReactionCurrent(NE, -1.0);
          real_t Ipp = GetElectrodeReactionCurrent(PE,  1.0);
