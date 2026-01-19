@@ -531,14 +531,16 @@ void EChemOperator::GetParticleDofs(Array<int> & particle_dofs, Array<Region> & 
 
    unsigned max_sep_gdofs = NSEP * _x_fespace->FEColl()->GetOrder() + 1;
    Array<int> sep_gdofs(max_sep_gdofs); sep_gdofs = -1;
-   std::copy(sep_gdofs_set.begin(), sep_gdofs_set.end(), sep_gdofs.begin());
+   if (!IPAR)
+      std::copy(sep_gdofs_set.begin(), sep_gdofs_set.end(), sep_gdofs.begin());
 
    Array<int> all_sep_gdofs(max_sep_gdofs * Mpi::WorldSize());
    MPI_Allgather(sep_gdofs.GetData(), max_sep_gdofs, MPI_INT,
                  all_sep_gdofs.GetData(), max_sep_gdofs, MPI_INT, MPI_COMM_WORLD);
 
    Array<int> boundary_dofs;
-   _x_fespace->GetBoundaryTrueDofs(boundary_dofs);
+   if (!IPAR)
+      _x_fespace->GetBoundaryTrueDofs(boundary_dofs);
 
    for (auto [dof, region]: electrode_dofs_set)
    {

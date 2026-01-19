@@ -56,6 +56,8 @@ namespace constants {
     extern const unsigned NMACRO;  // Total Number of Macro Equations (Sum of the above two)
     extern const unsigned NEQS;    // Total Number of Equations in the System
 
+    extern const bool IPAR;        // Whether we place Interface Particles at the electrode-collector/separator interfaces
+
     extern const real_t LSEP;      // Length of Separator
     extern const real_t LPE;       // Length of Positive Electrode
     extern const real_t LNE;       // Length of Negative Electrode
