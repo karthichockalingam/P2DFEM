@@ -69,8 +69,11 @@ EChemOperator::EChemOperator(ParFiniteElementSpace * &x_h1space, Array<ParFinite
    _bc.Update(_concentration_trueOffsets);
 
    // Construct equation ojects, first the 3 macro equations, then the NPAR micro eqs
-   _ep = new ElectrolytePotential(*_x_h1space);
-   _sp = new SolidPotential(*_x_h1space);
+   if (M == P2D)
+   {
+      _ep = new ElectrolytePotential(*_x_h1space);
+      _sp = new SolidPotential(*_x_h1space);
+   }
    _ec = new ElectrolyteConcentration(*_x_h1space);
 
    if (M == SPM || M == SPMe)
