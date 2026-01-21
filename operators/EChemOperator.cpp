@@ -338,6 +338,14 @@ Array<real_t> EChemOperator::GetParticleReactionCurrent()
          ParGridFunction j_gf(_x_h1space);
          j_gf.ProjectCoefficient(*_j);
 
+         { // Despicable trick to project discontinuous current onto H1
+            Array<int> ne_particle_dofs;
+            for (unsigned p = 0; p < NPAR; p++)
+               if (_sc[p]->IsParticleOwned() && _sc[p]->GetParticleRegion() == NE)
+                  ne_particle_dofs.Append(_sc[p]->GetParticleDof());
+            j_gf.ProjectCoefficient(*_j, ne_particle_dofs);
+         }
+
          for (unsigned p = 0; p < NPAR; p++)
          {
             j[p] = _sc[p]->IsParticleOwned() ? j_gf(_sc[p]->GetParticleDof()) : 0;
