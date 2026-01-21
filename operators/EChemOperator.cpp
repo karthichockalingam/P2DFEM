@@ -469,38 +469,47 @@ void EChemOperator::ConstructOverPotential()
 
 real_t EChemOperator::GetVoltage()
 {
-   real_t Ve = (M == SPMe) ? GetVoltageMarquisCorrection() : 0;
-
    // Definition from JuBat: https://doi.org/10.1016/j.est.2023.107512
-   real_t V = (GetOpenCircuitPotential(PE) - GetOpenCircuitPotential(NE) +
-               GetOverPotential(PE) - GetOverPotential(NE) - Ve) * phi_scale;
-
-   if (Mpi::Root())
+   real_t V = phi_scale;
+   switch (M)
    {
-      std::cout << "[Rank " << Mpi::WorldRank() << "]"
-                << " Voltage = " << V << std::endl;
-
-      // Print file headings first time function is called.
-      static bool writeFileHeadings = true;
-      if (writeFileHeadings) {
-         _file << "t"  << ", \t"
-               << "cn" << ", \t"
-               << "cp" << ", \t"
-               << "voltage"
-               << std::endl;
-
-         writeFileHeadings = false;
-      }
-
-      // Print data to file.
-      _file << _t                          << ", \t"
-            << GetSurfaceConcentration(NE) << ", \t"
-            << GetSurfaceConcentration(PE) << ", \t"
-            << V
-            << std::endl;
+      case SPM:
+         V *= GetOpenCircuitPotential(PE) - GetOpenCircuitPotential(NE) + GetOverPotential(PE) - GetOverPotential(NE);
+         break;
+      case SPMe:
+         V *= GetOpenCircuitPotential(PE) - GetOpenCircuitPotential(NE) + GetOverPotential(PE) - GetOverPotential(NE) - GetVoltageMarquisCorrection();
+         break;
+      case P2D:
+         V *= GetReferencePotential(PE) - GetReferencePotential(NE);
+         break;
    }
 
-   _sc[1]->DebuggingCheck(_x);
+   if (M == SPM || M == SPMe)
+   {
+      if (Mpi::Root())
+      {
+         // Print file headings first time function is called.
+         static bool writeFileHeadings = true;
+         if (writeFileHeadings) {
+            _file << "t"  << ", \t"
+                  << "cn" << ", \t"
+                  << "cp" << ", \t"
+                  << "voltage"
+                  << std::endl;
+
+            writeFileHeadings = false;
+         }
+
+         // Print data to file.
+         _file << _t                          << ", \t"
+               << GetSurfaceConcentration(NE) << ", \t"
+               << GetSurfaceConcentration(PE) << ", \t"
+               << V
+               << std::endl;
+
+      }
+      _sc[1]->DebuggingCheck(_x);
+   }
 
    return V;
 }
