@@ -265,6 +265,7 @@ void EChemOperator::SetSurfaceConcentration()
          }
          // Apply prolongation after restriction. Might be unnecessary, but guarantees
          // all processors have the right information for all their local dofs.
+         _sc_gf->SetTrueVector();
          _sc_gf->SetFromTrueVector();
          break;
    }
