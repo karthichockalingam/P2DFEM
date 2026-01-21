@@ -72,7 +72,8 @@ namespace LGM50 {
     const real_t cell_no_layers = 1;
     const real_t cell_area = cell_width * cell_length * cell_no_layers;
 
-    const real_t I_typ = 5.0;    // Or I1C in Jubat.
+    const real_t I_typ = 5.0;    // Or I1C in Jubat. 
+                                //Reference total current, A
 
     const real_t brugg = 1.5; // Currently the same in each region, may need to vary later.
 }
