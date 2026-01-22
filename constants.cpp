@@ -28,8 +28,6 @@ namespace constants {
     unsigned NMACRO = NMACROP + NMACROC;
     unsigned NEQS = 0;
 
-    bool IPAR = true;
-
     // Dimensional constants
     real_t F = 96485.33289; // Faraday constant, C/mol
     real_t R = 8.314; // Universal gas constant, J/(mol*K)
@@ -157,8 +155,8 @@ namespace constants {
                 NNEPAR = NPEPAR = 1;
                 break;
             case P2D:
-                NNEPAR = NNE * order - 1 + (IPAR ? 2 : 0);
-                NPEPAR = NPE * order - 1 + (IPAR ? 2 : 0);
+                NNEPAR = NNE * order + 1;
+                NPEPAR = NPE * order + 1;
                 break;
         }
         NPAR = NNEPAR + NPEPAR;

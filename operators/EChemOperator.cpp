@@ -509,48 +509,45 @@ real_t EChemOperator::GetVoltageMarquisCorrection()
 
 void EChemOperator::GetParticleDofs(Array<int> & particle_dofs, Array<Region> & particle_regions, Array<int> & particle_offsets)
 {
-   std::set<std::pair<int, Region>> electrode_dofs_set;
-   std::set<int> sep_gdofs_set;
+   Array<int> gtdofs;
+   Array<Region> regions;
    for (int e = 0; e < _x_h1space->GetNE(); e++)
    {
       Array<int> dofs;
       _x_h1space->GetElementDofs(e, dofs);
-      switch (Region r = Region(_x_h1space->GetAttribute(e)))
+      for (int d: dofs)
       {
-         case NE:
-         case PE:
-            for (int d: dofs)
-               electrode_dofs_set.insert({d, r});
-            break;
-         case SEP:
-            for (int d: dofs)
-               sep_gdofs_set.insert(_x_h1space->GetGlobalTDofNumber(d));
-            break;
+         int gtdof = _x_h1space->GetGlobalTDofNumber(d);
+         Region r = Region(_x_h1space->GetAttribute(e));
+         gtdofs.Append(gtdof);
+         regions.Append(r);
       }
    }
 
-   unsigned max_sep_gdofs = NSEP * _x_h1space->FEColl()->GetOrder() + 1;
-   Array<int> sep_gdofs(max_sep_gdofs); sep_gdofs = -1;
-   if (!IPAR)
-      std::copy(sep_gdofs_set.begin(), sep_gdofs_set.end(), sep_gdofs.begin());
+   const unsigned n_gtdofs = NX * (_x_h1space->FEColl()->GetOrder() + 1);
 
-   Array<int> all_sep_gdofs(max_sep_gdofs * Mpi::WorldSize());
-   MPI_Allgather(sep_gdofs.GetData(), max_sep_gdofs, MPI_INT,
-                 all_sep_gdofs.GetData(), max_sep_gdofs, MPI_INT, MPI_COMM_WORLD);
+   gtdofs.SetSize(n_gtdofs, -1);
+   Array<int> all_gtdofs(n_gtdofs * Mpi::WorldSize());
+   MPI_Allgather(gtdofs.GetData(), n_gtdofs, MPI_INT,
+                 all_gtdofs.GetData(), n_gtdofs, MPI_INT, MPI_COMM_WORLD);
 
-   Array<int> boundary_dofs;
-   if (!IPAR)
-      _x_h1space->GetBoundaryTrueDofs(boundary_dofs);
+   regions.SetSize(n_gtdofs, UNKNOWN);
+   Array<Region> all_regions(n_gtdofs * Mpi::WorldSize());
+   MPI_Allgather(regions.GetData(), n_gtdofs, MPI_INT,
+                 all_regions.GetData(), n_gtdofs, MPI_INT, MPI_COMM_WORLD);
 
-   for (auto [dof, region]: electrode_dofs_set)
+   for (int d = 0; d < _x_h1space->GetNDofs(); d++)
    {
-      int ltdof = _x_h1space->GetLocalTDofNumber(dof);
-      int gtdof = _x_h1space->GetGlobalTDofNumber(dof);
-      if (ltdof != -1 && boundary_dofs.Find(ltdof) == -1 && all_sep_gdofs.Find(gtdof) == -1)
-      {
-         particle_dofs.Append(dof);
-         particle_regions.Append(region);
-      }
+      int ltdof = _x_h1space->GetLocalTDofNumber(d);
+      int gtdof = _x_h1space->GetGlobalTDofNumber(d);
+      Region r = UNKNOWN;
+      if (ltdof != -1)
+         for (int i = 0; i < n_gtdofs * Mpi::WorldSize(); i++)
+            if (gtdof == all_gtdofs[i] && (r = all_regions[i]) != SEP && particle_dofs.Find(d) == -1)
+            {
+               particle_dofs.Append(d);
+               particle_regions.Append(r);
+            }
    }
 
    int my_particles = particle_dofs.Size();
