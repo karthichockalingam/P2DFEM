@@ -1,9 +1,9 @@
 #include "operators/EChemOperator.hpp"
 
-EChemOperator::EChemOperator(ParFiniteElementSpace * &x_fespace, Array<ParFiniteElementSpace *> &r_fespace, const unsigned &ndofs,
+EChemOperator::EChemOperator(ParFiniteElementSpace * &x_h1space, Array<ParFiniteElementSpace *> &r_h1space, const unsigned &ndofs,
                              BlockVector &x, real_t & t, real_t & dt, ODESolver & ode_solver)
-   : TimeDependentOperator(ndofs, (real_t) 0.0), _x_fespace(x_fespace), _r_fespace(r_fespace), _Ac(NULL), _Ap(NULL),
-     _x(x), _t(t), _dt(dt), _ode_solver(ode_solver), _Solver(_x_fespace->GetComm()), _file("data.csv")
+   : TimeDependentOperator(ndofs, (real_t) 0.0), _x_h1space(x_h1space), _r_h1space(r_h1space), _Ac(NULL), _Ap(NULL),
+     _x(x), _t(t), _dt(dt), _ode_solver(ode_solver), _Solver(_x_h1space->GetComm()), _file("data.csv")
 {
    const real_t rel_tol = 1e-16;
 
@@ -20,27 +20,27 @@ EChemOperator::EChemOperator(ParFiniteElementSpace * &x_fespace, Array<ParFinite
    _concentration_trueOffsets.SetSize(NMACROC + NPAR + 1);
 
    _block_offsets[0] = 0;
-   _block_offsets[EP + 1] = _x_fespace->GetVSize();
-   _block_offsets[SP + 1] = _x_fespace->GetVSize();
-   _block_offsets[EC + 1] = _x_fespace->GetVSize();
-   _block_offsets[SC + 1] = _x_fespace->GetVSize();
+   _block_offsets[EP + 1] = _x_h1space->GetVSize();
+   _block_offsets[SP + 1] = _x_h1space->GetVSize();
+   _block_offsets[EC + 1] = _x_h1space->GetVSize();
+   _block_offsets[SC + 1] = _x_h1space->GetVSize();
 
    _block_trueOffsets[0] = 0;
-   _block_trueOffsets[EP + 1] = _x_fespace->GetTrueVSize();
-   _block_trueOffsets[SP + 1] = _x_fespace->GetTrueVSize();
-   _block_trueOffsets[EC + 1] = _x_fespace->GetTrueVSize();
+   _block_trueOffsets[EP + 1] = _x_h1space->GetTrueVSize();
+   _block_trueOffsets[SP + 1] = _x_h1space->GetTrueVSize();
+   _block_trueOffsets[EC + 1] = _x_h1space->GetTrueVSize();
 
    _potential_trueOffsets[0] = 0;
-   _potential_trueOffsets[EPP + 1] = _x_fespace->GetTrueVSize();
-   _potential_trueOffsets[SPP + 1] = _x_fespace->GetTrueVSize();
+   _potential_trueOffsets[EPP + 1] = _x_h1space->GetTrueVSize();
+   _potential_trueOffsets[SPP + 1] = _x_h1space->GetTrueVSize();
 
    _concentration_trueOffsets[0] = 0;
-   _concentration_trueOffsets[ECC + 1] = _x_fespace->GetTrueVSize();
+   _concentration_trueOffsets[ECC + 1] = _x_h1space->GetTrueVSize();
 
    for (unsigned p = 0; p < NPAR; p++)
    {
-      _block_trueOffsets[SC + 1 + p] = _r_fespace[p]->GetTrueVSize();
-      _concentration_trueOffsets[SCC + 1 + p] = _r_fespace[p]->GetTrueVSize();
+      _block_trueOffsets[SC + 1 + p] = _r_h1space[p]->GetTrueVSize();
+      _concentration_trueOffsets[SCC + 1 + p] = _r_h1space[p]->GetTrueVSize();
    }
 
    _block_offsets.PartialSum();
@@ -58,10 +58,10 @@ EChemOperator::EChemOperator(ParFiniteElementSpace * &x_fespace, Array<ParFinite
    _l.Update(_block_offsets); _l = 0.;
 
    // Initialise gridfunctions to use the appropriate section of the full dof vector _l
-   _ep_gf = new ParGridFunction(_x_fespace, _l, _block_offsets[EP]);
-   _sp_gf = new ParGridFunction(_x_fespace, _l, _block_offsets[SP]);
-   _ec_gf = new ParGridFunction(_x_fespace, _l, _block_offsets[EC]);
-   _sc_gf = new ParGridFunction(_x_fespace, _l, _block_offsets[SC]);
+   _ep_gf = new ParGridFunction(_x_h1space, _l, _block_offsets[EP]);
+   _sp_gf = new ParGridFunction(_x_h1space, _l, _block_offsets[SP]);
+   _ec_gf = new ParGridFunction(_x_h1space, _l, _block_offsets[EC]);
+   _sc_gf = new ParGridFunction(_x_h1space, _l, _block_offsets[SC]);
 
    // Set offsets for solution and rhs (potential and concentration) true vectors
    _x.Update(_block_trueOffsets); _x = 0.; _x.GetBlock(EC) = CE0;
@@ -69,14 +69,14 @@ EChemOperator::EChemOperator(ParFiniteElementSpace * &x_fespace, Array<ParFinite
    _bc.Update(_concentration_trueOffsets);
 
    // Construct equation ojects, first the 3 macro equations, then the NPAR micro eqs
-   _ep = new ElectrolytePotential(*_x_fespace);
-   _sp = new SolidPotential(*_x_fespace);
-   _ec = new ElectrolyteConcentration(*_x_fespace);
+   _ep = new ElectrolytePotential(*_x_h1space);
+   _sp = new SolidPotential(*_x_h1space);
+   _ec = new ElectrolyteConcentration(*_x_h1space);
 
    if (M == SPM || M == SPMe)
    {
-      _sc.Append(new SolidConcentration(*_r_fespace[0], 0, 0, -1, NE));
-      _sc.Append(new SolidConcentration(*_r_fespace[1], 1, 0, -1, PE));
+      _sc.Append(new SolidConcentration(*_r_h1space[0], 0, 0, -1, NE));
+      _sc.Append(new SolidConcentration(*_r_h1space[1], 1, 0, -1, PE));
    }
    else
    {
@@ -94,7 +94,7 @@ EChemOperator::EChemOperator(ParFiniteElementSpace * &x_fespace, Array<ParFinite
          int dof = owned ? particle_dofs[p - offset] : -1;
          Region region = owned ? particle_regions[p - offset] : UNKNOWN;
 
-         _sc.Append(new SolidConcentration(*_r_fespace[p], p, rank, dof, region));
+         _sc.Append(new SolidConcentration(*_r_h1space[p], p, rank, dof, region));
       }
    }
 
@@ -120,7 +120,7 @@ void EChemOperator::ImplicitSolve(const real_t dt,
    if (M == P2D)
    {
       dx_dt = 0.;
-      ParGridFunction j_gf(_x_fespace);
+      ParGridFunction j_gf(_x_h1space);
 
       do
       {
@@ -295,7 +295,7 @@ real_t EChemOperator::GetElectrodeReactionCurrent(const Region &r, const int &si
    PWConstCoefficient a(amask);
    ProductCoefficient ajex(a, *_jex);
    TransformedCoefficient I(&ajex, _op, [=](real_t ajex, real_t op) { return ajex * exp( sign * 0.5 * op ); });
-   QuadratureSpace x_qspace(_x_fespace->GetParMesh(), 2 * _x_fespace->FEColl()->GetOrder());
+   QuadratureSpace x_qspace(_x_h1space->GetParMesh(), 2 * _x_h1space->FEColl()->GetOrder());
    return x_qspace.Integrate(I);
 }
 
@@ -315,7 +315,7 @@ Array<real_t> EChemOperator::GetParticleReactionCurrent()
             j[p] = GetReactionCurrent(_sc[p]->GetParticleRegion());
          break;
       case P2D:
-         ParGridFunction j_gf(_x_fespace);
+         ParGridFunction j_gf(_x_h1space);
          j_gf.ProjectCoefficient(*_j);
 
          for (unsigned p = 0; p < NPAR; p++)
@@ -490,7 +490,7 @@ real_t EChemOperator::GetVoltageMarquisCorrection()
    GridFunctionCoefficient ec_gfc(_ec_gf);
    PWCoefficient ce_pwc;
 
-   QuadratureSpace x_qspace(_x_fespace->GetParMesh(), 2 * _x_fespace->FEColl()->GetOrder());
+   QuadratureSpace x_qspace(_x_h1space->GetParMesh(), 2 * _x_h1space->FEColl()->GetOrder());
 
    ce_pwc.UpdateCoefficient(NE, ec_gfc);
    real_t ce_ne_int = x_qspace.Integrate(ce_pwc) * (NX / NNE);
@@ -511,11 +511,11 @@ void EChemOperator::GetParticleDofs(Array<int> & particle_dofs, Array<Region> & 
 {
    std::set<std::pair<int, Region>> electrode_dofs_set;
    std::set<int> sep_gdofs_set;
-   for (int e = 0; e < _x_fespace->GetNE(); e++)
+   for (int e = 0; e < _x_h1space->GetNE(); e++)
    {
       Array<int> dofs;
-      _x_fespace->GetElementDofs(e, dofs);
-      switch (Region r = Region(_x_fespace->GetAttribute(e)))
+      _x_h1space->GetElementDofs(e, dofs);
+      switch (Region r = Region(_x_h1space->GetAttribute(e)))
       {
          case NE:
          case PE:
@@ -524,12 +524,12 @@ void EChemOperator::GetParticleDofs(Array<int> & particle_dofs, Array<Region> & 
             break;
          case SEP:
             for (int d: dofs)
-               sep_gdofs_set.insert(_x_fespace->GetGlobalTDofNumber(d));
+               sep_gdofs_set.insert(_x_h1space->GetGlobalTDofNumber(d));
             break;
       }
    }
 
-   unsigned max_sep_gdofs = NSEP * _x_fespace->FEColl()->GetOrder() + 1;
+   unsigned max_sep_gdofs = NSEP * _x_h1space->FEColl()->GetOrder() + 1;
    Array<int> sep_gdofs(max_sep_gdofs); sep_gdofs = -1;
    if (!IPAR)
       std::copy(sep_gdofs_set.begin(), sep_gdofs_set.end(), sep_gdofs.begin());
@@ -540,12 +540,12 @@ void EChemOperator::GetParticleDofs(Array<int> & particle_dofs, Array<Region> & 
 
    Array<int> boundary_dofs;
    if (!IPAR)
-      _x_fespace->GetBoundaryTrueDofs(boundary_dofs);
+      _x_h1space->GetBoundaryTrueDofs(boundary_dofs);
 
    for (auto [dof, region]: electrode_dofs_set)
    {
-      int ltdof = _x_fespace->GetLocalTDofNumber(dof);
-      int gtdof = _x_fespace->GetGlobalTDofNumber(dof);
+      int ltdof = _x_h1space->GetLocalTDofNumber(dof);
+      int gtdof = _x_h1space->GetGlobalTDofNumber(dof);
       if (ltdof != -1 && boundary_dofs.Find(ltdof) == -1 && all_sep_gdofs.Find(gtdof) == -1)
       {
          particle_dofs.Append(dof);

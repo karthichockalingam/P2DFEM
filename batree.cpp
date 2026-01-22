@@ -98,9 +98,7 @@ int main(int argc, char *argv[])
    // Initialise grid and layout properties dependent on the electrochemical model and FE order
    init_params(model, order);
 
-   // 3. Read the serial mesh from the given mesh file on all processors. We can
-   //    handle triangular, quadrilateral, tetrahedral and hexahedral meshes
-   //    with the same code.
+   // 3. Build the 1d meshes
    Mesh x_smesh = Mesh::MakeCartesian1D(NX);
    for (unsigned i = 0; i < NX; i++)
       x_smesh.SetAttribute(i, i < NNE ? NE : i < NNE + NSEP ? SEP : PE);
@@ -109,9 +107,8 @@ int main(int argc, char *argv[])
    for (unsigned p = 0; p < NPAR; p++)
       r_smesh[p] = Mesh::MakeCartesian1D(NR);
 
-   // 6. Define a parallel mesh by a partitioning of the serial mesh. Refine
-   //    this mesh further in parallel to increase the resolution. Once the
-   //    parallel mesh is defined, the serial mesh can be deleted.
+   // 6. Define a parallel mesh by a partitioning of the serial mesh.
+   //    Once the parallel mesh is defined, the serial mesh can be deleted.
    ParMesh *x_pmesh = new ParMesh(MPI_COMM_WORLD, x_smesh);
    x_smesh.Clear(); // the serial mesh is no longer needed
    ParMesh *r_pmesh[NPAR];
@@ -124,30 +121,30 @@ int main(int argc, char *argv[])
    // 7. Define the vector finite element space representing the current and the
    //    initial temperature, u_ref.
    H1_FECollection fe_coll(order, /*dim*/ 1);
-   ParFiniteElementSpace * x_fespace = new ParFiniteElementSpace(x_pmesh, &fe_coll);
-   Array<ParFiniteElementSpace *> r_fespace(NPAR);
+   ParFiniteElementSpace * x_h1space = new ParFiniteElementSpace(x_pmesh, &fe_coll);
+   Array<ParFiniteElementSpace *> r_h1space(NPAR);
    for (unsigned p = 0; p < NPAR; p++)
-      r_fespace[p] = new ParFiniteElementSpace(r_pmesh[p], &fe_coll);
+      r_h1space[p] = new ParFiniteElementSpace(r_pmesh[p], &fe_coll);
 
    // 8. Get the total number of dofs in the system (including boundaries)
    {
-      HYPRE_BigInt fe_size_global = NMACRO * x_fespace->GlobalTrueVSize();
+      HYPRE_BigInt fe_size_global = NMACRO * x_h1space->GlobalTrueVSize();
       for (unsigned p = 0; p < NPAR; p++)
-         fe_size_global += r_fespace[p]->GlobalTrueVSize();
+         fe_size_global += r_h1space[p]->GlobalTrueVSize();
 
       if (Mpi::Root())
          std::cout << "Unknowns (total): " << fe_size_global << std::endl;
    }
 
    // 8.5 Get the total number of dofs _owned_ by this processor
-   HYPRE_BigInt fe_size_owned = NMACRO * x_fespace->GetTrueVSize();
+   HYPRE_BigInt fe_size_owned = NMACRO * x_h1space->GetTrueVSize();
    for (unsigned p = 0; p < NPAR; p++)
-      fe_size_owned += r_fespace[p]->GetTrueVSize();
+      fe_size_owned += r_h1space[p]->GetTrueVSize();
 
    // 9. Initialize the conduction operator and the VisIt visualization.
    real_t t = 0.0;
    BlockVector x;
-   EChemOperator oper(x_fespace, r_fespace, fe_size_owned, x, t, dt, *ode_solver);
+   EChemOperator oper(x_h1space, r_h1space, fe_size_owned, x, t, dt, *ode_solver);
 
    // 10. Perform time-integration (looping over the time iterations, ti, with a
    //     time-step dt).

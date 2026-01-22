@@ -15,15 +15,15 @@ using namespace mfem;
 class EChemOperator : public TimeDependentOperator
 {
 protected:
-   ParFiniteElementSpace * &_x_fespace;
-   Array<ParFiniteElementSpace *> &_r_fespace;
+   ParFiniteElementSpace * &_x_h1space;
+   Array<ParFiniteElementSpace *> &_r_h1space;
 
    ElectrolytePotential     *  _ep;
    SolidPotential           *  _sp;
    ElectrolyteConcentration *  _ec;
    Array<SolidConcentration *> _sc;
 
-   /// Gridfunctions defined over x_fespace (3 macro eqs plus _surface_ concentration)
+   /// Gridfunctions defined over _x_h1space (3 macro eqs plus _surface_ concentration)
    ParGridFunction * _ep_gf;
    ParGridFunction * _sp_gf;
    ParGridFunction * _ec_gf;
@@ -41,7 +41,7 @@ protected:
    OpenCircuitPotentialCoefficient * _ocp;
    OverPotentialCoefficient * _op;
 
-   /// For the four gridfunctions over _x_fespace (3 macro eqs plus _surface_ concentration)
+   /// For the four gridfunctions over _x_h1space (3 macro eqs plus _surface_ concentration)
    Array<int> _block_offsets;
    /// For solution true vector (3 macros eqs plus NPAR _radial_ concentrations)
    Array<int> _block_trueOffsets;
@@ -53,7 +53,7 @@ protected:
    /// System matrices for concentration and potential eqs
    BlockOperator * _Ac, * _Ap;
 
-   /// Block vector for the dofs of quantities defined over _x_fespace (3 macro eqs plus _surface_ concentration)
+   /// Block vector for the dofs of quantities defined over _x_h1space (3 macro eqs plus _surface_ concentration)
    BlockVector _l;
 
    /// Reference to solution true dof vector
@@ -83,7 +83,7 @@ protected:
    std::ofstream _file;
 
 public:
-   EChemOperator(ParFiniteElementSpace * &x_fespace, Array<ParFiniteElementSpace *> &r_fespace, const unsigned &ndofs,
+   EChemOperator(ParFiniteElementSpace * &x_h1space, Array<ParFiniteElementSpace *> &r_h1space, const unsigned &ndofs,
                  BlockVector &x, real_t & t, real_t & dt, ODESolver & ode_solver);
 
    virtual void Mult(const Vector &x, Vector &dx_dt) const override {};

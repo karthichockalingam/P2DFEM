@@ -83,8 +83,8 @@ class ExchangeCurrentCoefficient: public Coefficient
         /// SPMe
         if (_electrolyte_concentration_gfc.GetGridFunction())
         {
-          ParFiniteElementSpace * x_fespace = _electrolyte_concentration_gf.ParFESpace();
-          QuadratureSpace x_qspace(x_fespace->GetParMesh(), 2 * x_fespace->FEColl()->GetOrder());
+          ParFiniteElementSpace * x_h1space = _electrolyte_concentration_gf.ParFESpace();
+          QuadratureSpace x_qspace(x_h1space->GetParMesh(), 2 * x_h1space->FEColl()->GetOrder());
 
           /// NE
           _jex_pwc.UpdateCoefficient(NE, _jex_ne_tc);
