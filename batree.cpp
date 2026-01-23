@@ -4,10 +4,12 @@
 //
 // Sample runs:  mpirun -np 4 batree -m SPM
 //               mpirun -np 4 batree -m SPMe
+//               mpirun -np 4 batree -m P2D
 //
 // Description:  Under active development. No explicit time integration methods
 //               are supported at this time. Use -m or --method to select from
-//               the three electrochemical models.
+//               the three electrochemical models. At the moment, the program
+//               will only perform a single CC discharge cycle.
 
 #include "mfem.hpp"
 #include <fstream>
@@ -19,16 +21,14 @@ using namespace mfem;
 
 int main(int argc, char *argv[])
 {
-   // 1. Initialize MPI and HYPRE.
+   // Initialize MPI and HYPRE.
    Mpi::Init(argc, argv);
    int num_procs = Mpi::WorldSize();
    int myid = Mpi::WorldRank();
    Hypre::Init();
 
-   // 2. Parse command-line options.
+   // Parse command-line options.
    std::string model = "SPM";
-   int ser_ref_levels = 0;
-   int par_ref_levels = 0;
    int order = 1;
    int ode_solver_type = 1;
    real_t t_final = 3600.0;
@@ -42,10 +42,6 @@ int main(int argc, char *argv[])
    OptionsParser args(argc, argv);
    args.AddOption(&model, "-m", "--model",
                   "Electrochemical model: SPM, SPMe, or P2D.");
-   args.AddOption(&ser_ref_levels, "-rs", "--refine-serial",
-                  "Number of times to refine the mesh uniformly in serial.");
-   args.AddOption(&par_ref_levels, "-rp", "--refine-parallel",
-                  "Number of times to refine the mesh uniformly in parallel.");
    args.AddOption(&order, "-o", "--order",
                   "Order (degree) of the finite elements.");
    args.AddOption(&ode_solver_type, "-s", "--ode-solver",
@@ -70,9 +66,10 @@ int main(int argc, char *argv[])
    if (Mpi::Root())
       args.PrintOptions(std::cout);
 
-   // 4. Define the ODE solver used for time integration. Several implicit
-   //    singly diagonal implicit Runge-Kutta (SDIRK) methods, as well as
-   //    explicit Runge-Kutta methods are available.
+   // Define the ODE solver used for time integration. Several implicit
+   // singly diagonal implicit Runge-Kutta (SDIRK) methods, as well as
+   // explicit Runge-Kutta methods are available in MFEM. For now, we only
+   // support implicit methods and we have only tested Backward Euler.
    ODESolver *ode_solver;
    switch (ode_solver_type)
    {
@@ -98,17 +95,18 @@ int main(int argc, char *argv[])
    // Initialise grid and layout properties dependent on the electrochemical model and FE order
    init_params(model, order);
 
-   // 3. Build the 1d meshes
+   // Build the 1d mesh for the macro problem and tag its elements according to their region
    Mesh x_smesh = Mesh::MakeCartesian1D(NX);
    for (unsigned i = 0; i < NX; i++)
       x_smesh.SetAttribute(i, i < NNE ? NE : i < NNE + NSEP ? SEP : PE);
 
+   // Build one 1d mesh for each particle, i.e. for each of the micro problems
    Mesh r_smesh[NPAR];
    for (unsigned p = 0; p < NPAR; p++)
       r_smesh[p] = Mesh::MakeCartesian1D(NR);
 
-   // 6. Define a parallel mesh by a partitioning of the serial mesh.
-   //    Once the parallel mesh is defined, the serial mesh can be deleted.
+   // Define each parallel mesh by a partitioning of the respective serial mesh above.
+   // Once each parallel mesh is defined, the respective serial mesh can be deleted.
    ParMesh *x_pmesh = new ParMesh(MPI_COMM_WORLD, x_smesh);
    x_smesh.Clear(); // the serial mesh is no longer needed
    ParMesh *r_pmesh[NPAR];
@@ -118,15 +116,16 @@ int main(int argc, char *argv[])
       r_smesh[p].Clear(); // the serial mesh is no longer needed
    }
 
-   // 7. Define the vector finite element space representing the current and the
-   //    initial temperature, u_ref.
+   // Define the H1 finite element spaces representing concentrations/potentials
    H1_FECollection fe_coll(order, /*dim*/ 1);
    ParFiniteElementSpace * x_h1space = new ParFiniteElementSpace(x_pmesh, &fe_coll);
    Array<ParFiniteElementSpace *> r_h1space(NPAR);
    for (unsigned p = 0; p < NPAR; p++)
       r_h1space[p] = new ParFiniteElementSpace(r_pmesh[p], &fe_coll);
 
-   // 8. Get the total number of dofs in the system (including boundaries)
+   // Get the total number of dofs in the system (including boundaries), for
+   // both the macro and micro problems, across all processors. This is for
+   // reporting purposes only.
    {
       HYPRE_BigInt fe_size_global = NMACRO * x_h1space->GlobalTrueVSize();
       for (unsigned p = 0; p < NPAR; p++)
@@ -136,18 +135,19 @@ int main(int argc, char *argv[])
          std::cout << "Unknowns (total): " << fe_size_global << std::endl;
    }
 
-   // 8.5 Get the total number of dofs _owned_ by this processor
+   // Get the number of dofs in the system (including boundaries), for
+   // both the macro and micro problems, _owned_ by this processor.
    HYPRE_BigInt fe_size_owned = NMACRO * x_h1space->GetTrueVSize();
    for (unsigned p = 0; p < NPAR; p++)
       fe_size_owned += r_h1space[p]->GetTrueVSize();
 
-   // 9. Initialize the conduction operator and the VisIt visualization.
+   // Initialize the ElectroChemistry operator.
    real_t t = 0.0;
    BlockVector x;
    EChemOperator oper(x_h1space, r_h1space, fe_size_owned, x, t, dt, *ode_solver);
 
-   // 10. Perform time-integration (looping over the time iterations, ti, with a
-   //     time-step dt).
+   // Perform time-integration (looping over the time iterations, ti, with a
+   // time-step dt).
    ode_solver->Init(oper);
 
    bool last_step = false;
@@ -159,12 +159,11 @@ int main(int argc, char *argv[])
       real_t V = oper.GetVoltage();
       // TODO: Stop sim at cutoff voltage
 
-      if (last_step || (ti % vis_steps) == 0)
-         if (Mpi::Root())
-            std::cout << "step " << ti << ", t = " << t << ", V = " << V << std::endl;
+      if ((last_step || (ti % vis_steps) == 0) && Mpi::Root())
+         std::cout << "step " << ti << ", t = " << t << ", V = " << V << std::endl;
    }
 
-   // 11. Free the used memory.
+   // Free the used memory.
    delete ode_solver;
    delete x_pmesh;
    for (unsigned p = 0; p < NPAR; p++)
