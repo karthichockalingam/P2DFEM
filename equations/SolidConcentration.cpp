@@ -44,9 +44,9 @@ real_t SolidConcentration::SurfaceConcentration(const BlockVector &x)
 
    MPI_Request request;
    if (IsSurfaceOwned())
-      MPI_Isend(&csurf, 1, MFEM_MPI_REAL_T, particle_rank, 1, MPI_COMM_WORLD, &request);
+      MPI_Isend(&csurf, 1, MFEM_MPI_REAL_T, particle_rank, particle_id, MPI_COMM_WORLD, &request);
    if (IsParticleOwned())
-      MPI_Recv(&csurf, 1, MFEM_MPI_REAL_T, MPI_ANY_SOURCE, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+      MPI_Recv(&csurf, 1, MFEM_MPI_REAL_T, surface_rank, particle_id, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
    if (IsSurfaceOwned())
       MPI_Wait(&request, MPI_STATUS_IGNORE);
