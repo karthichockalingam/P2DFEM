@@ -493,31 +493,27 @@ real_t EChemOperator::GetVoltage()
          break;
    }
 
-   if (M == SPM || M == SPMe)
+   if ((M == SPM || M == SPMe) && Mpi::Root())
    {
-      if (Mpi::Root())
+      // Print file headings first time function is called.
+      static bool writeFileHeadings = true;
+      if (writeFileHeadings)
       {
-         // Print file headings first time function is called.
-         static bool writeFileHeadings = true;
-         if (writeFileHeadings) {
-            _file << "t"  << ", \t"
-                  << "cn" << ", \t"
-                  << "cp" << ", \t"
-                  << "voltage"
-                  << std::endl;
-
-            writeFileHeadings = false;
-         }
-
-         // Print data to file.
-         _file << _t                          << ", \t"
-               << GetSurfaceConcentration(NE) << ", \t"
-               << GetSurfaceConcentration(PE) << ", \t"
-               << V
+         _file << "t"  << ", \t"
+               << "cn" << ", \t"
+               << "cp" << ", \t"
+               << "voltage"
                << std::endl;
 
+         writeFileHeadings = false;
       }
-      _sc[1]->DebuggingCheck(_x);
+
+      // Print data to file.
+      _file << _t                          << ", \t"
+            << GetSurfaceConcentration(NE) << ", \t"
+            << GetSurfaceConcentration(PE) << ", \t"
+            << V
+            << std::endl;
    }
 
    return V;
