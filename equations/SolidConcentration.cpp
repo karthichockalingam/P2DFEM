@@ -2,6 +2,8 @@
 
 void SolidConcentration::Update(const BlockVector &x, const Coefficient &j, const real_t &dt)
 {
+   MFEM_ASSERT(particle_region == NE || particle_region == PE, "Particle not in electrode!");
+
    const real_t R = particle_region == NE ? RN : RP;
    const real_t D = particle_region == NE ? DN : DP;
    const real_t t_scale = particle_region == NE ? tn_scale : tp_scale;
