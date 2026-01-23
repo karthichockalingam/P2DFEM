@@ -95,7 +95,7 @@ EChemOperator::EChemOperator(ParFiniteElementSpace * &x_h1space, Array<ParFinite
 
          unsigned offset = particle_offsets[Mpi::WorldRank()];
          int dof = owned ? particle_dofs[p - offset] : -1;
-         Region region = owned ? particle_regions[p - offset] : UNKNOWN;
+         Region region = particle_regions[p];
 
          _sc.Append(new SolidConcentration(*_r_h1space[p], p, rank, dof, region));
       }
@@ -545,7 +545,7 @@ real_t EChemOperator::GetVoltageMarquisCorrection()
    return eta_c + dphie + dphis;
 }
 
-void EChemOperator::GetParticleDofs(Array<int> & particle_dofs, Array<Region> & particle_regions, Array<int> & particle_offsets)
+void EChemOperator::GetParticleDofs(Array<int> & my_particle_dofs, Array<Region> & particle_regions, Array<int> & particle_offsets)
 {
    Array<int> gtdofs;
    Array<Region> regions;
@@ -574,6 +574,7 @@ void EChemOperator::GetParticleDofs(Array<int> & particle_dofs, Array<Region> & 
    MPI_Allgather(regions.GetData(), n_gtdofs, MPI_INT,
                  all_regions.GetData(), n_gtdofs, MPI_INT, MPI_COMM_WORLD);
 
+   Array<Region> my_particle_regions;
    for (int d = 0; d < _x_h1space->GetNDofs(); d++)
    {
       int ltdof = _x_h1space->GetLocalTDofNumber(d);
@@ -581,18 +582,26 @@ void EChemOperator::GetParticleDofs(Array<int> & particle_dofs, Array<Region> & 
       Region r = UNKNOWN;
       if (ltdof != -1)
          for (int i = 0; i < n_gtdofs * Mpi::WorldSize(); i++)
-            if (gtdof == all_gtdofs[i] && (r = all_regions[i]) != SEP && particle_dofs.Find(d) == -1)
+            if (gtdof == all_gtdofs[i] && (r = all_regions[i]) != SEP && my_particle_dofs.Find(d) == -1)
             {
-               particle_dofs.Append(d);
-               particle_regions.Append(r);
+               my_particle_dofs.Append(d);
+               my_particle_regions.Append(r);
             }
    }
+   my_particle_regions.SetSize(n_gtdofs, UNKNOWN);
 
-   int my_particles = particle_dofs.Size();
+   particle_regions.SetSize(n_gtdofs * Mpi::WorldSize(), UNKNOWN);
+   MPI_Allgather(my_particle_regions.GetData(), n_gtdofs, MPI_INT,
+                 particle_regions.GetData(), n_gtdofs, MPI_INT, MPI_COMM_WORLD);
+   while (particle_regions.Find(UNKNOWN) != -1)
+      particle_regions.DeleteFirst(UNKNOWN);
+
+   int my_particles = my_particle_dofs.Size();
    particle_offsets.SetSize(Mpi::WorldSize());
    MPI_Allgather(&my_particles, 1, MPI_INT, particle_offsets.GetData(), 1, MPI_INT, MPI_COMM_WORLD);
 
    particle_offsets.Prepend(0);
    particle_offsets.PartialSum();
-   MFEM_ASSERT(particle_offsets[Mpi::WorldSize()] == NPAR, "Failed to distribute particles across processors.");
+   MFEM_ASSERT(particle_offsets[Mpi::WorldSize()] == NPAR && particle_regions.Size() == NPAR,
+               "Failed to distribute particles across processors.");
 }
