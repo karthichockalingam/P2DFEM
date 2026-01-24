@@ -345,6 +345,10 @@ Array<real_t> EChemOperator::GetParticleReactionCurrent()
                if (_sc[p]->IsParticleOwned() && _sc[p]->GetParticleRegion() == NE)
                   ne_particle_dofs.Append(_sc[p]->GetParticleDof());
             j_gf.ProjectCoefficient(*_j, ne_particle_dofs);
+
+            auto check_ne = [&](int d){ return _x_h1space->GetAttribute(_x_h1space->GetElementForDof(d)) == NE; };
+            const bool all_ne = std::all_of(ne_particle_dofs.begin(), ne_particle_dofs.end(), check_ne);
+            MFEM_ASSERT(all_ne, "Trick to project discontinuous current onto H1 failed");
          }
 
          for (unsigned p = 0; p < NPAR; p++)
