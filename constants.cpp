@@ -1,5 +1,5 @@
 #include "mfem.hpp"
-#include "parameters.hpp"
+#include "cells/LGM50.hpp"
 
 using namespace mfem;
 using namespace LGM50;
