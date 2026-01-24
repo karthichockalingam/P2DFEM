@@ -4,11 +4,8 @@ using namespace mfem;
 class ExchangeCurrentCoefficient: public Coefficient
 {
    private:
-      const ParGridFunction & _surface_concentration_gf;
-      const ParGridFunction & _electrolyte_concentration_gf;
-
-      GridFunctionCoefficient _surface_concentration_gfc;
-      GridFunctionCoefficient _electrolyte_concentration_gfc;
+      GridFunctionCoefficient * _surface_concentration_gfc = nullptr;
+      GridFunctionCoefficient * _electrolyte_concentration_gfc = nullptr;
 
       const real_t & _scn;
       const real_t & _scp;
@@ -21,15 +18,6 @@ class ExchangeCurrentCoefficient: public Coefficient
       PWCoefficient _jex_pwc;
 
    public:
-      /// Default
-      ExchangeCurrentCoefficient():
-        _surface_concentration_gf(ParGridFunction()),
-        _electrolyte_concentration_gf(ParGridFunction()),
-        _scn(0),
-        _scp(0),
-        _jex_ne_tc(nullptr, [](real_t) { return 0; }),
-        _jex_pe_tc(nullptr, [](real_t) { return 0; }) {}
-
       /// SPM
       ExchangeCurrentCoefficient(
         const real_t & kn,
@@ -37,8 +25,6 @@ class ExchangeCurrentCoefficient: public Coefficient
         const real_t & scn,
         const real_t & scp,
         const real_t & ec):
-        _surface_concentration_gf(ParGridFunction()),
-        _electrolyte_concentration_gf(ParGridFunction()),
         _scn(scn),
         _scp(scp),
         _jex_ne_tc(nullptr, [](real_t) { return 0; }),
@@ -52,38 +38,34 @@ class ExchangeCurrentCoefficient: public Coefficient
         const real_t & kp,
         const real_t & scn,
         const real_t & scp,
-        const ParGridFunction & ec):
-        _surface_concentration_gf(ParGridFunction()),
-        _electrolyte_concentration_gf(ec),
-        _electrolyte_concentration_gfc(&_electrolyte_concentration_gf),
+        GridFunctionCoefficient & ec):
+        _electrolyte_concentration_gfc(&ec),
         _scn(scn),
         _scp(scp),
-        _jex_ne_tc(&_electrolyte_concentration_gfc, [=](real_t ec) { return kn * sqrt( _scn * ec * (1 - _scn) ); }),
-        _jex_pe_tc(&_electrolyte_concentration_gfc, [=](real_t ec) { return kp * sqrt( _scp * ec * (1 - _scp) ); }) {}
+        _jex_ne_tc(_electrolyte_concentration_gfc, [=](real_t ec) { return kn * sqrt( _scn * ec * (1 - _scn) ); }),
+        _jex_pe_tc(_electrolyte_concentration_gfc, [=](real_t ec) { return kp * sqrt( _scp * ec * (1 - _scp) ); }) {}
 
       /// P2D
       ExchangeCurrentCoefficient(
         const real_t & kn,
         const real_t & kp,
-        const ParGridFunction & sc,
-        const ParGridFunction & ec):
-        _surface_concentration_gf(sc),
-        _electrolyte_concentration_gf(ec),
-        _surface_concentration_gfc(&_surface_concentration_gf),
-        _electrolyte_concentration_gfc(&_electrolyte_concentration_gf),
+        GridFunctionCoefficient & sc,
+        GridFunctionCoefficient & ec):
+        _surface_concentration_gfc(&sc),
+        _electrolyte_concentration_gfc(&ec),
         _scn(0),
         _scp(0),
-        _jex_ne_tc(&_surface_concentration_gfc, &_electrolyte_concentration_gfc, [=](real_t sc, real_t ec) { return kn * sqrt( sc * ec * (1 - sc) ); }),
-        _jex_pe_tc(&_surface_concentration_gfc, &_electrolyte_concentration_gfc, [=](real_t sc, real_t ec) { return kp * sqrt( sc * ec * (1 - sc) ); }),
+        _jex_ne_tc(_surface_concentration_gfc, _electrolyte_concentration_gfc, [=](real_t sc, real_t ec) { return kn * sqrt( sc * ec * (1 - sc) ); }),
+        _jex_pe_tc(_surface_concentration_gfc, _electrolyte_concentration_gfc, [=](real_t sc, real_t ec) { return kp * sqrt( sc * ec * (1 - sc) ); }),
         _jex_pwc(Array<int>({NE, PE}), Array<Coefficient*>({static_cast<Coefficient*>(&_jex_ne_tc), static_cast<Coefficient*>(&_jex_pe_tc)})) {}
 
       /// SPM(e)
       virtual PWConstCoefficient & Eval()
       {
         /// SPMe
-        if (_electrolyte_concentration_gfc.GetGridFunction())
+        if (_electrolyte_concentration_gfc)
         {
-          ParFiniteElementSpace * x_h1space = _electrolyte_concentration_gf.ParFESpace();
+          ParFiniteElementSpace * x_h1space = static_cast<const ParGridFunction *>(_electrolyte_concentration_gfc->GetGridFunction())->ParFESpace();
           QuadratureSpace x_qspace(x_h1space->GetParMesh(), 2 * x_h1space->FEColl()->GetOrder());
 
           /// NE

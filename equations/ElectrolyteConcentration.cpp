@@ -1,11 +1,8 @@
 
 #include "equations/ElectrolyteConcentration.hpp"
 
-void ElectrolyteConcentration::Update(const BlockVector &x, const Coefficient &j, const real_t &dt)
+void ElectrolyteConcentration::Update(const BlockVector &x, const GridFunctionCoefficient &ec_gfc, const Coefficient &j, const real_t &dt)
 {
-   ParGridFunction u_gf(&fespace);
-   u_gf.SetFromTrueDofs(x.GetBlock(EC));
-
    // Mass coefficient.
    Vector mass_vec({
       /* NE */  EPS_N /* length scaling */  * (LNE  / NNE  * NX),
@@ -30,8 +27,7 @@ void ElectrolyteConcentration::Update(const BlockVector &x, const Coefficient &j
       /* SEP */ BSEP /* length scaling */ / (LSEP / NSEP * NX),
       /* PE */  BPE  /* length scaling */ / (LPE  / NPE  * NX)});
 
-   GridFunctionCoefficient u_gfc(&u_gf);
-   TransformedCoefficient D_coeff(&u_gfc, [](real_t ec) { return DE(ec); });
+   TransformedCoefficient D_coeff(&const_cast<GridFunctionCoefficient&>(ec_gfc), [](real_t ec) { return DE(ec); });
    PWConstCoefficient D_scale_coeff(D_scale_vec);
    ProductCoefficient D(D_scale_coeff, D_coeff);
 

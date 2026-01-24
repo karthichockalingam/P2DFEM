@@ -1,7 +1,7 @@
 
 #include "equations/ElectrolytePotential.hpp"
 
-void ElectrolytePotential::Update(const BlockVector &x, const Coefficient &j, const real_t &dt)
+void ElectrolytePotential::Update(const BlockVector &x, const GridFunctionCoefficient &ec_gfc, const Coefficient &j, const real_t &dt)
 {
    // Source term.
    Vector source_vec({
@@ -19,16 +19,11 @@ void ElectrolytePotential::Update(const BlockVector &x, const Coefficient &j, co
 
    PWConstCoefficient b_part(b_vec);
 
-   // We need to pass gridfunction refs to avoid the MPI comm here
-   ParGridFunction u_gf(&fespace);
-   u_gf.SetFromTrueDofs(x.GetBlock(EC));
-
-   GridFunctionCoefficient ec(&u_gf);
-   TransformedCoefficient kappa(&ec, Kappa);
+   TransformedCoefficient kappa(&const_cast<GridFunctionCoefficient&>(ec_gfc), Kappa);
    ProductCoefficient kappa_eff(b_part, kappa);
 
-   GradientGridFunctionCoefficient grad_ec(&u_gf);
-   RatioCoefficient ec_inv(1., ec);
+   GradientGridFunctionCoefficient grad_ec(ec_gfc.GetGridFunction());
+   RatioCoefficient ec_inv(1., const_cast<GridFunctionCoefficient&>(ec_gfc));
    ScalarVectorProductCoefficient grad_ln_ec(ec_inv, grad_ec);
    ScalarVectorProductCoefficient prod_part(kappa_eff, grad_ln_ec);
    ScalarVectorProductCoefficient grad_ln_ec_kappad(2 * T * (1 - TPLUS), prod_part);

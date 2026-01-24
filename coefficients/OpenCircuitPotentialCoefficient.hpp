@@ -4,9 +4,7 @@ using namespace mfem;
 class OpenCircuitPotentialCoefficient: public Coefficient
 {
    private:
-      const ParGridFunction & _surface_concentration_gf;
-
-      GridFunctionCoefficient _surface_concentration_gfc;
+      GridFunctionCoefficient * _surface_concentration_gfc = nullptr;
 
       const std::function<real_t(real_t)> _un;
       const std::function<real_t(real_t)> _up;
@@ -21,21 +19,12 @@ class OpenCircuitPotentialCoefficient: public Coefficient
       PWCoefficient _ocp_pwc;
 
    public:
-      /// Default
-      OpenCircuitPotentialCoefficient():
-        _surface_concentration_gf(ParGridFunction()),
-        _scn(0),
-        _scp(0),
-        _ocp_ne_tc(nullptr, _un),
-        _ocp_pe_tc(nullptr, _up) {}
-
       /// SPM(e)
       OpenCircuitPotentialCoefficient(
         const std::function<real_t(real_t)> & un,
         const std::function<real_t(real_t)> & up,
         const real_t & scn,
         const real_t & scp):
-        _surface_concentration_gf(ParGridFunction()),
         _un(un),
         _up(up),
         _scn(scn),
@@ -48,15 +37,14 @@ class OpenCircuitPotentialCoefficient: public Coefficient
       OpenCircuitPotentialCoefficient(
         const std::function<real_t(real_t)> & un,
         const std::function<real_t(real_t)> & up,
-        const ParGridFunction & sc):
-        _surface_concentration_gf(sc),
-        _surface_concentration_gfc(&_surface_concentration_gf),
+        GridFunctionCoefficient & sc):
+        _surface_concentration_gfc(&sc),
         _un(un),
         _up(up),
         _scn(0),
         _scp(0),
-        _ocp_ne_tc(&_surface_concentration_gfc, _un),
-        _ocp_pe_tc(&_surface_concentration_gfc, _up),
+        _ocp_ne_tc(_surface_concentration_gfc, _un),
+        _ocp_pe_tc(_surface_concentration_gfc, _up),
         _ocp_pwc(Array<int>({NE, PE}), Array<Coefficient*>({static_cast<Coefficient*>(&_ocp_ne_tc), static_cast<Coefficient*>(&_ocp_pe_tc)})) {}
 
       /// SPM(e)

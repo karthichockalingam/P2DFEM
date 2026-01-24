@@ -15,5 +15,6 @@ class ElectrolytePotential : public Equation
       {
          f.GetEssentialTrueDofs(Array<int>({1, 0}), ess_tdof_list);
       }
-      void Update(const BlockVector &x, const Coefficient &j, const real_t &dt);
+      virtual void Update(const BlockVector &, const Coefficient &, const real_t &) {}
+      virtual void Update(const BlockVector &x, const GridFunctionCoefficient &ec_gfc, const Coefficient &j, const real_t &dt);
 };

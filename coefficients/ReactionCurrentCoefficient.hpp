@@ -4,8 +4,8 @@ using namespace mfem;
 class ReactionCurrentCoefficient: public Coefficient
 {
    private:
-      ExchangeCurrentCoefficient * _jex;
-      OverPotentialCoefficient * _op;
+      ExchangeCurrentCoefficient * _jex = nullptr;
+      OverPotentialCoefficient * _op = nullptr;
 
       Vector _j_vec;
       PWConstCoefficient _j_pwcc;

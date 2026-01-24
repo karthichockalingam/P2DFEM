@@ -58,15 +58,26 @@ EChemOperator::EChemOperator(ParFiniteElementSpace * &x_h1space, Array<ParFinite
    _l.Update(_block_offsets); _l = 0.;
 
    // Initialise gridfunctions to use the appropriate section of the full dof vector _l
-   _ep_gf = new ParGridFunction(_x_h1space, _l, _block_offsets[EP]);
-   _sp_gf = new ParGridFunction(_x_h1space, _l, _block_offsets[SP]);
-   _ec_gf = new ParGridFunction(_x_h1space, _l, _block_offsets[EC]);
-   _sc_gf = new ParGridFunction(_x_h1space, _l, _block_offsets[SC]);
+   _ep_gf.MakeRef(_x_h1space, _l, _block_offsets[EP]);
+   _sp_gf.MakeRef(_x_h1space, _l, _block_offsets[SP]);
+   _ec_gf.MakeRef(_x_h1space, _l, _block_offsets[EC]);
+   _sc_gf.MakeRef(_x_h1space, _l, _block_offsets[SC]);
+
+   // Wrap gridfunctions in coefficients
+   _ep_gfc.SetGridFunction(&_ep_gf);
+   _sp_gfc.SetGridFunction(&_sp_gf);
+   _ec_gfc.SetGridFunction(&_ec_gf);
+   _sc_gfc.SetGridFunction(&_sc_gf);
 
    // Set offsets for solution and rhs (potential and concentration) true vectors
-   _x.Update(_block_trueOffsets); _x = 0.; _x.GetBlock(EC) = CE0;
+   _x.Update(_block_trueOffsets);
    _bp.Update(_potential_trueOffsets);
    _bc.Update(_concentration_trueOffsets);
+
+   // Set initial conditions (for electrolyte concentration)
+   _x = 0.;
+   _x.GetBlock(EC) = CE0;
+   _ec_gf.SetFromTrueDofs(_x.GetBlock(EC));
 
    // Construct equation ojects, first the 3 macro equations, then the NPAR micro eqs
    if (M == P2D)
@@ -200,9 +211,9 @@ void EChemOperator::Step()
 
 void EChemOperator::SetGridFunctionsFromTrueVectors()
 {
-   _ep_gf->SetFromTrueDofs(_x.GetBlock(EP));
-   _sp_gf->SetFromTrueDofs(_x.GetBlock(SP));
-   _ec_gf->SetFromTrueDofs(_x.GetBlock(EC));
+   _ep_gf.SetFromTrueDofs(_x.GetBlock(EP));
+   _sp_gf.SetFromTrueDofs(_x.GetBlock(SP));
+   _ec_gf.SetFromTrueDofs(_x.GetBlock(EC));
    SetSurfaceConcentration();
    SetReferencePotential();
 }
@@ -214,7 +225,7 @@ void EChemOperator::UpdatePotentialEquations()
    _Ap = new BlockOperator(_potential_trueOffsets);
    _Ap->owns_blocks = 1;
 
-   _ep->Update(_x, *_j, _dt);
+   _ep->Update(_x, _ec_gfc, *_j, _dt);
    _sp->Update(_x, *_j, _dt);
 }
 
@@ -225,7 +236,7 @@ void EChemOperator::UpdateConcentrationEquations()
    _Ac = new BlockOperator(_concentration_trueOffsets);
    _Ac->owns_blocks = 1;
 
-   _ec->Update(_x, *_j, _dt);
+   _ec->Update(_x, _ec_gfc, *_j, _dt);
    const Array<real_t> & j = GetParticleReactionCurrent();
    for (unsigned p = 0; p < NPAR; p++)
       _sc[p]->Update(_x, ConstantCoefficient(j[p]), _dt);
@@ -261,12 +272,12 @@ void EChemOperator::SetSurfaceConcentration()
             Region r = _sc[p]->GetParticleRegion();
             real_t sc = (r == NE ? CN0 : CP0) + _sc[p]->SurfaceConcentration(_x);
             if (_sc[p]->IsParticleOwned())
-               (*_sc_gf)(_sc[p]->GetParticleDof()) = sc;
+               _sc_gf(_sc[p]->GetParticleDof()) = sc;
          }
          // Apply prolongation after restriction. Might be unnecessary, but guarantees
          // all processors have the right information for all their local dofs.
-         _sc_gf->SetTrueVector();
-         _sc_gf->SetFromTrueVector();
+         _sc_gf.SetTrueVector();
+         _sc_gf.SetFromTrueVector();
          break;
    }
 }
@@ -418,10 +429,10 @@ void EChemOperator::ConstructExchangeCurrent()
          _jex = new ExchangeCurrentCoefficient(KN, KP, GetSurfaceConcentration(NE), GetSurfaceConcentration(PE), CE0);
          break;
       case SPMe:
-         _jex = new ExchangeCurrentCoefficient(KN, KP, GetSurfaceConcentration(NE), GetSurfaceConcentration(PE), *_ec_gf);
+         _jex = new ExchangeCurrentCoefficient(KN, KP, GetSurfaceConcentration(NE), GetSurfaceConcentration(PE), _ec_gfc);
          break;
       case P2D:
-         _jex = new ExchangeCurrentCoefficient(KN, KP, *_sc_gf, *_ec_gf);
+         _jex = new ExchangeCurrentCoefficient(KN, KP, _sc_gfc, _ec_gfc);
          break;
    }
 }
@@ -446,7 +457,7 @@ void EChemOperator::ConstructOpenCircuitPotential()
          _ocp = new OpenCircuitPotentialCoefficient(UN, UP, GetSurfaceConcentration(NE), GetSurfaceConcentration(PE));
          break;
       case P2D:
-         _ocp = new OpenCircuitPotentialCoefficient(UN, UP, *_sc_gf);
+         _ocp = new OpenCircuitPotentialCoefficient(UN, UP, _sc_gfc);
          break;
    }
 }
@@ -471,7 +482,7 @@ void EChemOperator::ConstructOverPotential()
          _op = new OverPotentialCoefficient(T, *_jex);
          break;
       case P2D:
-         _op = new OverPotentialCoefficient(GetReferencePotential(E), GetReferencePotential(PE), *_sp_gf, *_ep_gf, *_ocp);
+         _op = new OverPotentialCoefficient(GetReferencePotential(E), GetReferencePotential(PE), _sp_gfc, _ep_gfc, *_ocp);
          break;
    }
 }
@@ -525,16 +536,14 @@ real_t EChemOperator::GetVoltage()
 
 real_t EChemOperator::GetVoltageMarquisCorrection()
 {
-   GridFunctionCoefficient ec_gfc(_ec_gf);
    PWCoefficient ce_pwc;
-
    QuadratureSpace x_qspace(_x_h1space->GetParMesh(), 2 * _x_h1space->FEColl()->GetOrder());
 
-   ce_pwc.UpdateCoefficient(NE, ec_gfc);
+   ce_pwc.UpdateCoefficient(NE, _ec_gfc);
    real_t ce_ne_int = x_qspace.Integrate(ce_pwc) * (NX / NNE);
    ce_pwc.ZeroCoefficient(NE);
 
-   ce_pwc.UpdateCoefficient(PE, ec_gfc);
+   ce_pwc.UpdateCoefficient(PE, _ec_gfc);
    real_t ce_pe_int = x_qspace.Integrate(ce_pwc) * (NX / NPE);
    ce_pwc.ZeroCoefficient(PE);
 

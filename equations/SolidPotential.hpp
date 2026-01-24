@@ -16,4 +16,5 @@ class SolidPotential : public Equation
          f.GetEssentialTrueDofs(Array<int>({1, 1}), ess_tdof_list);
       }
       virtual void Update(const BlockVector &x, const Coefficient &j, const real_t &dt);
+      virtual void Update(const BlockVector &, const GridFunctionCoefficient &, const Coefficient &, const real_t &) {}
 };

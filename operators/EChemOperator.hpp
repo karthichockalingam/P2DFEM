@@ -25,10 +25,16 @@ protected:
    Array<SolidConcentration *> _sc;
 
    /// Gridfunctions defined over _x_h1space (3 macro eqs plus _surface_ concentration)
-   ParGridFunction * _ep_gf;
-   ParGridFunction * _sp_gf;
-   ParGridFunction * _ec_gf;
-   ParGridFunction * _sc_gf;
+   ParGridFunction _ep_gf;
+   ParGridFunction _sp_gf;
+   ParGridFunction _ec_gf;
+   ParGridFunction _sc_gf;
+
+   /// Coefficients for the gridfunction defined over _x_h1space (3 macro eqs plus _surface_ concentration)
+   GridFunctionCoefficient _ep_gfc;
+   GridFunctionCoefficient _sp_gfc;
+   GridFunctionCoefficient _ec_gfc;
+   GridFunctionCoefficient _sc_gfc;
 
    /// Big-enough array for the surface concentrations of the two SPM(e) particles
    Array<real_t> _sc_array{/* E */ 0., /* NE */ 0., /* SEP */ 0., /* PE */ 0.};
@@ -134,11 +140,6 @@ public:
       delete _ec;
       for (unsigned p = 0; p < NPAR; p++)
          delete _sc[p];
-
-      delete _ep_gf;
-      delete _sp_gf;
-      delete _ec_gf;
-      delete _sc_gf;
 
       delete _j;
       delete _jex;
