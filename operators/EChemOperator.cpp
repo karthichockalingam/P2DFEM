@@ -264,6 +264,7 @@ void EChemOperator::SetSurfaceConcentration()
             Region r = _sc[p]->GetParticleRegion();
             real_t sc = (r == NE ? CN0 : CP0) + _sc[p]->SurfaceConcentration(_x);
             _sc_array[r] = sc;
+            MPI_Bcast(&_sc_array[r], 1, MFEM_MPI_REAL_T, _sc[p]->GetParticleRank(), MPI_COMM_WORLD);
          }
          break;
       case P2D:
