@@ -40,7 +40,7 @@ INC_FILES = $(addprefix equations/, $(EQ_INC_FILES)) \
 all: $(EXECUTABLES)
 
 batree: $(SRC_FILES) $(INC_FILES) $(MFEM_LIB_FILE) $(CONFIG_MK)
-	$(MFEM_CXX) $(MFEM_FLAGS) -I. $(SRC_FILES) -o $@ $(MFEM_LIBS)
+	$(MFEM_CXX) $(MFEM_FLAGS) -Wall -Wpedantic -Werror -I. $(SRC_FILES) -o $@ $(MFEM_LIBS)
 
 # Generate an error message if the MFEM library is not built and exit
 $(MFEM_LIB_FILE):

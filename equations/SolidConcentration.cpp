@@ -84,7 +84,7 @@ int SolidConcentration::FindSurfaceTrueDof()
    return nat_dofs.IsEmpty() ? -1 : nat_dofs[0];
 }
 
-unsigned SolidConcentration::FindSurfaceRank()
+int SolidConcentration::FindSurfaceRank()
 {
    Array<bool> surface_rank(Mpi::WorldSize());
    // gather each rank's surface_owned status

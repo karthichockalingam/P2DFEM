@@ -101,7 +101,7 @@ EChemOperator::EChemOperator(ParFiniteElementSpace * &x_h1space, Array<ParFinite
       for (unsigned p = 0; p < NPAR; p++)
       {
          auto rank_iter = std::upper_bound(particle_offsets.begin(), particle_offsets.end(), p);
-         unsigned rank = std::distance(particle_offsets.begin(), rank_iter) - 1;
+         int rank = std::distance(particle_offsets.begin(), rank_iter) - 1;
          bool owned = rank == Mpi::WorldRank();
 
          unsigned offset = particle_offsets[Mpi::WorldRank()];
@@ -124,7 +124,7 @@ EChemOperator::EChemOperator(ParFiniteElementSpace * &x_h1space, Array<ParFinite
                    new L2_FECollection(_scl_ir.GetNPoints() - 1, 1));
 
       // Build special integration rule to be used only for self-consistency loop
-      for (size_t i = 0; i < _scl_ir.GetNPoints(); i++)
+      for (int i = 0; i < _scl_ir.GetNPoints(); i++)
          _scl_ir.IntPoint(i).weight = 1.;
       _scl_irs[Geometry::Type::SEGMENT] = &_scl_ir;
    }
@@ -599,7 +599,7 @@ void EChemOperator::GetParticleDofs(Array<int> & my_particle_dofs, Array<Region>
       int gtdof = _x_h1space->GetGlobalTDofNumber(d);
       Region r = UNKNOWN;
       if (ltdof != -1)
-         for (int i = 0; i < n_gtdofs * Mpi::WorldSize(); i++)
+         for (unsigned i = 0; i < n_gtdofs * Mpi::WorldSize(); i++)
             if (gtdof == all_gtdofs[i] && (r = all_regions[i]) != SEP && my_particle_dofs.Find(d) == -1)
             {
                my_particle_dofs.Append(d);
@@ -620,6 +620,7 @@ void EChemOperator::GetParticleDofs(Array<int> & my_particle_dofs, Array<Region>
 
    particle_offsets.Prepend(0);
    particle_offsets.PartialSum();
-   MFEM_ASSERT(particle_offsets[Mpi::WorldSize()] == NPAR && particle_regions.Size() == NPAR,
+   MFEM_ASSERT(unsigned(particle_offsets[Mpi::WorldSize()]) == NPAR &&
+               unsigned(particle_regions.Size()) == NPAR,
                "Failed to distribute particles across processors.");
 }
