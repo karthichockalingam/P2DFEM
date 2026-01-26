@@ -24,7 +24,7 @@ namespace constants {
         EC = C + ECC,             // Electrolyte Concentration
         SC = C + SCC              // Solid Concentration
     };
-                     
+
     enum Region : int {
         E,                        // Electrolyte
         NE,                       // Negative Electrode
@@ -39,7 +39,7 @@ namespace constants {
         P2D
     };
 
-    extern const Model M;
+    extern Model M;
 
     extern const unsigned NNE;     // Number of elements in the Negative Electrode
     extern const unsigned NSEP;    // Number of elements in the Separator

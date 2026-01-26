@@ -63,7 +63,7 @@ int SolidConcentration::FindSurfaceTrueDof()
    return nat_dofs.IsEmpty() ? -1 : nat_dofs[0];
 }
 
-unsigned SolidConcentration::FindSurfaceRank()
+int SolidConcentration::FindSurfaceRank()
 {
    Array<bool> surface_rank(Mpi::WorldSize());
    MPI_Allgather(&surface_owned, 1, MPI_CXX_BOOL, surface_rank.GetData(), 1, MPI_CXX_BOOL, MPI_COMM_WORLD);

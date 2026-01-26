@@ -9,8 +9,8 @@ class OpenCircuitPotentialCoefficient: public Coefficient
       const std::function<real_t(real_t)> _un;
       const std::function<real_t(real_t)> _up;
 
-      const real_t & _scn;
-      const real_t & _scp;
+      const real_t * _scn = nullptr;
+      const real_t * _scp = nullptr;
 
       TransformedCoefficient _ocp_ne_tc;
       TransformedCoefficient _ocp_pe_tc;
@@ -27,8 +27,8 @@ class OpenCircuitPotentialCoefficient: public Coefficient
         const real_t & scp):
         _un(un),
         _up(up),
-        _scn(scn),
-        _scp(scp),
+        _scn(&scn),
+        _scp(&scp),
         _ocp_ne_tc(nullptr, _un),
         _ocp_pe_tc(nullptr, _up),
         _ocp_pwcc(3) {}
@@ -41,8 +41,6 @@ class OpenCircuitPotentialCoefficient: public Coefficient
         _surface_concentration_gfc(&sc),
         _un(un),
         _up(up),
-        _scn(0),
-        _scp(0),
         _ocp_ne_tc(_surface_concentration_gfc, _un),
         _ocp_pe_tc(_surface_concentration_gfc, _up),
         _ocp_pwc(Array<int>({NE, PE}), Array<Coefficient*>({static_cast<Coefficient*>(&_ocp_ne_tc), static_cast<Coefficient*>(&_ocp_pe_tc)})) {}
@@ -50,8 +48,8 @@ class OpenCircuitPotentialCoefficient: public Coefficient
       /// SPM(e)
       virtual PWConstCoefficient & Eval()
       {
-        _ocp_pwcc(NE) = _un(_scn);
-        _ocp_pwcc(PE) = _up(_scp);
+        _ocp_pwcc(NE) = _un(*_scn);
+        _ocp_pwcc(PE) = _up(*_scp);
         return _ocp_pwcc;
       }
 

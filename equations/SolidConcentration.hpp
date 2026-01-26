@@ -10,17 +10,17 @@ class SolidConcentration : public Equation
 {
    private:
       const unsigned particle_id;
-      const unsigned particle_rank;
+      const int particle_rank;
       const bool particle_owned;
       const int particle_dof;
       const Region particle_region;
       const Array<int> surface_bdr;
       const int surface_tdof;
       const bool surface_owned;
-      const unsigned surface_rank;
+      const int surface_rank;
 
    public:
-      SolidConcentration(ParFiniteElementSpace &f, const unsigned &id, const unsigned &rank, const int &dof, const Region &region)
+      SolidConcentration(ParFiniteElementSpace &f, const unsigned &id, const int &rank, const int &dof, const Region &region)
          : Equation(f),
            particle_id(id), particle_rank(rank),
            particle_owned(particle_rank == Mpi::WorldRank()),
@@ -34,13 +34,13 @@ class SolidConcentration : public Equation
       virtual void Update(const BlockVector &x, const Coefficient &j, const real_t &dt);
       virtual void Update(const BlockVector &, const GridFunctionCoefficient &, const Coefficient &, const real_t &) {}
       real_t SurfaceConcentration(const BlockVector &x);
-      unsigned GetParticleRank(){ return particle_rank; }
-      unsigned GetSurfaceRank(){ return surface_rank; }
+      int GetParticleRank(){ return particle_rank; }
+      int GetSurfaceRank(){ return surface_rank; }
       bool IsParticleOwned(){ return particle_owned; }
       bool IsSurfaceOwned() { return surface_owned; }
       Region GetParticleRegion(){ return particle_region; }
       int GetParticleDof(){ return particle_dof; }
       int FindSurfaceTrueDof();
-      unsigned FindSurfaceRank();
+      int FindSurfaceRank();
       void DebuggingCheck(const BlockVector &x);
 };

@@ -25,13 +25,13 @@ class OverPotentialCoefficient: public Coefficient
       OverPotentialCoefficient(
         const real_t & T,
         ExchangeCurrentCoefficient & jex):
+        _jex(&jex),
         _rp_ne_fc([](const Vector &) { return 0; }),
         _rp_pe_fc([](const Vector &) { return 0; }),
         _rel_se_sc(0, *_solid_potential_gfc),
         _abs_se_sc(0, *_solid_potential_gfc),
-        _op_sc(0, *_solid_potential_gfc),
-        _jex(&jex),
-        _op_pwcc(3) {}
+        _op_pwcc(3),
+        _op_sc(0, *_solid_potential_gfc) {}
 
       /// P2D
       OverPotentialCoefficient(

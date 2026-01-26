@@ -23,8 +23,6 @@ int main(int argc, char *argv[])
 {
    // Initialize MPI and HYPRE.
    Mpi::Init(argc, argv);
-   int num_procs = Mpi::WorldSize();
-   int myid = Mpi::WorldRank();
    Hypre::Init();
 
    // Parse command-line options.
@@ -95,25 +93,24 @@ int main(int argc, char *argv[])
    // Initialise grid and layout properties dependent on the electrochemical model and FE order
    init_params(model, order);
 
-   // Build the 1d mesh for the macro problem and tag its elements according to their region
+   // Build the 1d mesh for the macro problem and tag its elements according to their region.
+   // Define the parallel mesh by a partitioning of the serial mesh.
+   // Once the parallel mesh is defined, the serial mesh can be deleted.
    Mesh x_smesh = Mesh::MakeCartesian1D(NX);
    for (unsigned i = 0; i < NX; i++)
       x_smesh.SetAttribute(i, i < NNE ? NE : i < NNE + NSEP ? SEP : PE);
-
-   // Build one 1d mesh for each particle, i.e. for each of the micro problems
-   Mesh r_smesh[NPAR];
-   for (unsigned p = 0; p < NPAR; p++)
-      r_smesh[p] = Mesh::MakeCartesian1D(NR);
-
-   // Define each parallel mesh by a partitioning of the respective serial mesh above.
-   // Once each parallel mesh is defined, the respective serial mesh can be deleted.
    ParMesh *x_pmesh = new ParMesh(MPI_COMM_WORLD, x_smesh);
    x_smesh.Clear(); // the serial mesh is no longer needed
-   ParMesh *r_pmesh[NPAR];
+
+   // Build one 1d mesh for each particle, i.e. for each of the micro problems.
+   // Define each parallel mesh by a partitioning of the respective serial mesh.
+   // Once each parallel mesh is defined, the respective serial mesh can be deleted.
+   Array<ParMesh *> r_pmesh(NPAR);
    for (unsigned p = 0; p < NPAR; p++)
    {
-      r_pmesh[p] = new ParMesh(MPI_COMM_WORLD, r_smesh[p]);
-      r_smesh[p].Clear(); // the serial mesh is no longer needed
+      Mesh r_smesh = Mesh::MakeCartesian1D(NR);
+      r_pmesh[p] = new ParMesh(MPI_COMM_WORLD, r_smesh);
+      r_smesh.Clear(); // the serial mesh is no longer needed
    }
 
    // Define the H1 finite element spaces representing concentrations/potentials
