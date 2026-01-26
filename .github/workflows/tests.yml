@@ -1,0 +1,43 @@
+name: Integration Tests
+
+on: [push, pull_request, workflow_dispatch]
+
+jobs:
+  Tests:
+    name: ${{ matrix.method }}, ${{ matrix.ranks }} rank(s), ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        method: [SPM, SPMe, P2D]
+        ranks: [1, 2, 3]
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Setup MPI
+        uses: mpi4py/setup-mpi@v1
+      - name: Checkout batree
+        uses: actions/checkout@v6
+      - name: Checkout, configure, build and install MFEM
+        run: |
+          git clone https://github.com/mfem/mfem.git
+          cd mfem && mkdir build && cd build
+          export CC=mpicc CXX=mpicxx FC=mpif90
+          cmake .. \
+            -DCMAKE_BUILD_TYPE=Debug \
+            -DCMAKE_INSTALL_PREFIX=../installed \
+            -DMFEM_USE_MPI=YES \
+            -DMFEM_FETCH_HYPRE=YES \
+            -DMFEM_FETCH_METIS=YES
+          make -j4
+          make -j4 install
+      - name: Build batree
+        run: |
+          make \
+            MFEM_INSTALL_DIR=./mfem/installed \
+            MFEM_TPLFLAGS=-I./mfem/build/fetch/hypre/include \
+            MFEM_EXT_LIBS="./mfem/build/fetch/hypre/lib/libHYPRE.a \
+                           ./mfem/build/fetch/metis/lib/libmetis.a"
+      - name: Run batree and perform diff with gold output
+        run: |
+          diff <(mpirun -n ${{ matrix.ranks }} ./batree -m ${{ matrix.method }} | grep -e "V = ") \
+               .github/workflows/${{ matrix.method }}.txt

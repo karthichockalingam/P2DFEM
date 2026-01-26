@@ -16,12 +16,12 @@ class EChemOperator : public TimeDependentOperator
 {
 protected:
    ParFiniteElementSpace * & _x_h1space;
-   ParFiniteElementSpace * _x_l2space;
+   ParFiniteElementSpace * _x_l2space = nullptr;
    Array<ParFiniteElementSpace *> & _r_h1space;
 
-   ElectrolytePotential     *  _ep;
-   SolidPotential           *  _sp;
-   ElectrolyteConcentration *  _ec;
+   ElectrolytePotential     *  _ep = nullptr;
+   SolidPotential           *  _sp = nullptr;
+   ElectrolyteConcentration *  _ec = nullptr;
    Array<SolidConcentration *> _sc;
 
    /// Gridfunctions defined over _x_h1space (3 macro eqs plus _surface_ concentration)
