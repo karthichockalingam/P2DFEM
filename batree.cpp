@@ -1,15 +1,4 @@
-// Batree - An MFEM-based SPM, SPMe and P2D solver by the Hartree Centre
-//
-// Compile with: make batree
-//
-// Sample runs:  mpirun -np 4 batree -m SPM
-//               mpirun -np 4 batree -m SPMe
-//               mpirun -np 4 batree -m P2D
-//
-// Description:  Under active development. No explicit time integration methods
-//               are supported at this time. Use -m or --method to select from
-//               the three electrochemical models. At the moment, the program
-//               will only perform a single CC discharge cycle.
+// Batree - An MFEM-based SPM, SPMe and P2D solver
 
 #include "mfem.hpp"
 #include <fstream>
