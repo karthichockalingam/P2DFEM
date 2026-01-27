@@ -31,8 +31,7 @@ int main(int argc, char *argv[])
    int ode_solver_type = 1;
    real_t t_final = 3600.0;
    real_t dt = 1.0;
-   bool visualization = true;
-   int vis_steps = 5;
+   int output_steps = 5;
 
    int precision = 8;
    std::cout.precision(precision);
@@ -43,17 +42,13 @@ int main(int argc, char *argv[])
    args.AddOption(&order, "-o", "--order",
                   "Order (degree) of the finite elements.");
    args.AddOption(&ode_solver_type, "-s", "--ode-solver",
-                  "ODE solver: 1 - Backward Euler, 2 - SDIRK2, 3 - SDIRK3,\n\t"
-                  "\t   11 - Forward Euler, 12 - RK2, 13 - RK3 SSP, 14 - RK4.");
+                  "ODE solver: 1 - Backward Euler, 2 - SDIRK2, 3 - SDIRK3");
    args.AddOption(&t_final, "-tf", "--t-final",
                   "Final time; start time is 0.");
    args.AddOption(&dt, "-dt", "--time-step",
                   "Time step.");
-   args.AddOption(&visualization, "-vis", "--visualization", "-no-vis",
-                  "--no-visualization",
-                  "Enable or disable ParaView visualization.");
-   args.AddOption(&vis_steps, "-vs", "--visualization-steps",
-                  "Visualize every n-th timestep.");
+   args.AddOption(&output_steps, "-os", "--output-steps",
+                  "Output every n-th timestep.");
    args.Parse();
    if (!args.Good())
    {
@@ -159,8 +154,9 @@ int main(int argc, char *argv[])
       real_t V = oper.GetVoltage();
       // TODO: Stop sim at cutoff voltage
 
+
       // if at last timestep or at visualisation output step and only output at root processor
-      if ((last_step || (ti % vis_steps) == 0) && Mpi::Root())
+      if ((last_step || (ti % output_steps) == 0) && Mpi::Root())
          std::cout << "step " << ti << ", t = " << t << ", V = " << V << std::endl;
    }
 
