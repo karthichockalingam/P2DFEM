@@ -349,18 +349,27 @@ Array<real_t> EChemOperator::GetParticleReactionCurrent()
          break;
       case P2D:
          ParGridFunction j_gf(_x_h1space);
-         j_gf.ProjectCoefficient(*_j);
 
          { // Despicable trick to project discontinuous current onto H1
-            Array<int> ne_particle_dofs;
+            Array<int> electrode_particle_dofs;
+            Array<int> mutated_elements;
             for (unsigned p = 0; p < NPAR; p++)
-               if (_sc[p]->IsParticleOwned() && _sc[p]->GetParticleRegion() == NE)
-                  ne_particle_dofs.Append(_sc[p]->GetParticleDof());
-            j_gf.ProjectCoefficient(*_j, ne_particle_dofs);
+               if (_sc[p]->IsParticleOwned())
+               {
+                  int dof = _sc[p]->GetParticleDof();
+                  int elem = _x_h1space->GetElementForDof(dof);
+                  electrode_particle_dofs.Append(dof);
+                  if (_x_h1space->GetAttribute(elem) == SEP)
+                  {
+                     mutated_elements.Append(elem);
+                     _x_h1space->GetParMesh()->SetAttribute(elem, _sc[p]->GetParticleRegion());
+                  }
+               }
 
-            auto check_ne = [&](int d){ return _x_h1space->GetAttribute(_x_h1space->GetElementForDof(d)) == NE; };
-            const bool all_ne = std::all_of(ne_particle_dofs.begin(), ne_particle_dofs.end(), check_ne);
-            MFEM_ASSERT(all_ne, "Trick to project discontinuous current onto H1 failed");
+            j_gf.ProjectCoefficient(*_j, electrode_particle_dofs);
+
+            for (auto & elem : mutated_elements)
+               _x_h1space->GetParMesh()->SetAttribute(elem, SEP);
          }
 
          for (unsigned p = 0; p < NPAR; p++)
