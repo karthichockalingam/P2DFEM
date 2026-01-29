@@ -140,8 +140,11 @@ int main(int argc, char *argv[])
       real_t V = oper.GetVoltage();
       // TODO: Stop sim at cutoff voltage
 
-      if ((last_step || (ti % output_steps) == 0) && Mpi::Root())
-         std::cout << "step " << ti << ", t = " << t << ", V = " << V << std::endl;
+      if (Mpi::Root() && output_steps && ti == 1)
+         std::cout << "step\ttime[s]\tvoltage[V]" << std::endl;
+
+      if (Mpi::Root() && output_steps && (last_step || (ti % output_steps) == 0))
+         std::cout << ti << "\t" << t << "\t" << V << std::endl;
    }
 
    // Free the used memory.
