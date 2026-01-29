@@ -90,9 +90,6 @@ protected:
    IntegrationRule _scl_ir = IntegrationRules().Get(Geometry::Type::SEGMENT, 7);
    const IntegrationRule * _scl_irs[Geometry::Type::NUM_GEOMETRIES];
 
-   /// File to write temporary data to
-   std::ofstream _file;
-
 public:
    EChemOperator(ParFiniteElementSpace * &x_h1space, Array<ParFiniteElementSpace *> &r_h1space, const unsigned &ndofs,
                  BlockVector &x, real_t & t, real_t & dt, ODESolver & ode_solver);
@@ -148,6 +145,5 @@ public:
 
       delete _Ac;
       delete _Ap;
-      _file.close();
    }
 };

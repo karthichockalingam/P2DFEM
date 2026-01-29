@@ -3,7 +3,7 @@
 EChemOperator::EChemOperator(ParFiniteElementSpace * &x_h1space, Array<ParFiniteElementSpace *> &r_h1space, const unsigned &ndofs,
                              BlockVector &x, real_t & t, real_t & dt, ODESolver & ode_solver)
    : TimeDependentOperator(ndofs, (real_t) 0.0), _x_h1space(x_h1space), _r_h1space(r_h1space), _Ac(NULL), _Ap(NULL),
-     _x(x), _t(t), _dt(dt), _ode_solver(ode_solver), _Solver(_x_h1space->GetComm()), _file("data.csv")
+     _x(x), _t(t), _dt(dt), _ode_solver(ode_solver), _Solver(_x_h1space->GetComm())
 {
    const real_t rel_tol = 1e-16;
 
@@ -504,44 +504,17 @@ void EChemOperator::ConstructOverPotential()
 real_t EChemOperator::GetVoltage()
 {
    // Definition from JuBat: https://doi.org/10.1016/j.est.2023.107512
-   real_t V = phi_scale;
    switch (M)
    {
       case SPM:
-         V *= GetOpenCircuitPotential(PE) - GetOpenCircuitPotential(NE) + GetOverPotential(PE) - GetOverPotential(NE);
-         break;
+         return phi_scale * (GetOpenCircuitPotential(PE) - GetOpenCircuitPotential(NE) + GetOverPotential(PE) - GetOverPotential(NE));
       case SPMe:
-         V *= GetOpenCircuitPotential(PE) - GetOpenCircuitPotential(NE) + GetOverPotential(PE) - GetOverPotential(NE) - GetVoltageMarquisCorrection();
-         break;
+         return phi_scale * (GetOpenCircuitPotential(PE) - GetOpenCircuitPotential(NE) + GetOverPotential(PE) - GetOverPotential(NE) - GetVoltageMarquisCorrection());
       case P2D:
-         V *= GetReferencePotential(PE) - GetReferencePotential(NE);
-         break;
+         return phi_scale * (GetReferencePotential(PE) - GetReferencePotential(NE));
    }
 
-   if ((M == SPM || M == SPMe) && Mpi::Root())
-   {
-      // Print file headings first time function is called.
-      static bool writeFileHeadings = true;
-      if (writeFileHeadings)
-      {
-         _file << "t"  << ", \t"
-               << "cn" << ", \t"
-               << "cp" << ", \t"
-               << "voltage"
-               << std::endl;
-
-         writeFileHeadings = false;
-      }
-
-      // Print data to file.
-      _file << _t                          << ", \t"
-            << GetSurfaceConcentration(NE) << ", \t"
-            << GetSurfaceConcentration(PE) << ", \t"
-            << V
-            << std::endl;
-   }
-
-   return V;
+   mfem_error("Unreachable as method must be one of SPM, SPMe or P2D.");
 }
 
 real_t EChemOperator::GetVoltageMarquisCorrection()
