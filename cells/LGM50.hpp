@@ -34,7 +34,7 @@ namespace LGM50 {
     const real_t rp = 5.22e-6; // Positive particle radius (m).
     const real_t positive_electrode_thickness = 75.6e-6;
 
-    const real_t eps_p = 0.335; // Positive electrode electrolyte volume fraction 
+    const real_t eps_p = 0.335; // Positive electrode electrolyte volume fraction
     const real_t eps_p_fi = 0.0;
     const real_t eps_p_s = 1 - eps_p - eps_p_fi;
 
@@ -72,7 +72,7 @@ namespace LGM50 {
     const real_t cell_no_layers = 1;
     const real_t cell_area = cell_width * cell_length * cell_no_layers;
 
-    const real_t I_typ = 5.0;    // Or I1C in Jubat. 
+    const real_t I_typ = 5.0;    // Or I1C in Jubat.
                                 //Reference total current, A
 
     const real_t brugg = 1.5; // Currently the same in each region, may need to vary later.

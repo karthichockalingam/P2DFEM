@@ -1,6 +1,6 @@
 ## Constants in the paper [https://doi.org/10.1016/j.est.2023.107512](https://doi.org/10.1016/j.est.2023.107512 "Persistent link using digital object identifier")
 
-Ai, Weilong, and Yuan Liu. "Improving the convergence rate of Newman’s battery model using 2nd order finite element method." _Journal of Energy Storage_ 67 (2023): 107512. 
+Ai, Weilong, and Yuan Liu. "Improving the convergence rate of Newman’s battery model using 2nd order finite element method." _Journal of Energy Storage_ 67 (2023): 107512.
 
 
 ### Constants
@@ -16,7 +16,7 @@ Ai, Weilong, and Yuan Liu. "Improving the convergence rate of Newman’s battery
 
 
 ### Reference scales
-$i=n,e,p,sep$, where 
+$i=n,e,p,sep$, where
 - $e$ - electrolyte phase
 - $n$ - negative electrode
 - $p$ - positive electrode
@@ -82,7 +82,6 @@ $i=n,e,p,sep$, where
 | $\bar{I}$                  | $\bar{I}=\dfrac{I}{I_0}$                                                  | $\dfrac{\mathrm{A}}{\mathrm{A}}=1$                                   | scaled applied/electronic current           |
 | $\bar{m}_i$                | $`\bar{m}_i=\dfrac{m_i \ (c_{i,\max}\ c_{e0}^{0.5})}{j_0}`$               | $\dfrac{\mathrm{A\ m^{2.5}\ mol^{-1.5}}\left(\mathrm{mol\ m^{-3}}\right)^{3/2}}{\mathrm{A\ m^{-2}}}=1$                                                                                                                           | scaled reaction-rate parameter in phase $i$ |
 | $\bar{U}_i$                | $\bar{U}_i=\dfrac{U_i}{\phi_0}$                                           | $\dfrac{\mathrm{V}}{\mathrm{V}}=1$                                    | scaled open-circuit potential of phase $i$  |
- 
 
 
 
@@ -109,9 +108,3 @@ Chang-Hui Chen, Ferran Brosa Planella, Kieran O’Regan, Dominika Gastol, W. Dha
 |                              | $c_{\mathrm{e}0}$                  |                     | $\mathrm{mol}/\mathrm{m}^3$              | Initial lithium concentration in electrolyte |
 |                              | $\kappa_{\mathrm{e}}^{\text{typ}}$ |                     | $\mathrm{S}/\mathrm{m}$                  | Typical electrolyte conductivity             |
 |                              | $t_{+}^0$                          |                     | —                                        | Transference number                          |
-
-
-
-
-
- 
