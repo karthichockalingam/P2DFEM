@@ -1,7 +1,7 @@
 
 #include "equations/SolidPotential.hpp"
 
-void SolidPotential::Update(const BlockVector &x, const Coefficient &j, const real_t &dt)
+void SolidPotential::Update(const BlockVector &x, const Coefficient &j)
 {
    // Source term.
    // source_vec(x) = alpha * (L/N) * NX
@@ -41,8 +41,6 @@ void SolidPotential::Update(const BlockVector &x, const Coefficient &j, const re
 
    // b = Kx
    Kmat.Mult(x.GetBlock(SP), b);
-   // b = Kx + Q
+   b.Neg();
    b += Qvec;
-   // b = -1/dt * (Kx + Q)
-   b *= -1./dt;
 }

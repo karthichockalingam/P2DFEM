@@ -1,6 +1,6 @@
 #include "equations/SolidConcentration.hpp"
 
-void SolidConcentration::Update(const BlockVector &x, const Coefficient &j, const real_t &dt)
+void SolidConcentration::Update(const BlockVector &x, const Coefficient &j)
 {
    MFEM_ASSERT(particle_region == NE || particle_region == PE, "Particle not in electrode!");
 

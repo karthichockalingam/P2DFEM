@@ -1,7 +1,7 @@
 
 #include "equations/ElectrolytePotential.hpp"
 
-void ElectrolytePotential::Update(const BlockVector &x, const GridFunctionCoefficient &ec_gfc, const Coefficient &j, const real_t &dt)
+void ElectrolytePotential::Update(const BlockVector &x, const GridFunctionCoefficient &ec_gfc, const Coefficient &j)
 {
    // Source term.
    // source_vec(x) = alpha * (L/N) * NX
@@ -57,6 +57,4 @@ void ElectrolytePotential::Update(const BlockVector &x, const GridFunctionCoeffi
    b.Neg();
    // b = -K*x+Q
    b += Qvec;
-   // b = 1/dt*(-K*x+Q)
-   b *= 1./dt;
 }

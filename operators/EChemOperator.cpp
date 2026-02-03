@@ -167,8 +167,8 @@ void EChemOperator::ImplicitSolve(const real_t dt,
          UpdatePotentialEquations();
 
          // put _Ap and _bp together
-         _Ap->SetDiagonalBlock(EPP, new HypreParMatrix(_ep->GetK()));
-         _Ap->SetDiagonalBlock(SPP, new HypreParMatrix(_sp->GetK()));
+         _Ap->SetDiagonalBlock(EPP, new HypreParMatrix(_ep->GetK()), dt);
+         _Ap->SetDiagonalBlock(SPP, new HypreParMatrix(_sp->GetK()), dt);
          _bp.GetBlock(EPP) = _ep->GetZ();
          _bp.GetBlock(SPP) = _sp->GetZ();
 
@@ -225,8 +225,8 @@ void EChemOperator::UpdatePotentialEquations()
    _Ap = new BlockOperator(_potential_trueOffsets);
    _Ap->owns_blocks = 1;
 
-   _ep->Update(_x, _ec_gfc, *_j, _dt);
-   _sp->Update(_x, *_j, _dt);
+   _ep->Update(_x, _ec_gfc, *_j);
+   _sp->Update(_x, *_j);
 }
 
 void EChemOperator::UpdateConcentrationEquations()
@@ -236,10 +236,10 @@ void EChemOperator::UpdateConcentrationEquations()
    _Ac = new BlockOperator(_concentration_trueOffsets);
    _Ac->owns_blocks = 1;
 
-   _ec->Update(_x, _ec_gfc, *_j, _dt);
+   _ec->Update(_x, _ec_gfc, *_j);
    const Array<real_t> & j = GetParticleReactionCurrent();
    for (unsigned p = 0; p < NPAR; p++)
-      _sc[p]->Update(_x, ConstantCoefficient(j[p]), _dt);
+      _sc[p]->Update(_x, ConstantCoefficient(j[p]));
 }
 
 //
