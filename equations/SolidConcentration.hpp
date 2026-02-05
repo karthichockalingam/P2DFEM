@@ -31,8 +31,8 @@ class SolidConcentration : public Equation
            surface_rank(FindSurfaceRank())
       { }
 
-      virtual void Update(const BlockVector &x, const Coefficient &j, const real_t &dt);
-      virtual void Update(const BlockVector &, const GridFunctionCoefficient &, const Coefficient &, const real_t &) {}
+      virtual void Update(const BlockVector &x, const Coefficient &j);
+      virtual void Update(const BlockVector &, const GridFunctionCoefficient &, const Coefficient &) {}
       real_t SurfaceConcentration(const BlockVector &x);
       int GetParticleRank(){ return particle_rank; }
       int GetSurfaceRank(){ return surface_rank; }

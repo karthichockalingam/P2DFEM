@@ -1,7 +1,7 @@
 
 #include "equations/ElectrolyteConcentration.hpp"
 
-void ElectrolyteConcentration::Update(const BlockVector &x, const GridFunctionCoefficient &ec_gfc, const Coefficient &j, const real_t &dt)
+void ElectrolyteConcentration::Update(const BlockVector &x, const GridFunctionCoefficient &ec_gfc, const Coefficient &j)
 {
    // Mass coefficient.
    Vector mass_vec({
