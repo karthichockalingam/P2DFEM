@@ -95,23 +95,37 @@ In real physical space $x$, we have different normalized lengths $L N E, L S E P
 - PE elements: $\Delta x_{P E}=L P E / N P E$
 
 To address this, the physical coordinate is represented by a piecewise linear mapping $$x=F(\bar{x}),$$ 
-$$F(\bar{x})= \begin{cases}\frac{L N E \cdot N X}{N N E} \bar{x}, & \bar{x} \in\left[0, \frac{N N E}{N X}\right], \\ L N E+\frac{L S E P \cdot N X}{N S E P}\left(\bar{x}-\frac{N N E}{N X}\right), & \bar{x} \in\left[\frac{N N E}{N X}, \frac{N N E+N S E P}{N X}\right], \\ L N E+L S E P+\frac{L P E \cdot N X}{N P E}\left(\bar{x}-\frac{N N E+N S E P}{N X}\right), & \bar{x} \in\left[\frac{N N E+N S E P}{N X}, 1\right] ,\end{cases}
+
 $$
-with the piecewise constant Jacobian 
+F(\bar{x})= 
+\begin{cases}
+\frac{L N E \cdot N X}{N N E} \bar{x}, & \bar{x} \in\left[0,\frac{N N E}{N X}\right],\\
+L N E+\frac{L S E P \cdot N X}{N S E P}\left(\bar{x}-\frac{N N E}{N X}\right), & \bar{x} \in\left[\frac{N N E}{N X},\frac{N N E+N S E P}{N X}\right],\\
+L N E+L S E P+\frac{L P E \cdot N X}{N P E}\left(\bar{x}-\frac{N N E+N S E P}{N X}\right), & \bar{x} \in\left[\frac{N N E+N S E P}{N X},1\right],
+\end{cases}
 $$
-F^{\prime}(\bar{x})=\omega_i=\left\{\begin{array}{l}
-\frac{L N E \cdot N X}{N N E}, i= N E, \\[3pt]
-\frac{L S E P \cdot N X}{N S E P}, i = S E P, \\[3pt]
-\frac{L P E \cdot N X}{N P E}, i= P E.
-\end{array}\right.
+
+with the piecewise constant Jacobian
+
+$$
+F'(\bar{x})=\omega_i=
+\begin{cases}
+\frac{L N E \cdot N X}{N N E}, &\quad i = N E,\\
+\frac{L S E P \cdot N X}{N S E P}, &\quad i = S E P,\\
+\frac{L P E \cdot N X}{N P E}, &\quad i = P E.
+\end{cases}
 $$
 
 Let $\bar{\phi}=\phi \circ F$ and $\bar{v}=v \circ F$. We then apply the change of variables to the integrals below
-$$\int \sigma \phi_x v_x d x=\int \sigma\left(\frac{1}{\omega_i} \bar\phi_{\bar{x}}\right)\left(\frac{1}{\omega_i} \bar v_{\bar{x}}\right) \omega_i d \bar{x}=\int \frac{\sigma}{\omega_i} \, \bar\phi_{\bar{x}} \bar v_{\bar{x}} d \bar{x},
+
+$$
+\int \sigma \phi_x v_x d x=\int \sigma\left(\frac{1}{\omega_i} \bar\phi_{\bar{x}}\right)\left(\frac{1}{\omega_i} \bar v_{\bar{x}}\right) \omega_i d \bar{x}=\int \frac{\sigma}{\omega_i} \ \bar\phi_{\bar{x}} \bar v_{\bar{x}} d \bar{x},
 $$
 
-$$\int f v(x) d x=\int f \bar{v}(\bar{x}) \, \omega_i d \bar{x}=\int f \omega_i \, \bar{v}(\bar{x}) d \bar{x},
 $$
+\int f v(x) d x=\int f \bar{v}(\bar{x}) \ \omega_i d \bar{x}=\int f \omega_i \ \bar{v}(\bar{x}) d \bar{x},
+$$
+
 where $\sigma$ and $f$ are constants.
 
 ### Parameters of the LG M50 battery cells: Negative electrode
