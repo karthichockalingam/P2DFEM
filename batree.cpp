@@ -138,6 +138,7 @@ int main(int argc, char *argv[])
    // Get the number of dofs in the system (including boundaries), for
    // both the macro and micro problems, _owned_ by this processor.
    HYPRE_BigInt fe_size_owned = NMACRO * x_h1space->GetTrueVSize();
+   // sum up fe_size across each processor to get total size across whole domain
    for (unsigned p = 0; p < NPAR; p++)
       fe_size_owned += r_h1space[p]->GetTrueVSize();
 
@@ -156,10 +157,12 @@ int main(int argc, char *argv[])
    {
       last_step = t + dt >= t_final - dt/2;
 
+      // step through one time step
       oper.Step();
       real_t V = oper.GetVoltage();
       // TODO: Stop sim at cutoff voltage
 
+      // if at last timestep or at visualisation output step and only output at root processor
       if ((last_step || (ti % vis_steps) == 0) && Mpi::Root())
          std::cout << "step " << ti << ", t = " << t << ", V = " << V << std::endl;
    }
