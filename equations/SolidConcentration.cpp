@@ -56,15 +56,18 @@ SolidConcentration::Update(const BlockVector & x, const Coefficient & j)
 real_t
 SolidConcentration::SurfaceConcentration(const BlockVector & x)
 {
-  //if the current MPI rank owns the surface DOF, it will output a single DOF value, else it will return 0
+  // if the current MPI rank owns the surface DOF, it will output a single DOF value, 
+  // else it will return 0
   real_t csurf = IsSurfaceOwned() ? x.GetBlock(SC + particle_id)[surface_tdof] : 0;
 
   if (GetParticleRank() == GetSurfaceRank())
     return csurf;
 
   if (IsSurfaceOwned())
+    //blocking send of csurf to the particle rank.
     MPI_Send(&csurf, 1, MFEM_MPI_REAL_T, particle_rank, particle_id, MPI_COMM_WORLD);
   if (IsParticleOwned())
+    // blocking receive of csurf from the surface rank.
     MPI_Recv(
         &csurf, 1, MFEM_MPI_REAL_T, surface_rank, particle_id, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
