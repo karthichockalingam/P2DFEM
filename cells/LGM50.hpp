@@ -17,7 +17,7 @@ namespace LGM50 {
 
     const real_t kn_dim = 6.48e-7; //Negative electrode reaction rate, A m^{2.5}/mol^{1.5}
     const real_t Dn = 3.3e-14; // Diffusion coefficient, negative electrode, m^2/s
-    const real_t An = 3 * eps_n_s / rn; // Negative electrode area (m^2).
+    const real_t An = 3 * eps_n_s / rn; // Negative electrode area (m^{-1}).
 
     const real_t sig_n = 215.; // Negative electrode conductivity (S/m).
 
@@ -56,12 +56,12 @@ namespace LGM50 {
     const real_t eps_s = 0.47;
 
     // Electrolyte.
-    const real_t ce0 = 1000.0;
-    real_t De(real_t ce)
+    const real_t ce0 = 1000.0; //initial electrolyte concentration (mol/(m^3))
+    real_t De(real_t ce) //diffusivity of lithium ions in the electrolyte (m^2/s)
     {
         return 8.794e-11 * pow(ce / 1000, 2) - 3.972e-10 * (ce / 1000) + 4.862e-10;
     }
-    real_t kappa(real_t x)
+    real_t kappa(real_t x) // electronic conductivity (S/m)
     {
         return 0.1297 * pow(x / 1000, 3) - 2.51 * pow(x / 1000, 1.5) + 3.329 * (x / 1000);
     }
