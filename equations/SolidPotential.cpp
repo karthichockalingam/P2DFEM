@@ -4,6 +4,8 @@
 void SolidPotential::Update(const BlockVector &x, const Coefficient &j, const real_t &dt)
 {
    // Source term.
+   // source_vec(x) = alpha * (L/N) * NX
+   // source_vec = [S_NE, 0, S_PE]
    Vector source_vec({
       /* NE */ AN /* length scaling */ * (LNE / NNE * NX),
       /* SEP */ 0.,
@@ -26,14 +28,19 @@ void SolidPotential::Update(const BlockVector &x, const Coefficient &j, const re
    K->Assemble();
    K->FormSystemMatrix(ess_tdof_list, Kmat);
 
+   // assemble a parallel RHS vector with the essential boundary DOF zeroed out
    delete Q;
    Q = new ParLinearForm(&fespace);
+   // Q = integral of (source(x) * phi(x))
    Q->AddDomainIntegrator(new DomainLFIntegrator(source));
    Q->Assemble();
    Qvec = std::move(*(Q->ParallelAssemble()));
    Qvec.SetSubVector(ess_tdof_list, 0.0);
 
+   // b = Kx
    Kmat.Mult(x.GetBlock(SP), b);
+   // b = Kx + Q
    b += Qvec;
+   // b = -1/dt * (Kx + Q)
    b *= -1./dt;
 }
