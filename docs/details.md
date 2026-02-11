@@ -134,20 +134,37 @@ where $\sigma$ and $f$ are constants.
 Chang-Hui Chen, Ferran Brosa Planella, Kieran O’Regan, Dominika Gastol, W. Dhammika Widanage and Emma Kendrick "Development of Experimental Techniques for Parameterization of Multi-scale Lithium-ion Battery Models"
 
 
-| Code variable                | Parameter                          | Value               | Units                                    | Description                                  |
-| ---------------------------- | ---------------------------------- | ------------------: | ---------------------------------------- | -------------------------------------------- |
-| negative_electrode_thickness | $L_k$                              |                85.2 | $\mu\mathrm{m}$                          | Thickness                                    |
-| eps_n                        | $\epsilon_{\mathrm{e}}$            |                  25 | \%                                       | Electrolyte volume fraction                  |
-|                              | $\epsilon_k$                       |                  75 | \%                                       | Active material volume fraction              |
-|                              | $b_k$                              |                2.91 | —                                        | Bruggeman coefficient                        |
-| cnmax                        | $c_{\text{max}}$                   |               33133 | $\mathrm{mol}/\mathrm{m}^3$              | Maximum lithium concentration                |
-| cn0                          | $c_0$                              |               29866 | $\mathrm{mol}/\mathrm{m}^3$              | Initial electrode lithium concentration      |
-|  sig_n                       | $\sigma_k$                         |                 215 | $\mathrm{S}/\mathrm{m}$                  | Electrode conductivity                       |
-| Dn                           | $D_k$                              | $3.3\times10^{-14}$ | $\mathrm{m}^2/\mathrm{s}$                | Electrode diffusivity                        |
-| rn                           | $R_k$                              |                5.86 | $\mu\mathrm{m}$                          | Particle radius                              |
-| kn_dim                       | $m_k$                              | $6.48\times10^{-7}$ | $\mathrm{A\ m}^{2.5}/\mathrm{mol}^{1.5}$ | Reaction rate                                |
-|                              | $c_{\mathrm{e}}^{\text{typ}}$      |                     | $\mathrm{mol}/\mathrm{m}^3$              | Typical lithium concentration in electrolyte |
-|                              | $D_{\mathrm{e}}^{\text{typ}}$      |                     | $\mathrm{m}^2/\mathrm{s}$                | Typical electrolyte diffusivity              |
-|                              | $c_{\mathrm{e}0}$                  |                     | $\mathrm{mol}/\mathrm{m}^3$              | Initial lithium concentration in electrolyte |
-|                              | $\kappa_{\mathrm{e}}^{\text{typ}}$ |                     | $\mathrm{S}/\mathrm{m}$                  | Typical electrolyte conductivity             |
-|                              | $t_{+}^0$                          |                     | —                                        | Transference number                          |
+| Code variable                | Parameter                     | Value               | Units                                    | Description                                  |
+| ---------------------------- | ----------------------------- | ------------------  | ---------------------------------------- | -------------------------------------------- |
+| cn0                          | $c_0$                          |               29866 | $\mathrm{mol}/\mathrm{m}^3$                 | initial electrode lithium concentration      |
+| cnmax                        | $c_{\text{max}}$                |               33133 | $\mathrm{mol}/\mathrm{m}^3$                 | maximum lithium concentration                |
+|                              |                               |                     |                                          |                                              |
+| rn                           | $R_k$                          | $5.86\times10^{-6}$   | $\mathrm{m}$                              | particle radius, negative electrode          |
+| negative_electrode_thickness | $L_k$                          | $85.2\times10^{-6}$   | $\mathrm{m}$                              | negative electrode thickness                  |
+|                              |                               |                     |                                          |                                              |
+| eps_n                        | $\epsilon_{\mathrm{e}}$          |                  25 | \%                                       | electrolyte volume fraction                  |
+| eps_n_s                      | $\epsilon_k$                    |                  75 | \%                                       | active material volume fraction              |
+|                              |                                |                     |                                          |                                              |
+| kn_dim                       | $m_k$                           | $6.48\times10^{-7}$    | $\mathrm{A\ m}^{2.5}/\mathrm{mol}^{1.5}$     | reaction rate                                |
+| Dn                           | $D_k$                           | $3.3\times10^{-14}$ | $\mathrm{m}^2/\mathrm{s}$                     | electrode diffusivity                        |
+| A_n                          | $a_k=\frac{3 \epsilon_{k}}{R_k}$   |                      | $\mathrm{m}^{-1}$                         | specific surface area of negative electrode  |                              | $b_k$                              |                2.91 | —                                        | Bruggeman coefficient                        |
+|                              |                                |                     |                                          |                                              |
+|  sig_n                       | $\sigma_k$                      |                 215 | $\mathrm{S}/\mathrm{m}$                     | negative electrode conductivity              |
+|                              |                                |                     |                                          |                                              |
+| Up()                         | $U_{+}()$                       |                     |                                          | OCV curve for the positive electrode         |
+|                              |                                |                     |                                          |                                              |
+|                              |                                |                     |                                          |                                              |
+| separator_thickness          | $L_s$                          | $12\times10^{-6}$      | $\mathrm{m}$                              | separator thickness                          | 
+| tplus                        | $t^{+}$                         | 0.2594               | -                                       | transference number of lithium ions          |
+| eps_s                        | $\epsilon_{\mathrm{s}}$          |                  45 | \%                                       | electrolyte volume fraction, separator        |
+|                              |                                |                     |                                          |                                              |
+|                              |                                |                     |                                          |                                              |
+|  ce0                         | $c_{\mathrm{e}0}$               |   1000               | $\mathrm{mol}/\mathrm{m}^3$                 | initial electrolyte concentration             |
+|  De()                      | $`D_{\mathrm{e}}^{\text{typ}}()`$      |                     | $\mathrm{m}^2/\mathrm{s}$     | diffusivity of lithium ions in the electrolyte |
+|  kappa()                     | $`\sigma_{\mathrm{e}}()`$ |                     | $\mathrm{S}/\mathrm{m}$                  | electronic conductivity                         |
+|                              |                                |                     |                                          |                                              |
+|                              |                                |                     |                                          |                                              |
+|  cell_length                 |                                |  1.58               |  $\mathrm{m}$                             | electrode length                             |
+|  cell_width                  |                                |  $6.5\times10^{-2}$   |  $\mathrm{m}$                             | electrode width                             |
+|  I_typ                       |                                |  5                  |  $\mathrm{A}$                             | typical current                             |
+|  brugg                       |                                |  1.5                  |  -                                     | Bruggeman coefﬁcients (theoretical value)  |
