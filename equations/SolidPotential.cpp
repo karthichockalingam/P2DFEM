@@ -42,5 +42,5 @@ void SolidPotential::Update(const BlockVector &x, const Coefficient &j)
    // b = Kx
    Kmat.Mult(x.GetBlock(SP), b);
    b.Neg();
-   b += Qvec;
+   b -= Qvec;
 }
