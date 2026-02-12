@@ -57,4 +57,9 @@ void ElectrolytePotential::Update(const BlockVector &x, const GridFunctionCoeffi
    b.Neg();
    // b = -K*x+Q
    b += Qvec;
+<<<<<<< HEAD
+=======
+   // b = 1/dt*(-K*x+Q)
+   b *= 1./dt;
+>>>>>>> 97189f7 (add comments for Electrolyte Potential)
 }
