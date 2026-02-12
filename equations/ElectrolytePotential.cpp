@@ -51,8 +51,12 @@ void ElectrolytePotential::Update(const BlockVector &x, const GridFunctionCoeffi
    Qvec = std::move(*(Q->ParallelAssemble()));
    Qvec.SetSubVector(ess_tdof_list, 0.0);
 
+   // b = K*x
    Kmat.Mult(x.GetBlock(EP), b);
+   // b = -K*x
    b.Neg();
+   // b = -K*x+Q
    b += Qvec;
+   // b = 1/dt*(-K*x+Q)
    b *= 1./dt;
 }
