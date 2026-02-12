@@ -1,8 +1,4 @@
-## Constants in the paper [https://doi.org/10.1016/j.est.2023.107512](https://doi.org/10.1016/j.est.2023.107512 "Persistent link using digital object identifier")
-
-Ai, Weilong, and Yuan Liu. "Improving the convergence rate of Newman’s battery model using 2nd order finite element method." _Journal of Energy Storage_ 67 (2023): 107512.
-
-
+## Constants in the paper [^1]
 ### Constants
 
 
@@ -30,6 +26,8 @@ $i=n,e,p,sep$, where
 | j_scale       | $j_0$     | $j_0=\dfrac{I_0}{a_0 A L_0}$             | $\mathrm{A\ m^{-2}}$                    | volumetric current density scale                                            |
 | tn<br>tp      | $t_{i0}$  | $t_{i0}=\dfrac{F A L_0 c_{i,\max}}{I_0}$ | $\mathrm{s}$                            | characteristic solid $(i=n,p)$ diffusion time scale for electrode particles |
 | te            | $t_{e0}$  | $t_{e0}=\dfrac{F A L_0 c_{e0}}{I_0}$     | $\mathrm{s}$                            | characteristic electrolyte diffusion time scale                             |
+| sig_scale     | -         | $\dfrac{I_0 L_0}{\phi_0 A}$              | $\dfrac{\mathrm{A}\ \mathrm{m}}{\mathrm{V}\ \mathrm{m^2}}$| electrode conductivity scale                              |
+| kappa_scale   | -         | $\dfrac{I_0 L_0}{\phi_0 A}$              | $\dfrac{\mathrm{A}\ \mathrm{m}}{\mathrm{V}\ \mathrm{m^2}}$| electrolyte conductivity scale                            |
 
 
 ### Parameters
@@ -125,13 +123,42 @@ $$
 $$
 \int f v(x) d x=\int f \bar{v}(\bar{x}) \ \omega_i d \bar{x}=\int f \omega_i \ \bar{v}(\bar{x}) d \bar{x},
 $$
-
 where $\sigma$ and $f$ are constants.
 
-### Parameters of the LG M50 battery cells
-[https://iopscience.iop.org/article/10.1149/1945-7111/ab9050](https://iopscience.iop.org/article/10.1149/1945-7111/ab9050)
+### Electrolyte voltage drop
+According to [^1] 
+$$
+\bar{V}_{\mathrm{e}}=-2 \bar{T}\left(1-t_{+}\right) \ln \frac{\bar{c}_{\mathrm{e}}(\bar{x}=0)}{\bar{c}_{\mathrm{e}}(\bar{x}=1)}+\frac{\bar{I}}{2}\left(\frac{\bar{L}_{\mathrm{n}}}{3 \bar{\kappa}_{\mathrm{n}}^{\text {eff }}}+\frac{\bar{L}_{\mathrm{sep}}}{\bar{\kappa}_{\mathrm{sep}}^{\text {eff }}}+\frac{\bar{L}_{\mathrm{p}}}{3 \bar{\kappa}_{\mathrm{p}}^{\text {eff }}}\right) \tag{1}
+$$
 
-Chang-Hui Chen, Ferran Brosa Planella, Kieran O’Regan, Dominika Gastol, W. Dhammika Widanage and Emma Kendrick "Development of Experimental Techniques for Parameterization of Multi-scale Lithium-ion Battery Models"
+
+$$
+\ln \bar{c}_{\mathrm{e}}(\bar{x}=0) = \ln (\pm c_{e0} + \bar{c}_{\mathrm{e}}(\bar{x}=0) )
+= \ln \left(1 + \frac{- c_{e0} +\bar{c}_{\mathrm{e}}(\bar{x}=0)}{c_{e0}} \right) + \ln c_{e0}\approx \frac{- c_{e0} +\bar{c}_{\mathrm{e}}(\bar{x}=0)}{c_{e0}} + \ln c_{e0}
+$$
+
+$$
+\bar{c}_{\mathrm{e}}(\bar{x}=0) \approx \mathrm{avg} (\bar{c}_{N E})
+$$
+
+$$
+\ln \frac{\bar{c}_{\mathrm{e}}(\bar{x}=0)}{\bar{c}_{\mathrm{e}}(\bar{x}=1)} \approx  \frac{1}{c_{e0}}(\mathrm{avg} (\bar{c}_{N E}) - \mathrm{avg} (\bar{c}_{P E}))
+$$
+
+$$
+\mathrm{avg}(f_{N E}) = \frac{1}{L N E}\int f_{N E} d x=\frac{1}{L N E}\int \bar{f}_{N E}(\bar{x}) \ \omega_{N E} d \bar{x} = \frac{N X}{N N E}\int \bar{f}_{N E}(\bar{x}) d \bar{x}
+$$
+
+
+According to [^3] 
+$$
+\eta_c = \left(1-t^{+}\right) \frac{2 R T}{F c_{\mathrm{e} 0}}\left(\frac{1}{L_{\mathrm{n}}} \int_0^{L_{\mathrm{n}}} c_{\mathrm{e}}(x, t) \mathrm{d} x-\frac{1}{L_{\mathrm{p}}} \int_{L-L_{\mathrm{p}}}^L c_{\mathrm{e}}(x, t) \mathrm{d} x\right) \tag{2}
+$$
+which is equivalent to the first term in (1) with $\bar T = \dfrac{RT}{F}$ scaling.
+*Code scaling follows equation (1), the averaging idea comes from equation (2).*
+
+### Parameters of the LG M50 battery cells
+[^2], [https://iopscience.iop.org/article/10.1149/1945-7111/ab9050](https://iopscience.iop.org/article/10.1149/1945-7111/ab9050)
 
 #### Negative electrode
 | Code variable                | Parameter                     | Value               | Units                                    | Description                                  |
@@ -196,5 +223,17 @@ Chang-Hui Chen, Ferran Brosa Planella, Kieran O’Regan, Dominika Gastol, W. Dha
 | ---------------------------- | ----------------------------- | ------------------  | ---------------------------------------- | -------------------------------------------- |
 |  cell_length                 |                                |  1.58               |  $\mathrm{m}$                            | electrode length                             |
 |  cell_width                  |                                |  $6.5\times10^{-2}$ |  $\mathrm{m}$                            | electrode width                              |
+
+#### Other parameters
+
+| Code variable                | Parameter                     | Value               | Units                                    | Description                                  |
+| ---------------------------- | ----------------------------- | ------------------  | ---------------------------------------- | -------------------------------------------- |
 |  I_typ                       |                                |  5                  |  $\mathrm{A}$                            | typical current                              |
 |  brugg                       |                                |  1.5                |  -                                       | Bruggeman coefﬁcients (theoretical value)    |
+
+
+## References
+[^1]: Ai, W., & Liu, Y. (2023). *Improving the convergence rate of Newman’s battery model using 2nd order finite element method*. Journal of Energy Storage, 67, 107512. https://doi.org/10.1016/j.est.2023.107512
+[^2]: Chen et al., (2020) [@ChenEtAl2020_JES_080534]
+[^3]:  Brosa Planella et al., (2022).
+  *A continuum of physics-based lithium-ion battery models reviewed*.   Progress in Energy, 4(4), 042003.
