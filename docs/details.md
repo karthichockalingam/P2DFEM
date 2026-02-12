@@ -123,14 +123,15 @@ $$
 $$
 \int f v(x) d x=\int f \bar{v}(\bar{x}) \ \omega_i d \bar{x}=\int f \omega_i \ \bar{v}(\bar{x}) d \bar{x},
 $$
+
 where $\sigma$ and $f$ are constants.
 
 ### Electrolyte voltage drop
 According to [^1] 
-$$
-\bar{V}_{\mathrm{e}}=-2 \bar{T}\left(1-t_{+}\right) \ln \frac{\bar{c}_{\mathrm{e}}(\bar{x}=0)}{\bar{c}_{\mathrm{e}}(\bar{x}=1)}+\frac{\bar{I}}{2}\left(\frac{\bar{L}_{\mathrm{n}}}{3 \bar{\kappa}_{\mathrm{n}}^{\text {eff }}}+\frac{\bar{L}_{\mathrm{sep}}}{\bar{\kappa}_{\mathrm{sep}}^{\text {eff }}}+\frac{\bar{L}_{\mathrm{p}}}{3 \bar{\kappa}_{\mathrm{p}}^{\text {eff }}}\right) \tag{1}
-$$
 
+$$
+\bar{V}_{\mathrm{e}}=-2 \bar{T}\left(1-t_{+}\right) \ln \frac{\bar{c}_{\mathrm{e}}(\bar{x}=0)}{\bar{c}_{\mathrm{e}}(\bar{x}=1)}+\frac{\bar{I}}{2}\left(\frac{\bar{L}_{\mathrm{n}}}{3 \bar{\kappa}_{\mathrm{n}}^{\text {eff }}}+\frac{\bar{L}_{\mathrm{sep}}}{\bar{\kappa}_{\mathrm{sep}}^{\text {eff }}}+\frac{\bar{L}_{\mathrm{p}}}{3 \bar{\kappa}_{\mathrm{p}}^{\text {eff }}}\right) \qquad (1)
+$$
 
 $$
 \ln \bar{c}_{\mathrm{e}}(\bar{x}=0) = \ln (\pm c_{e0} + \bar{c}_{\mathrm{e}}(\bar{x}=0) )
@@ -149,12 +150,14 @@ $$
 \mathrm{avg}(f_{N E}) = \frac{1}{L N E}\int f_{N E} d x=\frac{1}{L N E}\int \bar{f}_{N E}(\bar{x}) \ \omega_{N E} d \bar{x} = \frac{N X}{N N E}\int \bar{f}_{N E}(\bar{x}) d \bar{x}
 $$
 
-
 According to [^3] 
+
 $$
-\eta_c = \left(1-t^{+}\right) \frac{2 R T}{F c_{\mathrm{e} 0}}\left(\frac{1}{L_{\mathrm{n}}} \int_0^{L_{\mathrm{n}}} c_{\mathrm{e}}(x, t) \mathrm{d} x-\frac{1}{L_{\mathrm{p}}} \int_{L-L_{\mathrm{p}}}^L c_{\mathrm{e}}(x, t) \mathrm{d} x\right) \tag{2}
+\eta_c = \left(1-t^{+}\right) \frac{2 R T}{F c_{\mathrm{e} 0}}\left(\frac{1}{L_{\mathrm{n}}} \int_0^{L_{\mathrm{n}}} c_{\mathrm{e}}(x, t) \mathrm{d} x-\frac{1}{L_{\mathrm{p}}} \int_{L-L_{\mathrm{p}}}^L c_{\mathrm{e}}(x, t) \mathrm{d} x\right) \qquad (2)
 $$
+
 which is equivalent to the first term in (1) with $\bar T = \dfrac{RT}{F}$ scaling.
+
 *Code scaling follows equation (1), the averaging idea comes from equation (2).*
 
 ### Parameters of the LG M50 battery cells
