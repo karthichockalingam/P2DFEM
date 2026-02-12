@@ -32,9 +32,8 @@ void ElectrolyteConcentration::Update(const BlockVector &x, const GridFunctionCo
       /* SEP */ BSEP /* length scaling */ / (LSEP / NSEP * NX),
       /* PE */  BPE  /* length scaling */ / (LPE  / NPE  * NX)});
 
-   // D_coeff(x) = DE(ex(x))
-   TransformedCoefficient D_coeff(&const_cast<GridFunctionCoefficient&>(ec_gfc), [](real_t ec) { return DE(ec); });
-   // D_scale(x) = D_scale_vec[attribute(x)-1], attribute=1,2,3
+   // D_coeff(x) = DE(ec(x))
+   TransformedCoefficient D_coeff(&const_cast<GridFunctionCoefficient&>(ec_gfc), DE);
    PWConstCoefficient D_scale_coeff(D_scale_vec);
    // D(x) = D_scale(x) * DE(ec(x))
    ProductCoefficient D(D_scale_coeff, D_coeff);
