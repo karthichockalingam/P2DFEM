@@ -15,6 +15,8 @@ void SolidPotential::Update(const BlockVector &x, const Coefficient &j, const re
    ProductCoefficient source(source_part, const_cast<Coefficient&>(j));
 
    // Effective conductivity (does not account for electrode filler).
+   // sigma_vec(x) = (1-eps)*sigma*(L/N)*NX
+   // sigma_vec = [sigma_NE, 0, sigma_PE]
    Vector sigma_vec({
       /* NE */ (1 - EPS_N) * SIGN /* length scaling */ / (LNE / NNE * NX),
       /* SEP */ 0.,
