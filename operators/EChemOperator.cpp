@@ -559,13 +559,18 @@ void EChemOperator::GetParticleDofs(Array<int> & my_particle_dofs, Array<Region>
 {
    Array<int> gtdofs;
    Array<Region> regions;
+   // GetNE is the no. of elements in the local rank
    for (int e = 0; e < _x_h1space->GetNE(); e++)
    {
       Array<int> dofs;
+      // size of the array dofs depends on the order of the mesh
+      // populate dofs with local rank dof ID
       _x_h1space->GetElementDofs(e, dofs);
       for (int d: dofs)
       {
+         // gtdof stands for global true dof
          int gtdof = _x_h1space->GetGlobalTDofNumber(d);
+         // identify the region which the elements belong to
          Region r = Region(_x_h1space->GetAttribute(e));
          gtdofs.Append(gtdof);
          regions.Append(r);
@@ -585,9 +590,12 @@ void EChemOperator::GetParticleDofs(Array<int> & my_particle_dofs, Array<Region>
                  all_regions.GetData(), n_gtdofs, MPI_INT, MPI_COMM_WORLD);
 
    Array<Region> my_particle_regions;
-   for (int d = 0; d < _x_h1space->GetNDofs(); d++)
+   // GetNDofs is the total number of dof in a local rank
+   for (int d = 0; d < _x_h1space->GetNDofs(); d++)   
    {
+      //check if d is owned by the local rank and return gtdof, if not ltdof=-1
       int ltdof = _x_h1space->GetLocalTDofNumber(d);
+      // this will always return gtdof
       int gtdof = _x_h1space->GetGlobalTDofNumber(d);
       Region r = UNKNOWN;
       if (ltdof != -1)
