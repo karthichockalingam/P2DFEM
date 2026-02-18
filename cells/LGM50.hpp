@@ -1,4 +1,5 @@
 #pragma once
+
 #include "mfem.hpp"
 
 using namespace mfem;
@@ -21,7 +22,7 @@ namespace LGM50 {
 
     const real_t sig_n = 215.; // Negative electrode conductivity (S/m).
 
-    real_t Un(real_t cs) // Open circuit potential (V)
+    inline const real_t Un(real_t cs) // Open circuit potential (V)
     {
         return 1.97938*exp(-39.3631*cs) + 0.2482 - 0.0909*tanh(29.8538*(cs - 0.1234))
                -0.04478*tanh(14.9159*(cs - 0.2769)) - 0.0205*tanh(30.4444*(cs - 0.6103));
@@ -44,7 +45,7 @@ namespace LGM50 {
 
     const real_t sig_p = 0.18; // Positive electrode conductivity (S/m).
 
-    real_t Up(real_t cs) // Open circuit potential (V)
+    inline const real_t Up(real_t cs) // Open circuit potential (V)
     {
         return -0.8090*cs + 4.4875 - 0.0428*tanh(18.5138*(cs - 0.5542))
                -17.7326*tanh(15.7890*(cs - 0.3117)) + 17.5842*tanh(15.9308*(cs - 0.3120));
@@ -57,11 +58,11 @@ namespace LGM50 {
 
     // Electrolyte.
     const real_t ce0 = 1000.0;
-    real_t De(real_t ce)
+    inline const real_t De(real_t ce)
     {
         return 8.794e-11 * pow(ce / 1000, 2) - 3.972e-10 * (ce / 1000) + 4.862e-10;
     }
-    real_t kappa(real_t x)
+    inline const real_t kappa(real_t x)
     {
         return 0.1297 * pow(x / 1000, 3) - 2.51 * pow(x / 1000, 1.5) + 3.329 * (x / 1000);
     }

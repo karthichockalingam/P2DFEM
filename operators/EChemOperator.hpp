@@ -1,3 +1,5 @@
+#pragma once
+
 #include "mfem.hpp"
 #include "equations/ElectrolytePotential.hpp"
 #include "equations/ElectrolyteConcentration.hpp"
@@ -9,8 +11,6 @@
 #include "coefficients/ReactionCurrentCoefficient.hpp"
 
 using namespace mfem;
-
-#pragma once
 
 class EChemOperator : public TimeDependentOperator
 {

@@ -1,10 +1,9 @@
+#pragma once
+
 #include "mfem.hpp"
 #include "equations/Equation.hpp"
 
 using namespace mfem;
-
-
-#pragma once
 
 class SolidConcentration : public Equation
 {
