@@ -61,17 +61,12 @@ real_t SolidConcentration::SurfaceConcentration(const BlockVector &x)
    if (GetParticleRank() == GetSurfaceRank())
       return csurf;
 
-   // communication send from particle mesh to surface mesh
-   MPI_Request request;
+   // communication send from local particle rank to surface mesh
    if (IsSurfaceOwned())
-      MPI_Isend(&csurf, 1, MFEM_MPI_REAL_T, particle_rank, particle_id, MPI_COMM_WORLD, &request);
+      MPI_Send(&csurf, 1, MFEM_MPI_REAL_T, particle_rank, particle_id, MPI_COMM_WORLD);
    if (IsParticleOwned())
       MPI_Recv(&csurf, 1, MFEM_MPI_REAL_T, surface_rank, particle_id, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-
-   //ensures that send and recv is complete before carrying out next operation
-   if (IsSurfaceOwned())
-      MPI_Wait(&request, MPI_STATUS_IGNORE);
-
+   
    return csurf;
 }
 

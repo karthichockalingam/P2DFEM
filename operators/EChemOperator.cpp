@@ -379,15 +379,11 @@ Array<real_t> EChemOperator::GetParticleReactionCurrent()
             if (_sc[p]->GetParticleRank() == _sc[p]->GetSurfaceRank())
                continue;
 
-            MPI_Request request;
             if (_sc[p]->IsParticleOwned())
-               MPI_Isend(&j[p], 1, MFEM_MPI_REAL_T, _sc[p]->GetSurfaceRank(), p, MPI_COMM_WORLD, &request);
+               MPI_Send(&j[p], 1, MFEM_MPI_REAL_T, _sc[p]->GetSurfaceRank(), p, MPI_COMM_WORLD);
 
             if (_sc[p]->IsSurfaceOwned())
                MPI_Recv(&j[p], 1, MFEM_MPI_REAL_T, _sc[p]->GetParticleRank(), p, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-
-            if (_sc[p]->IsParticleOwned())
-               MPI_Wait(&request, MPI_STATUS_IGNORE);
          }
          break;
    }
