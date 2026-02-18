@@ -33,13 +33,9 @@ namespace constants {
         UNKNOWN
     };
 
-    enum Model : int {
-        SPM,
-        SPMe,
-        P2D
-    };
-
-    extern Model M;
+    extern const bool SPM;         // Whether running SPM model
+    extern const bool SPMe;        // Whether running SPMe model
+    extern const bool P2D;         // Whether running P2D model
 
     extern const unsigned NNE;     // Number of elements in the Negative Electrode
     extern const unsigned NSEP;    // Number of elements in the Separator
