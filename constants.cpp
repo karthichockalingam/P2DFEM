@@ -31,14 +31,14 @@ namespace constants {
 
     // Scalings
     real_t t0 = 1.0; // Time scale.
-    real_t r0 = 1e-6;  // Length scale (particle)
-    real_t L = negative_electrode_thickness + separator_thickness + positive_electrode_thickness; // Length scale (cell)
+    real_t r0 = 1e-6;  // Length scale (particle), m
+    real_t L = negative_electrode_thickness + separator_thickness + positive_electrode_thickness; // Length scale (cell), m
 
     real_t LNE  = negative_electrode_thickness / L;
     real_t LSEP = separator_thickness          / L;
     real_t LPE  = positive_electrode_thickness / L;
 
-    real_t a0 = 1.0 / r0;
+    real_t a0 = 1.0 / r0; // specific surface area scale, m^{-1}
 
     real_t tn = F * cnmax * cell_area * L / I_typ; // Negative particle time scale.
     real_t tp = F * cpmax * cell_area * L / I_typ; // Positive particle time scale.
@@ -62,7 +62,7 @@ namespace constants {
     real_t BNE = pow(eps_n, brugg);
     real_t BSEP = pow(eps_s, brugg);
 
-    real_t j_scale = I_typ / a0 / L / cell_area;
+    real_t j_scale = I_typ / a0 / L / cell_area; //volumetric current density scale, A/m^2
 
     // This works out to the same as j_scale above.
     //real_t j_scale_alt_n = r0 * cnmax * F / tn;
@@ -71,7 +71,7 @@ namespace constants {
     real_t kn_scale = j_scale / cnmax / sqrt(ce0);
     real_t kp_scale = j_scale / cpmax / sqrt(ce0);
 
-    real_t phi_scale = T_ref * R / F;
+    real_t phi_scale = T_ref * R / F; //thermal voltage scale, V
 
     // For scaling between particle time scale and cell time scale.  Required for scaling the flux j in the
     // SolidConcentration equation.

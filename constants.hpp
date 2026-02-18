@@ -52,9 +52,9 @@ namespace constants {
     extern const unsigned NMACRO;  // Total Number of Macro Equations (Sum of the above two)
     extern const unsigned NEQS;    // Total Number of Equations in the System
 
-    extern const real_t LSEP;      // Length of Separator
-    extern const real_t LPE;       // Length of Positive Electrode
-    extern const real_t LNE;       // Length of Negative Electrode
+    extern const real_t LSEP;      // scaled length of Separator
+    extern const real_t LPE;       // scaled length of Positive Electrode
+    extern const real_t LNE;       // scaled length of Negative Electrode
 
     extern const real_t AN;        // scaled surface Area of each Negative particle // later SAN!
     extern const real_t AP;        // scaled surface Area of each Positive particle
