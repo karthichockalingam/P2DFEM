@@ -419,10 +419,19 @@ Array<real_t> EChemOperator::GetParticleReactionCurrent()
             // send the particle reaction current to the surface concentration rank;
             MPI_Send(&j[p], 1, MFEM_MPI_REAL_T, _sc[p]->GetSurfaceRank(), p, MPI_COMM_WORLD);
 
-         if (_sc[p]->IsSurfaceOwned())
-            // receive the particle reaction current from the particle rank;
-            MPI_Recv(&j[p], 1, MFEM_MPI_REAL_T, _sc[p]->GetParticleRank(), p, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-      }
+            // check if surface concentration rank matches the particle rank, if not MPI send and rev is used below
+            if (_sc[p]->GetParticleRank() == _sc[p]->GetSurfaceRank())
+               continue;
+
+            if (_sc[p]->IsParticleOwned())
+               // send the particle reaction current to the surface concentration rank;
+               MPI_Send(&j[p], 1, MFEM_MPI_REAL_T, _sc[p]->GetSurfaceRank(), p, MPI_COMM_WORLD);
+
+            if (_sc[p]->IsSurfaceOwned())
+               // receive the particle reaction current from the particle rank;
+               MPI_Recv(&j[p], 1, MFEM_MPI_REAL_T, _sc[p]->GetParticleRank(), p, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+         }
+         break;
    }
 
    return j;
