@@ -5,13 +5,9 @@ using namespace mfem;
 using namespace LGM50;
 
 namespace constants {
-    enum Model : int {
-        SPM,
-        SPMe,
-        P2D
-    };
-
-    Model M = SPM;
+    bool SPM = false;
+    bool SPMe = false;
+    bool P2D = false;
 
     unsigned NNE = 0;
     unsigned NSEP = 0;
@@ -124,40 +120,32 @@ namespace constants {
 
     real_t KS = Kappa(CE0);// / kappa_scale; // Scaled electrolyte conductivity.
 
-    void init_params(std::string m, int order) {
+    void init_params(std::string m, int order)
+    {
         std::transform(m.begin(), m.end(), m.begin(), [](unsigned char c){ return std::tolower(c); });
 
         if (m == "spm")
-            M = SPM;
+            SPM = true;
         else if (m == "spme")
-            M = SPMe;
+            SPMe = true;
         else if (m == "p2d" || m == "dfn")
-            M = P2D;
+            P2D = true;
         else
             MFEM_ASSERT(false, "Unrecognised model.");
 
-        switch (M)
-        {
-            case SPM:
-                NNE = NSEP = NPE = 0;
-                break;
-            case SPMe:
-            case P2D:
-                NNE = NSEP = NPE = 10;
-                break;
-        }
+        if (SPM)
+            NNE = NSEP = NPE = 0;
+        else if (SPMe || P2D)
+            NNE = NSEP = NPE = 10;
+
         NX = NNE + NSEP + NPE;
 
-        switch (M)
+        if (SPM || SPMe)
+            NNEPAR = NPEPAR = 1;
+        else if (P2D)
         {
-            case SPM:
-            case SPMe:
-                NNEPAR = NPEPAR = 1;
-                break;
-            case P2D:
-                NNEPAR = NNE * order + 1;
-                NPEPAR = NPE * order + 1;
-                break;
+            NNEPAR = NNE * order + 1;
+            NPEPAR = NPE * order + 1;
         }
         NPAR = NNEPAR + NPEPAR;
         NEQS = NMACRO + NPAR;

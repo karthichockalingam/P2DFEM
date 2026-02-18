@@ -80,14 +80,14 @@ EChemOperator::EChemOperator(ParFiniteElementSpace * &x_h1space, Array<ParFinite
    _ec_gf.SetFromTrueDofs(_x.GetBlock(EC));
 
    // Construct equation ojects, first the 3 macro equations, then the NPAR micro eqs
-   if (M == P2D)
+   if (P2D)
    {
       _ep = new ElectrolytePotential(*_x_h1space);
       _sp = new SolidPotential(*_x_h1space);
    }
    _ec = new ElectrolyteConcentration(*_x_h1space);
 
-   if (M == SPM || M == SPMe)
+   if (SPM || SPMe)
    {
       _sc.Append(new SolidConcentration(*_r_h1space[0], 0, 0, -1, NE));
       _sc.Append(new SolidConcentration(*_r_h1space[1], 1, 0, -1, PE));
@@ -117,7 +117,7 @@ EChemOperator::EChemOperator(ParFiniteElementSpace * &x_h1space, Array<ParFinite
    ConstructOverPotential();
    ConstructReactionCurrent();
 
-   if (M == P2D)
+   if (P2D)
    {
       // Construct space for discontinuous functions like the reaction current j (I'm leaking the collection)
       _x_l2space = new ParFiniteElementSpace(_x_h1space->GetParMesh(),
@@ -143,7 +143,7 @@ void EChemOperator::ImplicitSolve(const real_t dt,
    Vector & dxp_dt(dx_dt_blocked.GetBlock(0));
    Vector & dxc_dt(dx_dt_blocked.GetBlock(1));
 
-   if (M == P2D)
+   if (P2D)
    {
       dx_dt = 0.;
 
@@ -248,38 +248,34 @@ void EChemOperator::UpdateConcentrationEquations()
 
 const real_t & EChemOperator::GetSurfaceConcentration(const Region &r)
 {
-   MFEM_ASSERT(M == SPM || M == SPMe, "Cannot get surface concentration, only SPM and SPMe are supported.");
+   MFEM_ASSERT(SPM || SPMe, "Cannot get surface concentration, only SPM and SPMe are supported.");
    MFEM_ASSERT(r == NE || r == PE, "Cannot get surface concentration, only negative (NE) and positive electrodes (PE) are supported.");
    return _sc_array[r];
 }
 
 void EChemOperator::SetSurfaceConcentration()
 {
-   switch (M)
+   if (SPM || SPMe)
+      for (unsigned p = 0; p < NPAR; p++)
+      {
+         Region r = _sc[p]->GetParticleRegion();
+         real_t sc = (r == NE ? CN0 : CP0) + _sc[p]->SurfaceConcentration(_x);
+         _sc_array[r] = sc;
+         MPI_Bcast(&_sc_array[r], 1, MFEM_MPI_REAL_T, _sc[p]->GetParticleRank(), MPI_COMM_WORLD);
+      }
+   else if (P2D)
    {
-      case SPM:
-      case SPMe:
-         for (unsigned p = 0; p < NPAR; p++)
-         {
-            Region r = _sc[p]->GetParticleRegion();
-            real_t sc = (r == NE ? CN0 : CP0) + _sc[p]->SurfaceConcentration(_x);
-            _sc_array[r] = sc;
-            MPI_Bcast(&_sc_array[r], 1, MFEM_MPI_REAL_T, _sc[p]->GetParticleRank(), MPI_COMM_WORLD);
-         }
-         break;
-      case P2D:
-         for (unsigned p = 0; p < NPAR; p++)
-         {
-            Region r = _sc[p]->GetParticleRegion();
-            real_t sc = (r == NE ? CN0 : CP0) + _sc[p]->SurfaceConcentration(_x);
-            if (_sc[p]->IsParticleOwned())
-               _sc_gf(_sc[p]->GetParticleDof()) = sc;
-         }
-         // Apply prolongation after restriction. Might be unnecessary, but guarantees
-         // all processors have the right information for all their local dofs.
-         _sc_gf.SetTrueVector();
-         _sc_gf.SetFromTrueVector();
-         break;
+      for (unsigned p = 0; p < NPAR; p++)
+      {
+         Region r = _sc[p]->GetParticleRegion();
+         real_t sc = (r == NE ? CN0 : CP0) + _sc[p]->SurfaceConcentration(_x);
+         if (_sc[p]->IsParticleOwned())
+            _sc_gf(_sc[p]->GetParticleDof()) = sc;
+      }
+      // Apply prolongation after restriction. Might be unnecessary, but guarantees
+      // all processors have the right information for all their local dofs.
+      _sc_gf.SetTrueVector();
+      _sc_gf.SetFromTrueVector();
    }
 }
 
@@ -289,30 +285,25 @@ void EChemOperator::SetSurfaceConcentration()
 
 const real_t & EChemOperator::GetReferencePotential(const Region &r)
 {
-   MFEM_ASSERT(M == P2D, "Cannot get reference potential, only P2D is supported.");
+   MFEM_ASSERT(P2D, "Cannot get reference potential, only P2D is supported.");
    MFEM_ASSERT(r == E || r == NE || r == PE, "Cannot get reference potential, only electrolyte (E), negative (NE) and positive electrodes (PE) are supported.");
    return _rp_array[r];
 }
 
 void EChemOperator::SetReferencePotential()
 {
-   switch (M)
+   if (P2D)
    {
-      case SPM:
-      case SPMe:
-         break;
-      case P2D:
-         _rp_array[E] = 0.;
-         _rp_array[PE] = 0.;
+      _rp_array[E] = 0.;
+      _rp_array[PE] = 0.;
 
-         real_t Inp = GetElectrodeReactionCurrent(NE,  1.0);
-         real_t Inn = GetElectrodeReactionCurrent(NE, -1.0);
-         real_t Ipp = GetElectrodeReactionCurrent(PE,  1.0);
-         real_t Ipn = GetElectrodeReactionCurrent(PE, -1.0);
+      real_t Inp = GetElectrodeReactionCurrent(NE,  1.0);
+      real_t Inn = GetElectrodeReactionCurrent(NE, -1.0);
+      real_t Ipp = GetElectrodeReactionCurrent(PE,  1.0);
+      real_t Ipn = GetElectrodeReactionCurrent(PE, -1.0);
 
-         _rp_array[E] = -2.0 * T * log(( I + sqrt(4.0 * Inp * Inn + I * I))/(2.0 * Inp));
-         _rp_array[PE] = 2.0 * T * log((-I + sqrt(4.0 * Ipp * Ipn + I * I))/(2.0 * Ipp)) + _rp_array[E];
-         break;
+      _rp_array[E] = -2.0 * T * log(( I + sqrt(4.0 * Inp * Inn + I * I))/(2.0 * Inp));
+      _rp_array[PE] = 2.0 * T * log((-I + sqrt(4.0 * Ipp * Ipn + I * I))/(2.0 * Ipp)) + _rp_array[E];
    }
 }
 
@@ -340,52 +331,48 @@ Array<real_t> EChemOperator::GetParticleReactionCurrent()
 {
    Array<real_t> j(NPAR);
 
-   switch (M)
+   if (SPM || SPMe)
+      for (unsigned p = 0; p < NPAR; p++)
+         j[p] = GetReactionCurrent(_sc[p]->GetParticleRegion());
+   else if (P2D)
    {
-      case SPM:
-      case SPMe:
+      ParGridFunction j_gf(_x_h1space);
+
+      { // Despicable trick to project discontinuous current onto H1
+         Array<int> electrode_particle_dofs;
+         Array<int> mutated_elements;
          for (unsigned p = 0; p < NPAR; p++)
-            j[p] = GetReactionCurrent(_sc[p]->GetParticleRegion());
-         break;
-      case P2D:
-         ParGridFunction j_gf(_x_h1space);
-
-         { // Despicable trick to project discontinuous current onto H1
-            Array<int> electrode_particle_dofs;
-            Array<int> mutated_elements;
-            for (unsigned p = 0; p < NPAR; p++)
-               if (_sc[p]->IsParticleOwned())
-               {
-                  int dof = _sc[p]->GetParticleDof();
-                  int elem = _x_h1space->GetElementForDof(dof);
-                  electrode_particle_dofs.Append(dof);
-                  if (_x_h1space->GetAttribute(elem) == SEP)
-                  {
-                     mutated_elements.Append(elem);
-                     _x_h1space->GetParMesh()->SetAttribute(elem, _sc[p]->GetParticleRegion());
-                  }
-               }
-
-            j_gf.ProjectCoefficient(*_j, electrode_particle_dofs);
-
-            for (auto & elem : mutated_elements)
-               _x_h1space->GetParMesh()->SetAttribute(elem, SEP);
-         }
-
-         for (unsigned p = 0; p < NPAR; p++)
-         {
-            j[p] = _sc[p]->IsParticleOwned() ? j_gf(_sc[p]->GetParticleDof()) : 0;
-
-            if (_sc[p]->GetParticleRank() == _sc[p]->GetSurfaceRank())
-               continue;
-
             if (_sc[p]->IsParticleOwned())
-               MPI_Send(&j[p], 1, MFEM_MPI_REAL_T, _sc[p]->GetSurfaceRank(), p, MPI_COMM_WORLD);
+            {
+               int dof = _sc[p]->GetParticleDof();
+               int elem = _x_h1space->GetElementForDof(dof);
+               electrode_particle_dofs.Append(dof);
+               if (_x_h1space->GetAttribute(elem) == SEP)
+               {
+                  mutated_elements.Append(elem);
+                  _x_h1space->GetParMesh()->SetAttribute(elem, _sc[p]->GetParticleRegion());
+               }
+            }
 
-            if (_sc[p]->IsSurfaceOwned())
-               MPI_Recv(&j[p], 1, MFEM_MPI_REAL_T, _sc[p]->GetParticleRank(), p, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-         }
-         break;
+         j_gf.ProjectCoefficient(*_j, electrode_particle_dofs);
+
+         for (auto & elem : mutated_elements)
+            _x_h1space->GetParMesh()->SetAttribute(elem, SEP);
+      }
+
+      for (unsigned p = 0; p < NPAR; p++)
+      {
+         j[p] = _sc[p]->IsParticleOwned() ? j_gf(_sc[p]->GetParticleDof()) : 0;
+
+         if (_sc[p]->GetParticleRank() == _sc[p]->GetSurfaceRank())
+            continue;
+
+         if (_sc[p]->IsParticleOwned())
+            MPI_Send(&j[p], 1, MFEM_MPI_REAL_T, _sc[p]->GetSurfaceRank(), p, MPI_COMM_WORLD);
+
+         if (_sc[p]->IsSurfaceOwned())
+            MPI_Recv(&j[p], 1, MFEM_MPI_REAL_T, _sc[p]->GetParticleRank(), p, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+      }
    }
 
    return j;
@@ -397,23 +384,17 @@ Array<real_t> EChemOperator::GetParticleReactionCurrent()
 
 const real_t & EChemOperator::GetReactionCurrent(const Region &r)
 {
-   MFEM_ASSERT(M == SPM || M == SPMe, "Cannot get constant reaction current, only SPM and SPMe are supported.");
+   MFEM_ASSERT(SPM || SPMe, "Cannot get constant reaction current, only SPM and SPMe are supported.");
    MFEM_ASSERT(r == NE || r == PE, "Cannot get constant reaction current, only negative (NE) and positive electrodes (PE) are supported.");
    return _j->Eval()(r);
 }
 
 void EChemOperator::ConstructReactionCurrent()
 {
-   switch (M)
-   {
-      case SPM:
-      case SPMe:
-         _j = new ReactionCurrentCoefficient();
-         break;
-      case P2D:
-         _j = new ReactionCurrentCoefficient(T, *_jex, *_op);
-         break;
-   }
+   if (SPM || SPMe)
+      _j = new ReactionCurrentCoefficient();
+   else if (P2D)
+      _j = new ReactionCurrentCoefficient(T, *_jex, *_op);
 }
 
 //
@@ -422,25 +403,19 @@ void EChemOperator::ConstructReactionCurrent()
 
 const real_t & EChemOperator::GetExchangeCurrent(const Region &r)
 {
-   MFEM_ASSERT(M == SPM || M == SPMe, "Cannot get constant exchange current, only SPM and SPMe are supported.");
+   MFEM_ASSERT(SPM || SPMe, "Cannot get constant exchange current, only SPM and SPMe are supported.");
    MFEM_ASSERT(r == NE || r == PE, "Cannot get constant exchange current, only negative (NE) and positive electrodes (PE) are supported.");
    return _jex->Eval()(r);
 }
 
 void EChemOperator::ConstructExchangeCurrent()
 {
-   switch (M)
-   {
-      case SPM:
-         _jex = new ExchangeCurrentCoefficient(KN, KP, GetSurfaceConcentration(NE), GetSurfaceConcentration(PE), CE0);
-         break;
-      case SPMe:
-         _jex = new ExchangeCurrentCoefficient(KN, KP, GetSurfaceConcentration(NE), GetSurfaceConcentration(PE), _ec_gfc);
-         break;
-      case P2D:
-         _jex = new ExchangeCurrentCoefficient(KN, KP, _sc_gfc, _ec_gfc);
-         break;
-   }
+   if (SPM)
+      _jex = new ExchangeCurrentCoefficient(KN, KP, GetSurfaceConcentration(NE), GetSurfaceConcentration(PE), CE0);
+   else if (SPMe)
+      _jex = new ExchangeCurrentCoefficient(KN, KP, GetSurfaceConcentration(NE), GetSurfaceConcentration(PE), _ec_gfc);
+   else if (P2D)
+      _jex = new ExchangeCurrentCoefficient(KN, KP, _sc_gfc, _ec_gfc);
 }
 
 //
@@ -449,23 +424,17 @@ void EChemOperator::ConstructExchangeCurrent()
 
 const real_t & EChemOperator::GetOpenCircuitPotential(const Region &r)
 {
-   MFEM_ASSERT(M == SPM || M == SPMe, "Cannot get constant open circuit potential, only SPM and SPMe are supported.");
+   MFEM_ASSERT(SPM || SPMe, "Cannot get constant open circuit potential, only SPM and SPMe are supported.");
    MFEM_ASSERT(r == NE || r == PE, "Cannot get constant open circuit potential, only negative (NE) and positive electrodes (PE) are supported.");
    return _ocp->Eval()(r);
 }
 
 void EChemOperator::ConstructOpenCircuitPotential()
 {
-   switch (M)
-   {
-      case SPM:
-      case SPMe:
-         _ocp = new OpenCircuitPotentialCoefficient(UN, UP, GetSurfaceConcentration(NE), GetSurfaceConcentration(PE));
-         break;
-      case P2D:
-         _ocp = new OpenCircuitPotentialCoefficient(UN, UP, _sc_gfc);
-         break;
-   }
+   if (SPM || SPMe)
+      _ocp = new OpenCircuitPotentialCoefficient(UN, UP, GetSurfaceConcentration(NE), GetSurfaceConcentration(PE));
+   else if (P2D)
+      _ocp = new OpenCircuitPotentialCoefficient(UN, UP, _sc_gfc);
 }
 
 //
@@ -474,23 +443,17 @@ void EChemOperator::ConstructOpenCircuitPotential()
 
 const real_t & EChemOperator::GetOverPotential(const Region &r)
 {
-   MFEM_ASSERT(M == SPM || M == SPMe, "Cannot get constant overpotential, only SPM and SPMe are supported.");
+   MFEM_ASSERT(SPM || SPMe, "Cannot get constant overpotential, only SPM and SPMe are supported.");
    MFEM_ASSERT(r == NE || r == PE, "Cannot get constant overpotential, only negative (NE) and positive electrodes (PE) are supported.");
    return _op->Eval()(r);
 }
 
 void EChemOperator::ConstructOverPotential()
 {
-   switch (M)
-   {
-      case SPM:
-      case SPMe:
-         _op = new OverPotentialCoefficient(T, *_jex);
-         break;
-      case P2D:
-         _op = new OverPotentialCoefficient(GetReferencePotential(E), GetReferencePotential(PE), _sp_gfc, _ep_gfc, *_ocp);
-         break;
-   }
+   if (SPM || SPMe)
+      _op = new OverPotentialCoefficient(T, *_jex);
+   else if (P2D)
+      _op = new OverPotentialCoefficient(GetReferencePotential(E), GetReferencePotential(PE), _sp_gfc, _ep_gfc, *_ocp);
 }
 
 //
@@ -500,15 +463,12 @@ void EChemOperator::ConstructOverPotential()
 real_t EChemOperator::GetVoltage()
 {
    // Definition from JuBat: https://doi.org/10.1016/j.est.2023.107512
-   switch (M)
-   {
-      case SPM:
-         return phi_scale * (GetOpenCircuitPotential(PE) - GetOpenCircuitPotential(NE) + GetOverPotential(PE) - GetOverPotential(NE));
-      case SPMe:
-         return phi_scale * (GetOpenCircuitPotential(PE) - GetOpenCircuitPotential(NE) + GetOverPotential(PE) - GetOverPotential(NE) - GetVoltageMarquisCorrection());
-      case P2D:
-         return phi_scale * (GetReferencePotential(PE) - GetReferencePotential(NE));
-   }
+   if (SPM)
+      return phi_scale * (GetOpenCircuitPotential(PE) - GetOpenCircuitPotential(NE) + GetOverPotential(PE) - GetOverPotential(NE));
+   else if (SPMe)
+      return phi_scale * (GetOpenCircuitPotential(PE) - GetOpenCircuitPotential(NE) + GetOverPotential(PE) - GetOverPotential(NE) - GetVoltageMarquisCorrection());
+   else if (P2D)
+      return phi_scale * (GetReferencePotential(PE) - GetReferencePotential(NE));
 
    mfem_error("Unreachable as method must be one of SPM, SPMe or P2D.");
 }
