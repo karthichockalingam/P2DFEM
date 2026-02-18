@@ -25,15 +25,19 @@ CF_INC_FILES = ExchangeCurrentCoefficient.hpp \
                OpenCircuitPotentialCoefficient.hpp \
                OverPotentialCoefficient.hpp
 CL_INC_FILES = LGM50.hpp
+PR_SRC_FILES = settings.cpp
+PR_INC_FILES = settings.hpp \
+               constants.hpp
 
 SRC_FILES = $(addprefix equations/, $(EQ_SRC_FILES)) \
             $(addprefix operators/, $(OP_SRC_FILES)) \
-            constants.cpp batree.cpp
+            $(addprefix parameters/, $(PR_SRC_FILES)) \
+            batree.cpp
 INC_FILES = $(addprefix equations/, $(EQ_INC_FILES)) \
             $(addprefix operators/, $(OP_INC_FILES)) \
             $(addprefix coefficients/, $(CF_INC_FILES)) \
             $(addprefix cells/, $(CL_INC_FILES)) \
-            constants.hpp
+            $(addprefix parameters/, $(PR_INC_FILES))
 
 .PHONY: all clean
 

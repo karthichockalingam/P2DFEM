@@ -75,7 +75,7 @@ int main(int argc, char *argv[])
    }
 
    // Initialise grid and layout properties dependent on the electrochemical model and FE order
-   init_params(model, order);
+   init_settings(model, order);
 
    // Build the 1d mesh for the macro problem and tag its elements according to their region.
    // Define the parallel mesh by a partitioning of the serial mesh.

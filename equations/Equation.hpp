@@ -1,10 +1,12 @@
-#include "mfem.hpp"
-using namespace mfem;
-
-#include "constants.hpp"
-using namespace constants;
-
 #pragma once
+
+#include "mfem.hpp"
+#include "parameters/constants.hpp"
+#include "parameters/settings.hpp"
+
+using namespace mfem;
+using namespace constants;
+using namespace settings;
 
 class Equation
 {
