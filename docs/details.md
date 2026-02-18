@@ -126,13 +126,26 @@ $$
 
 where $\sigma$ and $f$ are constants.
 
-### Electrolyte voltage drop
-According to [^1] 
+### SPMe model
+According to [^1],
+the averaged exchange current is
+
+$$
+\bar{j}_{i, \mathrm{ex}}=\frac{1}{\bar{L}_i} \int_0^{\bar{L}_i} \bar{m} \bar{c}_{\mathrm{e}}^{0.5} \bar{c}_{i, \text { surf }}^{0.5}\left(\bar{c}_{i, \text { surf }}-\bar{c}_{i, \max }\right)^{0.5} \mathrm{~d} \bar{L}
+$$
+
+the cell voltage is
+
+$$
+\bar{V}=\bar{U}_{\mathrm{p}}\left(\bar{c}_{\mathrm{p}, \text { surf }}\right)-\bar{U}_{\mathrm{n}}\left(\bar{c}_{\mathrm{n}, \text { surf }}\right)+2 \bar{T} \sinh ^{-1}\left(\frac{\bar{I}}{2 \bar{a}_{\mathrm{p}} \bar{L}_{\mathrm{p}} \bar{j}_{\mathrm{p}, \mathrm{ex}}}\right)-2 \bar{T} \sinh ^{-1}\left(\frac{-\bar{I}}{2 \bar{a}_{\mathrm{n}} \bar{L}_{\mathrm{n}} \bar{j}_{\mathrm{n}, \mathrm{ex}}}\right)-\bar{V}_{\mathrm{e}} .
+$$
+
+where the voltage drop in the electrode is approxuimated by
 
 $$
 \bar{V}_{\mathrm{e}}=-2 \bar{T}\left(1-t_{+}\right) \ln \frac{\bar{c}_{\mathrm{e}}(\bar{x}=0)}{\bar{c}_{\mathrm{e}}(\bar{x}=1)}+\frac{\bar{I}}{2}\left(\frac{\bar{L}_{\mathrm{n}}}{3 \bar{\kappa}_{\mathrm{n}}^{\text {eff }}}+\frac{\bar{L}_{\mathrm{sep}}}{\bar{\kappa}_{\mathrm{sep}}^{\text {eff }}}+\frac{\bar{L}_{\mathrm{p}}}{3 \bar{\kappa}_{\mathrm{p}}^{\text {eff }}}\right) \qquad (1)
 $$
-
+The logarithm can be approximated as follows
 $$
 \ln \bar{c}_{\mathrm{e}}(\bar{x}=0) = \ln (\pm c_{e0} + \bar{c}_{\mathrm{e}}(\bar{x}=0) )
 = \ln \left(1 + \frac{- c_{e0} +\bar{c}_{\mathrm{e}}(\bar{x}=0)}{c_{e0}} \right) + \ln c_{e0}\approx \frac{- c_{e0} +\bar{c}_{\mathrm{e}}(\bar{x}=0)}{c_{e0}} + \ln c_{e0}
@@ -150,7 +163,15 @@ $$
 \mathrm{avg}(f_{N E}) = \frac{1}{L N E}\int f_{N E} d x=\frac{1}{L N E}\int \bar{f}_{N E}(\bar{x}) \ \omega_{N E} d \bar{x} = \frac{N X}{N N E}\int \bar{f}_{N E}(\bar{x}) d \bar{x}
 $$
 
-According to [^3] 
+
+According to [^3],
+the terminal voltage $V$ can be written in the form 
+
+$$
+V(t)=U_{\mathrm{eq}}-\eta_{\mathrm{r}}-\eta_{\mathrm{c}}-\Delta \phi_{\mathrm{e}}-\Delta \phi_{\mathrm{s}},
+$$
+
+where
 
 $$
 \eta_c = \left(1-t^{+}\right) \frac{2 R T}{F c_{\mathrm{e} 0}}\left(\frac{1}{L_{\mathrm{n}}} \int_0^{L_{\mathrm{n}}} c_{\mathrm{e}}(x, t) \mathrm{d} x-\frac{1}{L_{\mathrm{p}}} \int_{L-L_{\mathrm{p}}}^L c_{\mathrm{e}}(x, t) \mathrm{d} x\right) \qquad (2)
@@ -159,6 +180,26 @@ $$
 which is equivalent to the first term in (1) with $\bar T = \dfrac{RT}{F}$ scaling.
 
 *Code scaling follows equation (1), the averaging idea comes from equation (2).*
+
+The other terms are defined as follows
+
+$$
+\eta_r = \frac{2 R T}{F}\left(\mathrm{arcsinh}\left(\frac{j_{\mathrm{n}}(t)}{j_{\mathrm{n} 0}(t)}\right)-\mathrm{arcsinh}\left(\frac{j_{\mathrm{p}}(t)}{j_{\mathrm{p} 0}(t)}\right)\right),
+$$
+
+$$
+\Delta \phi_{\mathrm{e}} = \frac{i_{\mathrm{app}}}{\sigma_{\mathrm{e}}\left(c_{\mathrm{e} 0}\right)}\left(\frac{L_{\mathrm{n}}}{3 \mathcal{B}_{\mathrm{n}}}+\frac{L_{\mathrm{s}}}{\mathcal{B}_{\mathrm{s}}}+\frac{L_{\mathrm{p}}}{3 \mathcal{B}_{\mathrm{p}}}\right),
+$$
+
+$$
+\Delta \phi_{\mathrm{s}} = \frac{i_{\text {app }}}{3}\left(\frac{L_{\mathrm{p}}}{\sigma_{\mathrm{p}}}+\frac{L_{\mathrm{n}}}{\sigma_{\mathrm{n}}}\right),
+$$
+
+$$
+U_{\mathrm{eq}} = U_{\mathrm{p}}\left(\left.c_{\mathrm{p}}\right|_{r=R_{\mathrm{p}}}\right)-U_{\mathrm{n}}\left(\left.c_{\mathrm{n}}\right|_{r=R_{\mathrm{n}}}\right).
+$$
+
+
 
 ### Parameters of the LG M50 battery cells
 [^2], [https://iopscience.iop.org/article/10.1149/1945-7111/ab9050](https://iopscience.iop.org/article/10.1149/1945-7111/ab9050)
