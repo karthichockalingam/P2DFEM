@@ -42,8 +42,6 @@ void SolidConcentration::Update(const BlockVector &x, const Coefficient &j)
    Q->Assemble();
    // assemble the linear form into a parallel vector Qvec
    Qvec = std::move(*(Q->ParallelAssemble()));
-   // zero out the essential dof for the right hand side vector
-   Qvec.SetSubVector(ess_tdof_list, 0.0); // do we need this?
 
    // b = K*x
    Kmat.Mult(x.GetBlock(SC + particle_id), b);
