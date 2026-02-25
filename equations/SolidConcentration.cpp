@@ -40,15 +40,15 @@ void SolidConcentration::Update(const BlockVector &x, const Coefficient &j)
    // surface_bdr defines which boundary attributes receive this integral
    Q->AddBoundaryIntegrator(new BoundaryLFIntegrator(jr2), const_cast<mfem::Array<int>&>(surface_bdr));
    Q->Assemble();
-   // assemble the linear form into a parallel vector Qvec
-   Qvec = std::move(*(Q->ParallelAssemble()));
+
+   delete Qvec;
+   Qvec = Q->ParallelAssemble();
 
    // b = K*x
    Kmat.Mult(x.GetBlock(SC + particle_id), b);
    // b = -K*x
    b.Neg();
-   // b = -K*x + Q
-   b += Qvec;
+   b += *Qvec;
 }
 
 real_t SolidConcentration::SurfaceConcentration(const BlockVector &x)

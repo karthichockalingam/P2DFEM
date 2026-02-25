@@ -53,12 +53,14 @@ void ElectrolyteConcentration::Update(const BlockVector &x, const GridFunctionCo
    Q = new ParLinearForm(&fespace);
    Q->AddDomainIntegrator(new DomainLFIntegrator(source));
    Q->Assemble();
-   Qvec = std::move(*(Q->ParallelAssemble()));
+
+   delete Qvec;
+   Qvec = Q->ParallelAssemble();
 
    // b = K*x
    Kmat.Mult(x.GetBlock(EC), b);
    // b = -K*x
-   b.Neg(); 
-   // b = -K*x + Q
-   b += Qvec;
+   b.Neg();
+   // b = -K*x+Q
+   b += *Qvec;
 }

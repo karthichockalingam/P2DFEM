@@ -36,11 +36,13 @@ void SolidPotential::Update(const BlockVector &x, const Coefficient &j)
    // Q = integral of (source(x) * phi(x))
    Q->AddDomainIntegrator(new DomainLFIntegrator(source));
    Q->Assemble();
-   Qvec = std::move(*(Q->ParallelAssemble()));
-   Qvec.SetSubVector(ess_tdof_list, 0.0);
+
+   delete Qvec;
+   Qvec = Q->ParallelAssemble();
+   Qvec->SetSubVector(ess_tdof_list, 0.0);
 
    // b = Kx
    Kmat.Mult(x.GetBlock(SP), b);
    b.Neg();
-   b -= Qvec;
+   b -= *Qvec;
 }
