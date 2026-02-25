@@ -619,11 +619,11 @@ void EChemOperator::GetParticleDofs(Array<int> & my_particle_dofs, Array<Region>
       Region r = UNKNOWN;
       if (ltdof != -1)
          for (unsigned i = 0; i < n_gtdofs * Mpi::WorldSize(); i++)
-            // two for loops are necessary because we need to check if the dof belongs to the local true (owned) dofs
-            if (gtdof == all_gtdofs[i] && (r = all_regions[i]) != SEP && my_particle_dofs.Find(d) == -1)
+            if (gtdof == all_gtdofs[i] && (r = all_regions[i]) != SEP)
             {
                my_particle_dofs.Append(d);
                my_particle_regions.Append(r);
+               break;
             }
    }
    //make the array size of my_particle_regions to n_gtdofs regardless of what is appended to it, and fill the rest with UNKNOWN
