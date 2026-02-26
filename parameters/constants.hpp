@@ -51,12 +51,11 @@ const real_t t0 = 3600;   // Actual Time scale in seconds.
 const real_t t_sim = 3600; // Simulation time in seconds.
 const real_t t_eff = t_sim / t0; // Effective time scale
 const real_t r0 = 1e-6;  // Length scale (particle) in meters
-const real_t L = negative_electrode_thickness + separator_thickness + 
-                 positive_electrode_thickness; // Length scale (cell)
+const real_t L = ln + ls + lp; // Length scale (cell)
 
-const real_t LNE = negative_electrode_thickness / L; // Length of Negative Electrode
-const real_t LSEP = separator_thickness / L;         // Length of Separator
-const real_t LPE = positive_electrode_thickness / L; // Length of Positive Electrode
+const real_t LNE = ln / L;  // Length of Negative Electrode
+const real_t LSEP = ls / L; // Length of Separator
+const real_t LPE = lp / L;  // Length of Positive Electrode
 
 const real_t a0 = 1.0 / r0;
 
