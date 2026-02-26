@@ -598,6 +598,7 @@ EChemOperator::GetParticleDofs(Array<int> & my_particle_dofs,
                                Array<Region> & particle_regions,
                                Array<int> & particle_offsets)
 {
+<<<<<<< HEAD
   Array<int> gtdofs;
   Array<Region> regions;
   // GetNE is the no. of elements in the local rank
@@ -610,6 +611,69 @@ EChemOperator::GetParticleDofs(Array<int> & my_particle_dofs,
     for (int d : dofs)
     {
       // gtdof stands for global true dof
+=======
+   Array<int> gtdofs;
+   Array<Region> regions;
+   // GetNE is the no. of elements in the local rank
+   for (int e = 0; e < _x_h1space->GetNE(); e++)
+   {
+      Array<int> dofs;
+      // size of the array dofs depends on the order of the mesh
+      // populate dofs with local rank dof ID
+      _x_h1space->GetElementDofs(e, dofs);
+      for (int d : dofs)
+      {
+         // gtdof stands for global true dof
+         int gtdof = _x_h1space->GetGlobalTDofNumber(d);
+         // identify the region which the elements belong to
+         Region r = Region(_x_h1space->GetAttribute(e));
+         // Append gtdof and region to arrays 
+         // [0  1   1  2  2  3   3   4    4    5  ...]. global true dofs indices
+         // [NE NE NE  NE NE NE  NE  NE  SEP  SEP ...]. regions corresponding to the global true dofs
+         //   [0]   [1]    [2]    [3].      [4] element count in the local rank 
+         gtdofs.Append(gtdof);
+         regions.Append(r);
+      }
+   }
+   // n_gtdofs is equal to number of elements in the entire 
+   // domain multiplied by the number of dofs per element, 
+   // which is determined by the order of the mesh.
+   const unsigned n_gtdofs = NX * (_x_h1space->FEColl()->GetOrder() + 1);
+
+   gtdofs.SetSize(n_gtdofs, -1);
+   // if NX=10 elements and 3 mpi procs, then size of all_gtdofs is 60 for 1st order mesh, 
+   // and 90 for second order mesh
+   Array<int> all_gtdofs(n_gtdofs * Mpi::WorldSize());
+   // for example, using a 1st order mesh, 3 elements for the first two rank and 
+   // 4 elements in the last rank 
+   // rank 0: gtdofs = [0 1 1 2 2 3 -1 -1 -1 ...] of size 20
+   // rank 1: gtdofs = [3 4 4 5 5 6 -1 -1 -1 ...] of size 20
+   // rank 2: gtdofs = [6 7 7 8 8 9 9 10 -1 ...] of size 20 
+
+   MPI_Allgather(gtdofs.GetData(), n_gtdofs, MPI_INT,
+                 all_gtdofs.GetData(), n_gtdofs, MPI_INT, MPI_COMM_WORLD);
+   // all_gtdofs is now a concatenation of the gtdofs arrays from each rank,
+   // all_gtdofs = [0 1 1 2 2 3 -1 -1 -1 ... 3 4 4 5 5 6 -1 -1 -1 ... 6 7 7 8 8 9 9 10 -1 ...] of size 60
+   regions.SetSize(n_gtdofs, UNKNOWN);
+   // assume first four elements belong to NE, next three belong to SEP and the last three belong to PE
+   // rank 0: regions = [NE NE NE NE NE NE UNKWN UNKWN UNKWN ...] of size 20
+   // rank 1: regions = [NE NE SEP SEP SEP SEP UNKWN UNKWN UNKWN ...] of size 20
+   // rank 2: regions = [SEP SEP PE PE PE PE PE PE UNKWN UNKWN UNKWN ...] of size 20 
+   Array<Region> all_regions(n_gtdofs * Mpi::WorldSize());
+   MPI_Allgather(regions.GetData(), n_gtdofs, MPI_INT,
+                 all_regions.GetData(), n_gtdofs, MPI_INT, MPI_COMM_WORLD);
+   // all_regions is now a concatenation of the regions arrays from each rank,
+   // all_regions = [NE NE NE NE NE NE UNKWN UNKWN UNKWN ... 
+   // NE NE SEP SEP SEP SEP UNKWN UNKWN UNKWN ... 
+   // SEP SEP PE PE PE PE PE PE UNKWN UNKWN UNKWN ...] of size 60
+   Array<Region> my_particle_regions;
+   // GetNDofs is the total number of dof in a local rank
+   for (int d = 0; d < _x_h1space->GetNDofs(); d++)   
+   {
+      //check if d is owned by the local rank and return gtdof, if not ltdof=-1
+      int ltdof = _x_h1space->GetLocalTDofNumber(d);
+      // this will always return gtdof
+>>>>>>> 4851a7b (resolve differences with current changes)
       int gtdof = _x_h1space->GetGlobalTDofNumber(d);
       // identify the region which the elements belong to
       Region r = Region(_x_h1space->GetAttribute(e));
@@ -692,7 +756,10 @@ EChemOperator::GetParticleDofs(Array<int> & my_particle_dofs,
   int my_particles = my_particle_dofs.Size();
   particle_offsets.SetSize(Mpi::WorldSize());
   MPI_Allgather(&my_particles, 1, MPI_INT, particle_offsets.GetData(), 1, MPI_INT, MPI_COMM_WORLD);
+<<<<<<< HEAD
 
+=======
+>>>>>>> 4851a7b (resolve differences with current changes)
   // add zero at the beginning of particle_offsets and do a partial sum to get the offsets for each rank, 
   // e.g. if there are 3 ranks and each rank has 2, 3 and 4 particles respectively, then particle_offsets will be [0 2 5 9] 
   particle_offsets.Prepend(0);
