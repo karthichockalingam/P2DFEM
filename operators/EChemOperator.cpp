@@ -195,7 +195,7 @@ EChemOperator::ImplicitSolve(const real_t dt, const Vector & x, Vector & dx_dt)
       // dependent on the potentials should use the gridfunctions set below,
       // which are on the new timestep, just like _j, NOT any gridfunctions
       // obtained afresh from true vector _x which is now on the old timestep
-      _x.Add(-_dt, dx_dt);
+      _x.Add(-dt, dx_dt);
 
       // assemble each individual block of _Ap and _bp
       UpdatePotentialEquations();
@@ -211,13 +211,13 @@ EChemOperator::ImplicitSolve(const real_t dt, const Vector & x, Vector & dx_dt)
       _Solver.Mult(_bp, dxp_dt);
 
       // temporarily advance solution true dof vector to set gridfunctions
-      _x.Add(_dt, dx_dt);
+      _x.Add(dt, dx_dt);
       SetGridFunctionsFromTrueVectors();
     } while (j_gf.ComputeL2Error(*_j, _scl_irs) >
              _scl_threshold * j_gf.ComputeL2Error(zero, _scl_irs));
 
     // restore solution true dof vector
-    _x.Add(-_dt, dx_dt);
+    _x.Add(-dt, dx_dt);
   }
 
   // assemble each individual block of _Ac and _bc
