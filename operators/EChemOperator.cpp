@@ -210,27 +210,36 @@ EChemOperator::ImplicitSolve(const real_t dt, const Vector & x, Vector & dx_dt)
       _Solver.SetOperator(*_Ap);
       _Solver.Mult(_bp, dxp_dt);
 
-      // temporarily advance solution true dof vector to set gridfunctions
+  }
+      // temporarily advance solution true dof vector to set gridfunctions, dxc_dt is zero at this point 
+      // so it doesn't affect the concentration solution.
       _x.Add(dt, dx_dt);
+      // update gridfunctions to compute reaction current on the new timestep, j_gf
       SetGridFunctionsFromTrueVectors();
-    } while (j_gf.ComputeL2Error(*_j, _scl_irs) >
+      }
+      //_j is the reaction current coefficient from the previous iteration, and j_gf is the reaction current coefficient from the current iteration.
+      while (j_gf.ComputeL2Error(*_j, _scl_irs) > 
              _scl_threshold * j_gf.ComputeL2Error(zero, _scl_irs));
 
-    // restore solution true dof vector
-    _x.Add(-dt, dx_dt);
-  }
+      // restore solution true dof vector to the old timestep for the concentration solve; 
+      // note that the potential solve above is only used to update the gridfunctions for the reaction current coefficient, 
+      // and does not directly affect the concentration solve, which is still on the old timestep rhs j(dxp_dt^old), 
+      // hence we need to restore the solution true dof vector to the old timestep before solving for dxc_dt.
+      _x.Add(-_dt, dx_dt);
+   }
 
   // assemble each individual block of _Ac and _bc
   UpdateConcentrationEquations();
 
-  // put _Ac and _bc together
-  _Ac->SetDiagonalBlock(ECC, Add(1, _ec->GetM(), dt, _ec->GetK()));
-  _bc.GetBlock(ECC) = _ec->GetZ();
-  for (unsigned p = 0; p < NPAR; p++)
-  {
-    _Ac->SetDiagonalBlock(SCC + p, Add(1, _sc[p]->GetM(), dt, _sc[p]->GetK()));
-    _bc.GetBlock(SCC + p) = _sc[p]->GetZ();
-  }
+   // put _Ac and _bc together
+   _Ac->SetDiagonalBlock(ECC, Add(1, _ec->GetM(), dt, _ec->GetK()));
+   _bc.GetBlock(ECC) = _ec->GetZ();
+   for (unsigned p = 0; p < NPAR; p++)
+   {
+      //A_{SCC+p,SCC+p}​=M+dtK
+      _Ac->SetDiagonalBlock(SCC + p, Add(1, _sc[p]->GetM(), dt, _sc[p]->GetK()));
+      _bc.GetBlock(SCC + p) = _sc[p]->GetZ();
+   }
 
   // solve for dxc_dt (concentrations rate)
   _Solver.SetOperator(*_Ac);
@@ -429,13 +438,16 @@ EChemOperator::GetParticleReactionCurrent()
     for (unsigned p = 0; p < NPAR; p++)
     {
       j[p] = _sc[p]->IsParticleOwned() ? j_gf(_sc[p]->GetParticleDof()) : 0;
-
+      // if particle rank is the same as the surface concentration rank, then no communication 
+      // is needed as the particle reaction current is already stored in j[p] on that rank;
       if (_sc[p]->GetParticleRank() == _sc[p]->GetSurfaceRank())
         continue;
 
       if (_sc[p]->IsParticleOwned())
+        // send the particle reaction current to the surface concentration rank;
         MPI_Send(&j[p], 1, MFEM_MPI_REAL_T, _sc[p]->GetSurfaceRank(), p, MPI_COMM_WORLD);
-
+    
+      // receive the particle reaction current from the particle rank;
       if (_sc[p]->IsSurfaceOwned())
         MPI_Recv(&j[p],
                  1,
@@ -448,6 +460,7 @@ EChemOperator::GetParticleReactionCurrent()
   }
 
   return j;
+
 }
 
 //
