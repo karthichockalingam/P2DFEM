@@ -89,6 +89,10 @@ EChemOperator::EChemOperator(ParFiniteElementSpace * &x_h1space, Array<ParFinite
 
    if (SPM || SPMe)
    {
+      // In SPM and SPMe, we know beforehand that there are only two particle equations, 
+      // one for each electrode, and they are ordered in the same way as the regions (NE first, then PE). 
+      // We can therefore directly construct them without needing to find out which global dof belongs 
+      // to which rank and region as we do in P2D.
       _sc.Append(new SolidConcentration(*_r_h1space[0], 0, 0, -1, NE));
       _sc.Append(new SolidConcentration(*_r_h1space[1], 1, 0, -1, PE));
    }
@@ -100,18 +104,30 @@ EChemOperator::EChemOperator(ParFiniteElementSpace * &x_h1space, Array<ParFinite
 
       for (unsigned p = 0; p < NPAR; p++)
       {
+         //find the rank that the global particle dof belongs to 
          auto rank_iter = std::upper_bound(particle_offsets.begin(), particle_offsets.end(), p);
+         //std:distance returns the number of elements between the beginning of particle_offsets and 
+         //the position of rank_iter, which gives us the rank that the global particle dof belongs to
+         // -1 is used because rank_iter points to the first element that is greater than p, 
+         // so we need to subtract 1 to get the correct rank
          int rank = std::distance(particle_offsets.begin(), rank_iter) - 1;
+         // check if the global particle dof belongs to the local true (owned) dofs of that rank
          bool owned = rank == Mpi::WorldRank();
-
+         
+         // e.g. if there are 3 ranks and each rank has 2, 3 and 4 particles respectively, then particle_offsets will be [0 2 5 9] 
          unsigned offset = particle_offsets[Mpi::WorldRank()];
+         // if owned, get the local dof index for that particle dof, otherwise set it to -1
+         //particle_dofs is an array of size equal to the number of particles in the local rank.
          int dof = owned ? particle_dofs[p - offset] : -1;
+         //particle_regions is an array of size equal to the number of particles in the entire domain.
          Region region = particle_regions[p];
-
+         // construct the solid concentration equation for that particle dof and region, 
+         // and append it to the list of solid concentration equations
          _sc.Append(new SolidConcentration(*_r_h1space[p], p, rank, dof, region));
       }
    }
-
+   // Construct coefficients for reaction current, exchange current, open circuit potential and overpotential, 
+   // which are required for the equations to update themselves.
    ConstructExchangeCurrent();
    ConstructOpenCircuitPotential();
    ConstructOverPotential();
@@ -125,7 +141,11 @@ EChemOperator::EChemOperator(ParFiniteElementSpace * &x_h1space, Array<ParFinite
 
       // Build special integration rule to be used only for self-consistency loop
       for (int i = 0; i < _scl_ir.GetNPoints(); i++)
+         // Set all quadrature integration weights to 1, as we are only interested in the relative error of j between iterations, 
+         // and not its absolute value.
          _scl_ir.IntPoint(i).weight = 1.;
+      // Set the integration rule for the surface concentration self-consistency loop   
+      // output of Geometry::Type::SEGMENT is 1, which is the only type of element we have in our 1D mesh
       _scl_irs[Geometry::Type::SEGMENT] = &_scl_ir;
    }
 }
@@ -161,6 +181,7 @@ void EChemOperator::ImplicitSolve(const real_t dt,
          // dependent on the potentials should use the gridfunctions set below,
          // which are on the new timestep, just like _j, NOT any gridfunctions
          // obtained afresh from true vector _x which is now on the old timestep
+         // x = x - dt*dx_dt
          _x.Add(-_dt, dx_dt);
 
          // assemble each individual block of _Ap and _bp
@@ -176,13 +197,19 @@ void EChemOperator::ImplicitSolve(const real_t dt,
          _Solver.SetOperator(*_Ap);
          _Solver.Mult(_bp, dxp_dt);
 
-         // temporarily advance solution true dof vector to set gridfunctions
+         // temporarily advance solution true dof vector to set gridfunctions, dxc_dt is zero at this point 
+         // so it doesn't affect the concentration solution.
          _x.Add(_dt, dx_dt);
+         // update gridfunctions to compute reaction current on the new timestep, j_gf
          SetGridFunctionsFromTrueVectors();
       }
+      //_j is the reaction current coefficient from the previous iteration, and j_gf is the reaction current coefficient from the current iteration.
       while (j_gf.ComputeL2Error(*_j, _scl_irs) > _scl_threshold * j_gf.ComputeL2Error(zero, _scl_irs));
 
-      // restore solution true dof vector
+      // restore solution true dof vector to the old timestep for the concentration solve; 
+      // note that the potential solve above is only used to update the gridfunctions for the reaction current coefficient, 
+      // and does not directly affect the concentration solve, which is still on the old timestep rhs j(dxp_dt^old), 
+      // hence we need to restore the solution true dof vector to the old timestep before solving for dxc_dt.
       _x.Add(-_dt, dx_dt);
    }
 
@@ -194,6 +221,7 @@ void EChemOperator::ImplicitSolve(const real_t dt,
    _bc.GetBlock(ECC) = _ec->GetZ();
    for (unsigned p = 0; p < NPAR; p++)
    {
+      //A_{SCC+p,SCC+p}​=M+dtK
       _Ac->SetDiagonalBlock(SCC + p, Add(1, _sc[p]->GetM(), dt, _sc[p]->GetK()));
       _bc.GetBlock(SCC + p) = _sc[p]->GetZ();
    }
@@ -364,13 +392,17 @@ Array<real_t> EChemOperator::GetParticleReactionCurrent()
       {
          j[p] = _sc[p]->IsParticleOwned() ? j_gf(_sc[p]->GetParticleDof()) : 0;
 
+         // if particle rank is the same as the surface concentration rank, then no communication 
+         // is needed as the particle reaction current is already stored in j[p] on that rank;
          if (_sc[p]->GetParticleRank() == _sc[p]->GetSurfaceRank())
             continue;
 
          if (_sc[p]->IsParticleOwned())
+            // send the particle reaction current to the surface concentration rank;
             MPI_Send(&j[p], 1, MFEM_MPI_REAL_T, _sc[p]->GetSurfaceRank(), p, MPI_COMM_WORLD);
 
          if (_sc[p]->IsSurfaceOwned())
+            // receive the particle reaction current from the particle rank;
             MPI_Recv(&j[p], 1, MFEM_MPI_REAL_T, _sc[p]->GetParticleRank(), p, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
       }
    }
