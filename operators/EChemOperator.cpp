@@ -343,10 +343,17 @@ real_t EChemOperator::GetElectrodeReactionCurrent(const Region &r, const int &si
 {
    MFEM_ASSERT(r == NE || r == PE, "Cannot get partial electrode reaction current, only negative (NE) and positive electrodes (PE) are supported.");
 
+   // Define a piecewise constant coefficient that is equal to the appropriate scaling factor 
+   // (AN*LNE/NNE*NX for NE, AP*LPE/NPE*NX for PE) in the electrode region and zero elsewhere.
    Vector amask({r == NE ? AN * LNE / NNE * NX : 0., 0., r == PE ? AP * LPE / NPE * NX : 0.});
    PWConstCoefficient a(amask);
    ProductCoefficient ajex(a, *_jex);
+   // Define a transformed coefficient that applies the transformation I = ajex * exp( sign * 0.5 * op ) 
+   // to the piecewise constant coefficient ajex, where op is the overpotential coefficient.
    TransformedCoefficient I(&ajex, _op, [=](real_t ajex, real_t op) { return ajex * exp( sign * 0.5 * op ); });
+   // Set up a quadrature space for integration, using the same mesh as the H1 space but with two times the order 
+   // to ensure accuracy of the integral, and integrate the transformed coefficient I over the domain to get the 
+   // partial electrode reaction current.
    QuadratureSpace x_qspace(_x_h1space->GetParMesh(), 2 * _x_h1space->FEColl()->GetOrder());
    return x_qspace.Integrate(I);
 }
@@ -378,12 +385,16 @@ Array<real_t> EChemOperator::GetParticleReactionCurrent()
                if (_x_h1space->GetAttribute(elem) == SEP)
                {
                   mutated_elements.Append(elem);
+                  // Set the mesh attribute of the element containing the particle dof to the particle region (NE or PE) 
+                  // so that the reaction current coefficient can be evaluated correctly at that dof. 
+                  // We will set it back to SEP (line 392) after projecting j onto the H1 space (line 388).
                   _x_h1space->GetParMesh()->SetAttribute(elem, _sc[p]->GetParticleRegion());
                }
             }
-
+         // *_j is dereferenced to get the underlying coefficient object from the pointer, which is then evaluated at the dofs specified by electrode_particle_dofs and stored in j_gf at those dofs.
          j_gf.ProjectCoefficient(*_j, electrode_particle_dofs);
-
+         // loop over a list of elements (stored in mutated_elements) and assigns each of those elements 
+         // a new mesh attribute given by SEP
          for (auto & elem : mutated_elements)
             _x_h1space->GetParMesh()->SetAttribute(elem, SEP);
       }
