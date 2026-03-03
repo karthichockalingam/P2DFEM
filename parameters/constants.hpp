@@ -41,8 +41,10 @@ namespace constants {
     const real_t T_ref = 298.;    // Reference temperature, K
 
     // Scalings
-    const real_t t0 = 1.0;   // Time scale.
-    const real_t r0 = 1e-6;  // Length scale (particle)
+    const real_t t0 = 3600;   // Actual Time scale in seconds.
+    const real_t t_sim = 3600; // Simulation time in seconds.
+    const real_t t_eff = t_sim / t0; // Effective time scale
+    const real_t r0 = 1e-6;  // Length scale (particle) in meters
     const real_t L = negative_electrode_thickness + separator_thickness + positive_electrode_thickness; // Length scale (cell)
 
     const real_t LNE  = negative_electrode_thickness / L; // Length of Negative Electrode
@@ -56,10 +58,10 @@ namespace constants {
 
     const real_t te = F * ce0 * cell_area * L / I_typ; // Electrolyte "particle" time scale.
 
-    const real_t te_scale = te / t0;
+    const real_t te_scale = te / t_eff;
 
-    const real_t Dn_scale = r0 * r0 / t0; // Negative particle diffusion coefficient scale.  Units of m^2/s.
-    const real_t Dp_scale = r0 * r0 / t0; // Positive particle diffusion coefficient scale.  Units of m^2/s.
+    const real_t Dn_scale = r0 * r0 / t_eff; // Negative particle diffusion coefficient scale.  Units of m^2/s.
+    const real_t Dp_scale = r0 * r0 / t_eff; // Positive particle diffusion coefficient scale.  Units of m^2/s.
 
     const real_t De_scale = L * L / te;
 
@@ -78,8 +80,8 @@ namespace constants {
 
     // For scaling between particle time scale and cell time scale.
     // Required for scaling the flux j in the SolidConcentration equation.
-    const real_t tn_scale = tn / t0; // time scale of negative electrode
-    const real_t tp_scale = tp / t0; // time scale of positive electrode
+    const real_t tn_scale = tn / t_eff; // time scale of negative electrode
+    const real_t tp_scale = tp / t_eff; // time scale of positive electrode
 
     const real_t ce_scale = ce0;
 
