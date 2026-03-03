@@ -289,6 +289,9 @@ void EChemOperator::SetSurfaceConcentration()
          Region r = _sc[p]->GetParticleRegion();
          real_t sc = (r == NE ? CN0 : CP0) + _sc[p]->SurfaceConcentration(_x);
          _sc_array[r] = sc;
+         // broadcast the surface concentration of each particle to all ranks, 
+         // so that SetSurfaceConcentration can return the correct value on all ranks regardless of 
+         // whether they own the particle dof or not.
          MPI_Bcast(&_sc_array[r], 1, MFEM_MPI_REAL_T, _sc[p]->GetParticleRank(), MPI_COMM_WORLD);
       }
    else if (P2D)
