@@ -301,11 +301,15 @@ void EChemOperator::SetSurfaceConcentration()
          Region r = _sc[p]->GetParticleRegion();
          real_t sc = (r == NE ? CN0 : CP0) + _sc[p]->SurfaceConcentration(_x);
          if (_sc[p]->IsParticleOwned())
+            // assigns the computed scalar concentration into the GridFunction _sc_gf at the particle’s associated DOF.
             _sc_gf(_sc[p]->GetParticleDof()) = sc;
       }
       // Apply prolongation after restriction. Might be unnecessary, but guarantees
       // all processors have the right information for all their local dofs.
+      // constructs the global (true) vector from your modified local vector:
       _sc_gf.SetTrueVector();
+      // broadcasts/prolongs the true DOFs back into all processors’ local DOF storage, 
+      //so that all processors have the correct surface concentration values for their local dofs
       _sc_gf.SetFromTrueVector();
    }
 }
