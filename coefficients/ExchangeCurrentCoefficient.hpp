@@ -25,6 +25,7 @@ class ExchangeCurrentCoefficient: public Coefficient
         const real_t & scn,
         const real_t & scp,
         const real_t & ec):
+        //store a pointer to SCN inside _SCN.
         _scn(&scn),
         _scp(&scp),
         _jex_ne_tc(nullptr, [](real_t) { return 0; }),
@@ -42,6 +43,7 @@ class ExchangeCurrentCoefficient: public Coefficient
         _electrolyte_concentration_gfc(&ec),
         _scn(&scn),
         _scp(&scp),
+        // [=] means: Capture all variables from the surrounding scope by value, so that they can be used inside the lambda function.
         _jex_ne_tc(_electrolyte_concentration_gfc, [=](real_t ec) { return kn * sqrt( ec ); }),
         _jex_pe_tc(_electrolyte_concentration_gfc, [=](real_t ec) { return kp * sqrt( ec ); }) {}
 
@@ -55,9 +57,12 @@ class ExchangeCurrentCoefficient: public Coefficient
         _electrolyte_concentration_gfc(&ec),
         _jex_ne_tc(_surface_concentration_gfc, _electrolyte_concentration_gfc, [=](real_t sc, real_t ec) { return kn * sqrt( sc * ec * (1 - sc) ); }),
         _jex_pe_tc(_surface_concentration_gfc, _electrolyte_concentration_gfc, [=](real_t sc, real_t ec) { return kp * sqrt( sc * ec * (1 - sc) ); }),
+        //static_cast is used to convert the lambda function defined in line 47 and 48 into a function pointer, 
+        //which is required by the PWCoefficient constructor.
         _jex_pwc(Array<int>({NE, PE}), Array<Coefficient*>({static_cast<Coefficient*>(&_jex_ne_tc), static_cast<Coefficient*>(&_jex_pe_tc)})) {}
 
       /// SPM(e)
+      // declare a virtual member function Eval that returns a reference to a PWConstCoefficient object.
       virtual PWConstCoefficient & Eval()
       {
         /// SPMe
@@ -67,8 +72,10 @@ class ExchangeCurrentCoefficient: public Coefficient
           QuadratureSpace x_qspace(x_h1space->GetParMesh(), 2 * x_h1space->FEColl()->GetOrder());
 
           /// NE
+          // update the piecewise coefficient for NE region to perform integration and get the integral value for NE region;
           _jex_pwc.UpdateCoefficient(NE, _jex_ne_tc);
           real_t integral_ne = x_qspace.Integrate(_jex_pwc);
+          // zero out the piecewise coefficient to avoid unintended use of the old values in the next iteration;
           _jex_pwc.ZeroCoefficient(NE);
 
           /// PE
@@ -90,6 +97,7 @@ class ExchangeCurrentCoefficient: public Coefficient
       }
 
       /// P2D
+      // This function is intended to override a virtual function from the base class.
       virtual real_t Eval(ElementTransformation &T, const IntegrationPoint &ip) override
       {
         return _jex_pwc.Eval(T, ip);
