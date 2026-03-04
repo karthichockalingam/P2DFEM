@@ -301,7 +301,7 @@ void EChemOperator::SetSurfaceConcentration()
          Region r = _sc[p]->GetParticleRegion();
          real_t sc = (r == NE ? CN0 : CP0) + _sc[p]->SurfaceConcentration(_x);
          if (_sc[p]->IsParticleOwned())
-            // assigns the computed scalar concentration into the GridFunction _sc_gf at the particle’s associated DOF.
+            // assigns the computed scalar concentration into the GridFunction _sc_gf at the particle’s associated local DOF.
             _sc_gf(_sc[p]->GetParticleDof()) = sc;
       }
       // Apply prolongation after restriction. Might be unnecessary, but guarantees
