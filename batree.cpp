@@ -15,7 +15,6 @@ main(int argc, char * argv[])
   Mpi::Init(argc, argv);
   Hypre::Init();
 
-<<<<<<< HEAD
   // Parse command-line options.
   std::string model = "SPM";
   int order = 1;
@@ -23,20 +22,10 @@ main(int argc, char * argv[])
   real_t t_final = 3600.0;
   real_t dt = 1.0;
   int output_steps = 5;
-=======
-   // Parse command-line options.
-   std::string model = "SPM";
-   int order = 1;
-   int ode_solver_type = 1;
-   real_t t_final = 3600.0;
-   real_t dt = 1.0;
-   int output_steps = 5;
->>>>>>> e19f2c1 (Refactor output related options)
 
   int precision = 8;
   std::cout.precision(precision);
 
-<<<<<<< HEAD
   OptionsParser args(argc, argv);
   args.AddOption(&model, "-m", "--model", "Electrochemical model: SPM, SPMe, or P2D.");
   args.AddOption(&order, "-o", "--order", "Order (degree) of the finite elements.");
@@ -53,27 +42,6 @@ main(int argc, char * argv[])
     args.PrintUsage(std::cout);
     return 1;
   }
-=======
-   OptionsParser args(argc, argv);
-   args.AddOption(&model, "-m", "--model",
-                  "Electrochemical model: SPM, SPMe, or P2D.");
-   args.AddOption(&order, "-o", "--order",
-                  "Order (degree) of the finite elements.");
-   args.AddOption(&ode_solver_type, "-s", "--ode-solver",
-                  "ODE solver: 1 - Backward Euler, 2 - SDIRK2, 3 - SDIRK3");
-   args.AddOption(&t_final, "-tf", "--t-final",
-                  "Final time; start time is 0.");
-   args.AddOption(&dt, "-dt", "--time-step",
-                  "Time step.");
-   args.AddOption(&output_steps, "-os", "--output-steps",
-                  "Output every n-th timestep.");
-   args.Parse();
-   if (!args.Good())
-   {
-      args.PrintUsage(std::cout);
-      return 1;
-   }
->>>>>>> e19f2c1 (Refactor output related options)
 
   if (Mpi::Root())
     args.PrintOptions(std::cout);
