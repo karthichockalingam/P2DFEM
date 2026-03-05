@@ -76,7 +76,8 @@ public:
                            GridFunctionCoefficient & sp,
                            GridFunctionCoefficient & ep,
                            OpenCircuitPotentialCoefficient & ocp)
-    : _solid_potential_gfc(&sp),
+    : //store a pointer to sp inside _solid_potential_gfc.
+      _solid_potential_gfc(&sp),
       _electrolyte_potential_gfc(&ep),
       _ocp(&ocp),
       _rp_ne_fc([&](const Vector &) { return 0 - rpe; }),
@@ -91,6 +92,10 @@ public:
   }
 
   /// SPM(e)
+  // virtual function is a member function in a base class that you expect to override in derived classes.
+  // It enables runtime polymorphism, function that get executed will be determined at runtime based on the 
+  // type of the object pointed to, rather than the type of the pointer.
+  // declare a virtual member function Eval that returns a reference to a PWConstCoefficient object.
   virtual PWConstCoefficient & Eval()
   {
     _op_pwcc(NE) = 2 * T * asinh(+I / AN / LNE / 2.0 / _jex->Eval()(NE));
