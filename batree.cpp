@@ -141,12 +141,13 @@ main(int argc, char * argv[])
   HYPRE_BigInt fe_size_owned = NMACRO * x_h1space->GetTrueVSize();
   // sum up fe_size across each processor to get total size across whole domain
   for (unsigned p = 0; p < NPAR; p++)
+    // sum up fe_size_owned across all particle mesh to get total
+    // size
     fe_size_owned += r_h1space[p]->GetTrueVSize();
 
   // Initialize the ElectroChemistry operator.
   real_t t = 0.0;
   BlockVector x;
-  EChemOperator oper(x_h1space, r_h1space, fe_size_owned, x, t, dt, *ode_solver);
 
   // Perform time-integration (looping over the time iterations, ti, with a
   // time-step dt).
@@ -166,6 +167,7 @@ main(int argc, char * argv[])
     if (Mpi::Root() && output_steps && ti == 1)
       std::cout << "step\ttime[s]\tvoltage[V]" << std::endl;
 
+    // if at last timestep or at visualisation output step and only output at root processor
     if (Mpi::Root() && output_steps && (last_step || (ti % output_steps) == 0))
       std::cout << ti << "\t" << t << "\t" << V << std::endl;
   }
