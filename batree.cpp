@@ -148,20 +148,20 @@ main(int argc, char * argv[])
   BlockVector x;
   EChemOperator oper(x_h1space, r_h1space, fe_size_owned, x, t, dt, *ode_solver);
 
-   // Perform time-integration (looping over the time iterations, ti, with a
-   // time-step dt).
-   //initialise mathematical operator
-   ode_solver->Init(oper);
+  // Perform time-integration (looping over the time iterations, ti, with a
+  // time-step dt).
+  // initialise mathematical operator
+  ode_solver->Init(oper);
 
   bool last_step = false;
   for (int ti = 1; !last_step; ti++)
   {
     last_step = t + dt >= t_final - dt / 2;
 
-     // step through one time step
-     oper.Step();
-     real_t V = oper.GetVoltage();
-     // TODO: Stop sim at cutoff voltage
+    // step through one time step
+    oper.Step();
+    real_t V = oper.GetVoltage();
+    // TODO: Stop sim at cutoff voltage
 
     if (Mpi::Root() && output_steps && ti == 1)
       std::cout << "step\ttime[s]\tvoltage[V]" << std::endl;
