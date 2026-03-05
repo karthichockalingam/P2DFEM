@@ -1,7 +1,7 @@
 -include makefile.local
 
 # Use the MFEM install directory
-MFEM_INSTALL_DIR ?= ../mfem-debug
+MFEM_INSTALL_DIR ?= /Users/yiyun.tan/Battery_EU/mfem-4.9/mfem-install
 CONFIG_MK = $(MFEM_INSTALL_DIR)/share/mfem/config.mk
 
 MFEM_LIB_FILE = mfem_is_not_built
