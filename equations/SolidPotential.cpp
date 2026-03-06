@@ -36,6 +36,7 @@ SolidPotential::Update(const BlockVector & x, const Coefficient & j)
   Q->AddDomainIntegrator(new DomainLFIntegrator(source));
   Q->Assemble();
 
+  // assemble a parallel RHS vector with the essential boundary DOF zeroed out
   delete Qvec;
   Qvec = Q->ParallelAssemble();
   Qvec->SetSubVector(ess_tdof_list, 0.0);
