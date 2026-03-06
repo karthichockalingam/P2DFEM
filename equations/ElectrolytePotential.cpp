@@ -53,11 +53,11 @@ ElectrolytePotential::Update(const BlockVector & x,
   delete Qvec;
   Qvec = Q->ParallelAssemble();
   Qvec->SetSubVector(ess_tdof_list, 0.0);
-
   // b = K*x
   Kmat.Mult(x.GetBlock(EP), b);
   // b = -K*x
   b.Neg();
   // b = -K*x + Qvec
   b += *Qvec;
+
 }
