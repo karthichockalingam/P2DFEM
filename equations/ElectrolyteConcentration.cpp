@@ -56,7 +56,6 @@ ElectrolyteConcentration::Update(const BlockVector & x,
 
   delete Qvec;
   Qvec = Q->ParallelAssemble();
-
   // b = K*x
   Kmat.Mult(x.GetBlock(EC), b);
   // b = -K*x
