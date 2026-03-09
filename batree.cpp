@@ -148,6 +148,7 @@ main(int argc, char * argv[])
   // Initialize the ElectroChemistry operator.
   real_t t = 0.0;
   BlockVector x;
+  EChemOperator oper(x_h1space, r_h1space, fe_size_owned, x, t, dt, *ode_solver);
 
   // Perform time-integration (looping over the time iterations, ti, with a
   // time-step dt).
