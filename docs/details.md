@@ -26,6 +26,8 @@ $i=n,e,p,sep$, where
 | te            | $t_{e0}$  | $t_{e0}=\dfrac{F A L_0 c_{e0}}{I_0}$     | $\mathrm{s}$           | characteristic electrolyte diffusion time scale                             |
 | sig_scale     | -         | $\dfrac{I_0 L_0}{\phi_0 A}$              | $\mathrm{S \  m^{-1}}$ | electrode conductivity scale                                                |
 | kappa_scale   | -         | $\dfrac{I_0 L_0}{\phi_0 A}$              | $\mathrm{S \  m^{-1}}$ | electrolyte conductivity scale                                              |
+| kn_scale      | -         | $\dfrac{j_0}{(c_{n,\max}\ c_{e0}^{0.5})}$| $\mathrm{A\ m^{2.5}\ mol^{-1.5}}$ | reaction rate scale in phase $n$                                 |
+| kp_scale      | -         | $\dfrac{j_0}{(c_{p,\max}\ c_{e0}^{0.5})}$| $\mathrm{A\ m^{2.5}\ mol^{-1.5}}$ | reaction rate scale in phase $p$                                 |
 
 
 ### Parameters
@@ -49,6 +51,7 @@ $i=n,e,p,sep$, where
 | $T$                  | $\mathrm{K}$                      | absolute temperature                         |
 | $t_+^{0}$ or $t^+$   | —                                 | transference number of lithium-ion           |
 | $U_i$                | $\mathrm{V}$                      | open circuit potential of phase $i$          |
+| $j_{\mathrm{ex}}$    | $\mathrm{A\ m^{-2}}$              | exchange current density          |
 
 
 
@@ -271,6 +274,115 @@ $$
 $$
 
 where $\sigma$ and $f$ are constants.
+
+## Reference potentials
+**Butler-Volmer kinetics**, [^1]
+\[\bar{j}=2 \bar{j}_{\mathrm{ex}} \sinh \left[0.5\left(\bar{\phi}_i-\bar{\phi}_{\mathrm{e}}-\bar{U}_i\right) / \bar{T}\right], \quad \bar{j}_{\mathrm{ex}}=\bar{m}_i c_{i, \text { surf }}^{0.5} \bar{c}_{\mathrm{e}}^{0.5}\left(\bar{c}_{i, \text { surf }}-\bar{c}_{i, \max }\right)^{0.5}\]
+
+*Given*: $\left.\bar{\phi}_{\mathrm{n}}\right|_{\bar{x}=0}=\bar{\phi}_{\mathrm{n} 0}=0$
+*Find*: the unknown reference potentials of the positive electrode $\bar{\phi}_{\mathrm{p} 0}$ and the electrolyte $\bar{\phi}_{\mathrm{e} 0}$.
+
+**Solution**:
+1. Introduce the prime variables to separate:
+   - the spatially varying part of the potentials and
+   - the constant reference offsets $\bar{\phi}_{n 0}, \bar{\phi}_{p 0}, \bar{\phi}_{e 0}$.
+$$
+\bar{\phi}_i=\bar{\phi}_i^{\prime}+\bar{\phi}_{i 0}, \quad \bar{\phi}_e=\bar{\phi}_e^{\prime}+\bar{\phi}_{e 0}
+$$
+and
+$$
+\bar{\eta}_i=\bar{\phi}_i-\bar{\phi}_e-\bar{U}_i=\bar{\eta}_i^{\prime}+\bar{\phi}_{i 0}-\bar{\phi}_{e 0},
+$$
+with overpotentials
+$$\bar{\eta}_i^{\prime}=\bar{\phi}_i^{\prime}-\bar{\phi}_e^{\prime}-\bar{U}_i.$$
+
+2. Substituting Butler-Volmer equation $$\bar{j}=2 \bar{j}_{\mathrm{ex}} \sinh \left(\bar{\eta}_i / (2 \bar{T})\right)$$
+into
+$$
+\int_{\Omega_-} \bar{a}_n \bar{j} d \Omega_{-}=\bar{I}, \quad \int_{\Omega_+} \bar{a}_p \bar{j} d \Omega_{+}=-\bar{I},  \\
+ $$
+yields
+$$
+\int_{\Omega_{-}} 2 \bar{a}_{\mathrm{n}} \bar{j}_{\mathrm{ex}} \sinh \left(\frac{\bar{\eta}_{\mathrm{n}}^{\prime}+\bar{\phi}_{\mathrm{n} 0}-\bar{\phi}_{\mathrm{e} 0}}{2\bar{T}}\right) d \Omega_{-}=\bar{I},\quad
+\int_{\Omega_{+}} 2 \bar{a}_{\mathrm{p}} \bar{j}_{\mathrm{ex}} \sinh \left(\frac{\bar{\eta}_{\mathrm{p}}^{\prime}+\bar{\phi}_{\mathrm{p} 0}-\bar{\phi}_{\mathrm{e} 0}}{2\bar{T}}\right) d \Omega_{+}=-\bar{I}.
+$$
+
+3. **Negative electrode** (with $\bar{\phi}_{n 0}=0$):
+Using 
+$$
+\sinh (z)=\frac{1}{2}\left(e^z-e^{-z}\right)
+$$ 
+we obtain
+$$
+\bar{I}=\int_{\Omega_{-}} \bar{a}_n \bar{j}_{\mathrm{ex}}\left[e^{\left(\bar{\eta}_n^{\prime}-\bar{\phi}_{e 0}\right) / (2\bar{T})}-e^{-\left(\bar{\eta}_n^{\prime}-\bar{\phi}_{e 0}\right) / (2\bar{T})}\right] d \Omega_{-}
+=e^{-\bar{\phi}_{e 0} / (2\bar{T})} \int_{\Omega_{-}} \bar{a}_n \bar{j}_{\mathrm{ex}} e^{\bar{\eta}_n^{\prime} / (2\bar{T})} d \Omega_{-}-e^{\bar{\phi}_{e 0} / (2\bar{T})} \int_{\Omega_{-}} \bar{a}_n \bar{j}_{\mathrm{ex}} e^{-\bar{\eta}_n^{\prime} / (2\bar{T})} d \Omega_{-}.
+$$
+Defining
+$$
+\bar{I}_{\mathrm{np}}=\int_{\Omega_{-}} \bar{a}_n \bar{j}_{\mathrm{ex}} e^{0.5 \bar{\eta}_n^{\prime}/\bar{T}} d \Omega_{-}, \quad \bar{I}_{\mathrm{nn}}=\int_{\Omega_{-}} \bar{a}_n \bar{j}_{\mathrm{ex}} e^{-0.5 \bar{\eta}_n^{\prime}/\bar{T}} d \Omega_{-},
+\quad y=e^{-\bar{\phi}_{e 0} / (2\bar{T})},
+$$
+yields
+$$
+\bar{I}=\bar{I}_{\mathrm{np}} y-\bar{I}_{\mathrm{nn}} y^{-1} \quad \Rightarrow \quad \
+\bar{I}_{\mathrm{np}} y^2-\bar{I} y-\bar{I}_{\mathrm{nn}}=0.
+$$
+Finally, taking into account $y>0$, we obtain
+$$
+y=\frac{\bar{I} + \sqrt{\bar{I}^2+4 \bar{I}_{\mathrm{np}} \bar{I}_{\mathrm{nn}}}}{2 \bar{I}_{\mathrm{np}}}
+\quad\text{or}\quad 
+\bar{\phi}_{e 0}=-2\bar{T} \ln \left(\frac{\bar{I}+\sqrt{4 \bar{I}_{\mathrm{np}} \bar{I}_{\mathrm{nn}}+\bar{I}^2}}{2 \bar{I}_{\mathrm{np}}}\right).
+$$
+
+4. **Positive electrode**:
+$$
+-\bar{I}=\int_{\Omega_{+}} \bar{a}_p \bar{j}_{\mathrm{ex}}\left[e^{\left(\bar{\eta}_p^{\prime}+\bar{\phi}_{p 0}-\bar{\phi}_{e 0}\right) / (2\bar{T})}-e^{-\left(\bar{\eta}_p^{\prime}+\bar{\phi}_{p 0}-\bar{\phi}_{e 0}\right) / (2\bar{T})}\right] d \Omega_{+}
+=\bar{I}_{\mathrm{pp}} z-\bar{I}_{\mathrm{pn}} z^{-1},
+$$
+with
+$$
+\bar{I}_{\mathrm{pp}}=\int_{\Omega_{+}} \bar{a}_p \bar{j}_{\mathrm{ex}} e^{0.5 \bar{\eta}_p^{\prime}/\bar{T}} d \Omega_{+}, \quad \bar{I}_{\mathrm{pn}}=\int_{\Omega_{+}} \bar{a}_p \bar{j}_{\mathrm{ex}} e^{-0.5 \bar{\eta}_p^{\prime}/\bar{T}} d \Omega_{+}, \quad
+z=e^{\left(\phi_{p 0}-\phi_{e 0}\right) / (2\bar{T})} .
+$$
+$$
+\bar{I}_{\mathrm{pp}} z^2+\bar{I} z-\bar{I}_{\mathrm{pn}}=0 \Rightarrow z=\frac{-\bar{I}+\sqrt{\bar{I}^2+4 \bar{I}_{\mathrm{pp}} \bar{I}_{\mathrm{pn}}}}{2 \bar{I}_{\mathrm{pp}}} .
+$$
+Hence,
+$$
+\bar{\phi}_{p 0}=\bar{\phi}_{e 0}+2 \bar{T}\ln \left(\frac{-\bar{I}+\sqrt{4 \bar{I}_{\mathrm{pp}} \bar{I}_{\mathrm{pn}}+\bar{I}^2}}{2 \bar{I}_{\mathrm{pp}}}\right) .
+$$
+
+
+### Iterative scheme
+
+0. Start with initial values at the current time step ($k=0$): 
+$\bar{\phi}_n^{(0)},\ \bar{\phi}_p^{(0)},\ \bar{\phi}_e^{(0)},\ 
+\bar{c}_i^{(k)},\ \bar{c}_e^{(k)}$.
+
+1. *Loop for solving the charge-conservation PDEs*:
+
+   1.1. Set $m=0$. Compute overpotentials $\bar{\eta}_i^{(m)}$ and $\bar{j}^{(m)}$ via the Butler–Volmer equation.
+
+   1.2. Solve the charge-conservation PDEs for $\bar{\phi}_n^{\prime (m+1)},\ \bar{\phi}_p^{\prime (m+1)},\ \bar{\phi}_e^{\prime (m+1)}$.
+
+   1.3. Compute the reference potentials $\bar{\phi}_{e0}^{(m)},\ \bar{\phi}_{p0}^{(m)}, \quad \text{with }\bar{\phi}_{n0}=0$.
+
+   1.4. Compute overpotentials $\bar{\eta}_i^{(m+1)}$ and update the reaction current density via Butler–Volmer to get $\bar{j}^{(m+1)}$.
+
+   1.5. If $\bigl\|\bar{j}^{(m+1)} - \bar{j}^{(m)}\bigr\| > \delta_j$, then
+
+   - set $m = m+1$
+   - repeat from step 1.2
+
+   else set $\bar{j}^{(k)} = \bar{j}^{(m+1)}$.
+
+2. Solve the species-conservation equations for $\bar{c}_e^{(k+1)},\ \bar{c}_i^{(k+1)}$ with $\bar{j}^{(k)}$.
+Set $k = k+1$. 
+If $k<\text{NSteps}$, then
+   - $\bar{\phi}_n^{\prime (0)} = \bar{\phi}_n^{\prime (m+1)}$, $\bar{\phi}_p^{\prime (0)} = \bar{\phi}_p^{\prime (m+1)}$, $\bar{\phi}_e^{\prime (0)} = \bar{\phi}_e^{\prime (m+1)}$,
+   - repeat from step 1.
+
+
 
 ## References
 [^1]: Ai, W., & Liu, Y. (2023). *Improving the convergence rate of Newman’s battery model using 2nd order finite element method*. Journal of Energy Storage, 67, 107512. https://doi.org/10.1016/j.est.2023.107512
