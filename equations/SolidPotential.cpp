@@ -19,15 +19,18 @@ SolidPotential::Update(const BlockVector & x, const Coefficient & j)
 
   PWConstCoefficient sigma(sigma_vec);
 
+  IntegrationRules irs;
+  IntegrationRule ir = irs.Get(Geometry::SEGMENT, 1);
+
   delete K;
   K = new ParBilinearForm(&fespace);
-  K->AddDomainIntegrator(new DiffusionIntegrator(sigma));
+  K->AddDomainIntegrator(new DiffusionIntegrator(sigma, &ir));
   K->Assemble();
   K->FormSystemMatrix(ess_tdof_list, Kmat);
 
   delete Q;
   Q = new ParLinearForm(&fespace);
-  Q->AddDomainIntegrator(new DomainLFIntegrator(source));
+  Q->AddDomainIntegrator(new DomainLFIntegrator(source, &ir));
   Q->Assemble();
 
   delete Qvec;
