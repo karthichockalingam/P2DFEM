@@ -70,6 +70,7 @@ def run_batree(mfem_executable,sim_type):
 # Function to run PyBAMM.
 def run_pybamm(model, parameter_values):
 
+    print(''.join(["Running ", str(model.__class__.__name__), " simulation in PyBaMM..."]))
     sim = pybamm.Simulation(model, parameter_values=parameter_values)
     soln = sim.solve([0, 3600])
 
@@ -97,19 +98,16 @@ if PLOT_DFN and PLOT_MFEM:
 
 if PLOT_SPM and PLOT_PYBAMM:
 
-    print("Running SPM model in PyBaMM...")
     time,voltage = run_pybamm(pybamm.lithium_ion.SPM(), parameter_values)
     easyplot(time, voltage, blue, "--s", 1, "SPM (PyBaMM)", 2)
 
 if PLOT_SPMe and PLOT_PYBAMM:
 
-    print("Running SPMe model in PyBaMM...")
     time,voltage = run_pybamm(pybamm.lithium_ion.SPMe(), parameter_values)
     easyplot(time, voltage, red, "--s", 1, "SPMe (PyBaMM)", 5)
 
 if PLOT_DFN and PLOT_PYBAMM:
 
-    print("Running DFN model in PyBaMM...")
     time,voltage = run_pybamm(pybamm.lithium_ion.DFN(), parameter_values)
     easyplot(time, voltage, black, "--s", 1, "DFN (PyBaMM)", 5)
 
